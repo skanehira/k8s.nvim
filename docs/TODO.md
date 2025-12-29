@@ -12,12 +12,12 @@ Neovim内でKubernetesクラスタを管理するLuaプラグイン。k9sライ�
 
 ### フェーズ1: 基盤構築
 
-- [ ] プロジェクト構造のセットアップ
-  - [ ] ディレクトリ構造作成
-  - [ ] .luarc.json（lua-language-server設定）
-  - [ ] stylua.toml（フォーマッタ設定）
-  - [ ] .luacheckrc（リント設定）
-  - [ ] テスト実行環境（Makefile）
+- [x] プロジェクト構造のセットアップ
+  - [x] ディレクトリ構造作成
+  - [x] .luarc.json（lua-language-server設定）
+  - [x] stylua.toml（フォーマッタ設定）
+  - [x] .luacheckrc（リント設定）
+  - [x] テスト実行環境（Makefile）
 
 ### フェーズ2: インフラ層（kubectl adapter）
 
