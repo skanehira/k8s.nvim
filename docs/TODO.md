@@ -43,7 +43,7 @@ Neovim内でKubernetesクラスタを管理するLuaプラグイン。k9sライ�
 
 インターフェース定義。LuaCATSの型のみ。
 
-- [ ] kubectl_port.lua作成（型定義のみ）
+- [x] kubectl_port.lua作成（型定義のみ）
 
 ### フェーズ4: ドメイン層（Resources）
 
