@@ -17,9 +17,8 @@ local help_action_to_capability = {
 function M.handle_resource_menu(callbacks)
   local global_state = require("k8s.app.global_state")
   local menu_actions = require("k8s.handlers.menu_actions")
-  local view_stack = require("k8s.app.view_stack")
+  local view_helper = require("k8s.handlers.view_helper")
   local window = require("k8s.ui.nui.window")
-  local buffer = require("k8s.ui.nui.buffer")
   local app = require("k8s.app.app")
 
   local config = global_state.get_config()
@@ -47,70 +46,32 @@ function M.handle_resource_menu(callbacks)
 
     for _, item in ipairs(items) do
       if item.text == choice then
-        -- Save previous window reference
-        local prev_window = global_state.get_window()
         app_state = global_state.get_app_state()
 
-        -- Create new list view window (not mounted yet)
-        local new_list_window = window.create_list_view({
+        view_helper.create_view({
+          view_type = "list",
           transparent = config and config.transparent,
-        })
-
-        -- Write content to buffers BEFORE mount (to avoid flicker)
-        local header_bufnr = window.get_header_bufnr(new_list_window)
-        if header_bufnr then
-          local header_content = buffer.create_header_content({
+          header = {
             context = vim.fn.system("kubectl config current-context"):gsub("\n", ""),
             namespace = app_state.current_namespace,
             view = item.value .. "s",
             loading = true,
-          })
-          window.set_lines(header_bufnr, { header_content })
-        end
-
-        local table_header_bufnr = window.get_table_header_bufnr(new_list_window)
-        if table_header_bufnr then
-          window.set_lines(table_header_bufnr, { "" })
-        end
-
-        local content_bufnr = window.get_content_bufnr(new_list_window)
-        if content_bufnr then
-          window.set_lines(content_bufnr, { "Loading..." })
-        end
-
-        local footer_bufnr = window.get_footer_bufnr(new_list_window)
-        if footer_bufnr then
-          local keymaps = callbacks.get_footer_keymaps("list", item.value)
-          local footer_content = buffer.create_footer_content(keymaps)
-          window.set_lines(footer_bufnr, { footer_content })
-        end
-
-        -- Now mount the window with content already filled
-        window.mount(new_list_window)
-
-        -- Setup keymaps on new window
-        callbacks.setup_keymaps_for_window(new_list_window)
-
-        -- Update global window reference
-        global_state.set_window(new_list_window)
-
-        -- Push new list view to stack with new window
-        local vs = global_state.get_view_stack()
-        global_state.set_view_stack(view_stack.push(vs, {
-          type = "list",
-          kind = item.value,
-          namespace = app_state.current_namespace,
-          parent_cursor = cursor_row,
-          window = new_list_window,
-        }))
-
-        -- Hide previous window after new window is shown (to avoid flicker)
-        if prev_window then
-          window.hide(prev_window)
-        end
-
-        global_state.set_app_state(app.set_kind(app_state, item.value))
-        callbacks.fetch_and_render(item.value, app_state.current_namespace)
+          },
+          footer_view_type = "list",
+          footer_kind = item.value,
+          view_stack_entry = {
+            type = "list",
+            kind = item.value,
+            namespace = app_state.current_namespace,
+            parent_cursor = cursor_row,
+          },
+          initial_content = { "Loading..." },
+          pre_render = true,
+          on_mounted = function()
+            global_state.set_app_state(app.set_kind(app_state, item.value))
+            callbacks.fetch_and_render(item.value, app_state.current_namespace)
+          end,
+        }, callbacks)
         break
       end
     end
@@ -199,11 +160,10 @@ end
 ---@param callbacks table { setup_keymaps_for_window: function, render_footer: function }
 function M.handle_help(callbacks)
   local global_state = require("k8s.app.global_state")
+  local view_helper = require("k8s.handlers.view_helper")
   local window = require("k8s.ui.nui.window")
   local help = require("k8s.ui.views.help")
-  local view_stack = require("k8s.app.view_stack")
   local resource_mod = require("k8s.domain.resources.resource")
-  local buffer = require("k8s.ui.nui.buffer")
   local keymap_mod = require("k8s.handlers.keymap")
 
   local win = global_state.get_window()
@@ -221,39 +181,6 @@ function M.handle_help(callbacks)
 
   -- Get current resource kind for capability filtering
   local current_kind = app_state and app_state.current_kind
-
-  -- Save current cursor position and window reference
-  local cursor_row = 1
-  local prev_window = win
-  if win then
-    cursor_row = window.get_cursor(win)
-  end
-
-  -- Create new detail view window (no table_header needed for help)
-  local help_window = window.create_detail_view({
-    transparent = config and config.transparent,
-  })
-  window.mount(help_window)
-
-  -- Setup keymaps on new window
-  callbacks.setup_keymaps_for_window(help_window)
-
-  -- Update global window reference
-  global_state.set_window(help_window)
-
-  -- Push help view to stack with window reference
-  local vs = global_state.get_view_stack() or {}
-  global_state.set_view_stack(view_stack.push(vs, {
-    type = "help",
-    parent_view = current_view,
-    parent_cursor = cursor_row,
-    window = help_window,
-  }))
-
-  -- Hide previous window after new window is shown (to avoid flicker)
-  if prev_window then
-    window.hide(prev_window)
-  end
 
   -- Get keymaps for the current view
   local view_keymaps = help.get_keymaps_for_view(help_view_name)
@@ -283,26 +210,25 @@ function M.handle_help(callbacks)
     table.insert(help_lines, line)
   end
 
-  -- Render help content directly
-  local content_bufnr = window.get_content_bufnr(help_window)
-  if content_bufnr then
-    window.set_lines(content_bufnr, help_lines)
-    window.set_cursor(help_window, 1, 0)
-  end
-
-  -- Update header
-  local header_bufnr = window.get_header_bufnr(help_window)
-  if header_bufnr then
-    local header_content = buffer.create_header_content({
+  view_helper.create_view({
+    view_type = "detail",
+    transparent = config and config.transparent,
+    header = {
       context = vim.fn.system("kubectl config current-context"):gsub("\n", ""),
       namespace = app_state and app_state.current_namespace or "",
       view = "Help",
-    })
-    window.set_lines(header_bufnr, { header_content })
-  end
-
-  -- Update footer
-  callbacks.render_footer("help")
+    },
+    footer_view_type = "help",
+    view_stack_entry = {
+      type = "help",
+      parent_view = current_view,
+    },
+    initial_content = help_lines,
+    pre_render = false,
+    on_mounted = function(help_win)
+      window.set_cursor(help_win, 1, 0)
+    end,
+  }, callbacks)
 end
 
 return M

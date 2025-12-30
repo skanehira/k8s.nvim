@@ -182,11 +182,10 @@ end
 ---@param callbacks table { setup_keymaps_for_window: function, render_footer: function }
 function M.handle_port_forward_list(callbacks)
   local global_state = require("k8s.app.global_state")
+  local view_helper = require("k8s.handlers.view_helper")
   local window = require("k8s.ui.nui.window")
-  local view_stack = require("k8s.app.view_stack")
   local connections = require("k8s.domain.state.connections")
   local port_forward_list = require("k8s.ui.views.port_forward_list")
-  local buffer = require("k8s.ui.nui.buffer")
 
   local win = global_state.get_window()
   if not win then
@@ -195,71 +194,36 @@ function M.handle_port_forward_list(callbacks)
 
   local config = global_state.get_config()
 
-  -- Save current cursor position and window reference
-  local cursor_row = 1
-  local prev_window = win
-  if win then
-    cursor_row = window.get_cursor(win)
-  end
-
-  -- Create new detail view window (no table_header needed for port forward list)
-  local pf_window = window.create_detail_view({
-    transparent = config and config.transparent,
-  })
-  window.mount(pf_window)
-
-  -- Setup keymaps on new window
-  callbacks.setup_keymaps_for_window(pf_window)
-
-  -- Update global window reference
-  global_state.set_window(pf_window)
-
-  -- Push port forward list view to stack with window reference
-  local vs = global_state.get_view_stack()
-  global_state.set_view_stack(view_stack.push(vs, {
-    type = "port_forward_list",
-    parent_cursor = cursor_row,
-    window = pf_window,
-  }))
-
-  -- Hide previous window after new window is shown (to avoid flicker)
-  if prev_window then
-    window.hide(prev_window)
-  end
-
   -- Get active connections
   local active = connections.get_all()
 
   -- Store connections reference for stop action
   global_state.set_pf_list_connections(active)
 
-  -- Render port forward list content directly
-  local content_bufnr = window.get_content_bufnr(pf_window)
-  if content_bufnr then
-    local lines = port_forward_list.create_content(active)
-    window.set_lines(content_bufnr, lines)
+  -- Create content
+  local lines = port_forward_list.create_content(active)
 
-    -- Set cursor to first data row if connections exist
-    if active and #active > 0 then
-      window.set_cursor(pf_window, 2, 0) -- After header row
-    else
-      window.set_cursor(pf_window, 1, 0)
-    end
-  end
-
-  -- Update header
-  local header_bufnr = window.get_header_bufnr(pf_window)
-  if header_bufnr then
-    local header_content = buffer.create_header_content({
+  view_helper.create_view({
+    view_type = "detail",
+    transparent = config and config.transparent,
+    header = {
       context = vim.fn.system("kubectl config current-context"):gsub("\n", ""),
       namespace = "",
       view = "Port Forwards",
-    })
-    window.set_lines(header_bufnr, { header_content })
-  end
-
-  -- Update footer
-  callbacks.render_footer("port_forward_list")
+    },
+    footer_view_type = "port_forward_list",
+    view_stack_entry = { type = "port_forward_list" },
+    initial_content = lines,
+    pre_render = false,
+    on_mounted = function(pf_win)
+      -- Set cursor to first data row if connections exist
+      if active and #active > 0 then
+        window.set_cursor(pf_win, 2, 0) -- After header row
+      else
+        window.set_cursor(pf_win, 1, 0)
+      end
+    end,
+  }, callbacks)
 end
 
 ---Handle stop port forward action (D key in port forward list view)
