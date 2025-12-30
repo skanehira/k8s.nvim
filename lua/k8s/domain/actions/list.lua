@@ -1,24 +1,6 @@
---- list.lua - リソース一覧取得アクション
+--- list.lua - リソース一覧操作（filter, sort）
 
 local M = {}
-
----@type KubectlPort|nil
-local adapter = nil
-
----Setup with adapter (dependency injection)
----@param kubectl_adapter KubectlPort
-function M.setup(kubectl_adapter)
-  adapter = kubectl_adapter
-end
-
----Fetch resources
----@param kind string
----@param namespace string|nil
----@param callback fun(result: K8sResult)
-function M.fetch(kind, namespace, callback)
-  assert(adapter, "list.setup() must be called before fetch()")
-  adapter.get_resources(kind, namespace, callback)
-end
 
 ---Filter resources by name or namespace
 ---@param resources table[]
@@ -57,11 +39,6 @@ function M.sort(resources)
   end)
 
   return sorted
-end
-
----Reset adapter (for testing)
-function M._reset()
-  adapter = nil
 end
 
 return M

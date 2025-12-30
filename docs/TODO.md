@@ -39,13 +39,7 @@ Neovim内でKubernetesクラスタを管理するLuaプラグイン。k9sライ�
 - [x] [GREEN] context/namespace操作実装
 - [x] [REFACTOR] adapter全体の共通処理抽出
 
-### フェーズ3: ドメイン層（Ports）
-
-インターフェース定義。LuaCATSの型のみ。
-
-- [x] kubectl_port.lua作成（型定義のみ）
-
-### フェーズ4: ドメイン層（Resources）
+### フェーズ3: ドメイン層（Resources）
 
 リソース定義。メタ情報（対応操作、カラム定義へのヒント）を含む。
 
@@ -58,7 +52,7 @@ Neovim内でKubernetesクラスタを管理するLuaプラグイン。k9sライ�
 - [x] ~~[GREEN] service.lua等~~ (resource.lua に統合)
 - [x] [REFACTOR] リソース共通処理の抽出 → 最初から resource.lua に統合済み
 
-### フェーズ5: ドメイン層（State）
+### フェーズ4: ドメイン層（State）
 
 状態管理。ScopeとConnectionsに分離。
 
@@ -73,46 +67,19 @@ Neovim内でKubernetesクラスタを管理するLuaプラグイン。k9sライ�
 - [x] ~~[GREEN] PF操作実装~~ (connections.luaに統合)
 - [x] [REFACTOR] State全体の整理（変更不要）
 
-### フェーズ6: ドメイン層（Actions - 参照系）
+### フェーズ5: ドメイン層（Actions）
+
+ロジックを持つ操作のみ。describe, delete, scale, restart等はadapterを直接利用。
 
 - [x] [RED] list.luaのテスト作成（リソース一覧取得）
-- [x] [GREEN] list.lua実装（KubectlPortを使用）
+- [x] [GREEN] list.lua実装（fetch, filter, sort）
 - [x] ~~[RED] フィルタリングのテスト作成~~ (list_spec.luaに統合)
 - [x] ~~[GREEN] フィルタリング実装~~ (list.luaに統合)
 - [x] ~~[RED] ソート（NAME順）のテスト作成~~ (list_spec.luaに統合)
 - [x] ~~[GREEN] ソート実装~~ (list.luaに統合)
+- [x] [REFACTOR] setup()パターン廃止、関数引数でadapterを渡す形式に変更
 
-- [x] [RED] describe.luaのテスト作成
-- [x] [GREEN] describe.lua実装
-- [x] [REFACTOR] 参照系アクションの共通処理抽出（変更不要）
-
-### フェーズ7: ドメイン層（Actions - 変更系）
-
-- [x] [RED] delete.luaのテスト作成
-- [x] [GREEN] delete.lua実装
-
-- [x] [RED] scale.luaのテスト作成
-- [x] [GREEN] scale.lua実装
-
-- [x] [RED] restart.luaのテスト作成
-- [x] [GREEN] restart.lua実装
-- [x] [REFACTOR] 変更系アクションの共通処理抽出（変更不要）
-
-### フェーズ8: ドメイン層（Actions - 接続系）
-
-- [ ] [RED] exec.luaのテスト作成
-- [ ] [GREEN] exec.lua実装（シェル自動判定含む）
-
-- [ ] [RED] logs.luaのテスト作成
-- [ ] [GREEN] logs.lua実装（-f, --timestamps, -p対応）
-
-- [ ] [RED] port_forward.luaのテスト作成
-- [ ] [GREEN] port_forward.lua実装
-- [ ] [RED] PFライフサイクル（開始・停止・クリーンアップ）テスト
-- [ ] [GREEN] ライフサイクル実装
-- [ ] [REFACTOR] 接続系アクションの共通処理抽出
-
-### フェーズ9: UI層（Components）
+### フェーズ6: UI層（Components）
 
 - [ ] [RED] layout.luaのテスト作成（3ウィンドウ構成）
 - [ ] [GREEN] layout.lua実装（NuiPopup×3）
@@ -133,7 +100,7 @@ Neovim内でKubernetesクラスタを管理するLuaプラグイン。k9sライ�
 - [ ] [GREEN] confirm.lua実装
 - [ ] [REFACTOR] コンポーネント間の整合性確認
 
-### フェーズ10: UI層（Views）
+### フェーズ7: UI層（Views）
 
 - [ ] [RED] resource_list.luaのテスト作成
 - [ ] [GREEN] resource_list.lua実装
@@ -152,19 +119,19 @@ Neovim内でKubernetesクラスタを管理するLuaプラグイン。k9sライ�
 - [ ] [GREEN] help.lua実装（フッター拡張形式）
 - [ ] [REFACTOR] View間の共通処理抽出
 
-### フェーズ11: UI層（columns）
+### フェーズ8: UI層（columns）
 
 - [ ] [RED] columns.luaのテスト作成
 - [ ] [GREEN] columns.lua実装（リソースタイプごとのカラム定義）
 - [ ] [REFACTOR] カラム定義の最適化
 
-### フェーズ12: API層（ファサード）
+### フェーズ9: API層（ファサード）
 
 - [ ] [RED] api.luaのテスト作成（統一API）
-- [ ] [GREEN] api.lua実装
+- [ ] [GREEN] api.lua実装（adapterを直接利用）
 - [ ] [REFACTOR] API設計の見直し
 
-### フェーズ13: エントリポイント
+### フェーズ10: エントリポイント
 
 - [ ] [RED] config.luaのテスト作成（設定マージ・検証）
 - [ ] [GREEN] config.lua実装
@@ -175,7 +142,7 @@ Neovim内でKubernetesクラスタを管理するLuaプラグイン。k9sライ�
 - [ ] plugin/k8s.lua実装（遅延読み込み、コマンド定義）
 - [ ] [REFACTOR] 起動時間の最適化
 
-### フェーズ14: 統合・品質保証
+### フェーズ11: 統合・品質保証
 
 - [ ] [STRUCTURAL] 全体コード整理（動作変更なし）
 - [ ] 全テスト実行と確認
@@ -184,6 +151,12 @@ Neovim内でKubernetesクラスタを管理するLuaプラグイン。k9sライ�
 - [ ] doc/k8s.txt（Vimヘルプ）作成
 
 ## 実装ノート
+
+### アーキテクチャ変更（2025-12-30）
+
+- **Ports層を削除**: adapterを直接利用するシンプルな設計に変更
+- **Actions層を簡素化**: ロジックを持つlist.luaのみ残し、describe/delete/scale/restart等はadapterを直接呼び出し
+- **list.lua**: setup()パターンを廃止し、fetch(adapter, kind, namespace, callback)形式に変更
 
 ### MUSTルール遵守事項
 - TDD: RED → GREEN → REFACTOR サイクルを厳守
@@ -194,14 +167,12 @@ Neovim内でKubernetesクラスタを管理するLuaプラグイン。k9sライ�
 ```
 infra/kubectl（依存なし）
     ↓
-domain/ports（型定義のみ）
-    ↓
-domain/resources（portsに依存）
+domain/resources
 domain/state（依存なし）
     ↓
-domain/actions（ports, resources, stateに依存）
+domain/actions（listのみ、純粋関数中心）
     ↓
-api.lua（domain全体に依存）
+api.lua（domain全体、adapterに依存）
     ↓
 ui/components（nui.nvimに依存）
     ↓

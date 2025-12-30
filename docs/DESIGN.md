@@ -491,17 +491,16 @@ Delete pod/redis-def456? [y]es, [N]o:                      ← vim.fn.confirm
 │           ├── データ (name, status, age, etc.)
 │           └── メタ情報 (対応操作、カラム定義)
 │
-├── Actions (操作、別モジュール)
-│   ├── 参照系: list, describe
-│   ├── 変更系: delete, scale, restart
-│   └── 接続系: logs, exec, port-forward (ストリーム)
+├── Actions (ロジックを持つ操作のみ)
+│   └── list: filter, sort (純粋関数)
+│   # describe, delete, scale, restart等はadapterを直接呼び出し
 │
 ├── State (状態管理)
 │   ├── Scope (現在のContext/Namespace) + ResourceCache
 │   └── Connections (アクティブな接続、Scopeから独立)
 │
-└── Ports (外部インターフェース、LuaCATSで定義)
-    └── KubectlPort (参照/変更/接続のIF、実装はkubectl)
+└── Adapter (インフラ層、vim.system経由でkubectl実行)
+    └── describe, delete, scale, restart, exec, logs, port-forward
 ```
 
 ### レイヤー構成
@@ -515,7 +514,9 @@ Delete pod/redis-def456? [y]es, [N]o:                      ← vim.fn.confirm
                       ▼
 ┌─────────────────────────────────────────────────────────────┐
 │                 api.lua (ファサード)                        │
-│  UI向け統一API。内部の依存関係を隠蔽                         │
+│  UI向け統一API                                              │
+│  - adapter.describe() 等を直接呼び出し                      │
+│  - list.filter(), list.sort() を利用                       │
 └─────────────────────┬───────────────────────────────────────┘
                       │ 利用する
                       ▼
@@ -523,23 +524,17 @@ Delete pod/redis-def456? [y]es, [N]o:                      ← vim.fn.confirm
 │                    ドメイン層                               │
 │  ┌─────────────┐ ┌─────────────┐ ┌─────────────┐           │
 │  │  Resources  │ │   Actions   │ │    State    │           │
-│  │ (Pod等定義) │ │ (操作実行)  │ │  (状態管理) │           │
-│  └─────────────┘ └──────┬──────┘ └─────────────┘           │
-│                         │ 依存                              │
-│                         ▼                                   │
-│                  ┌─────────────┐                           │
-│                  │    Ports    │ ← インターフェース定義      │
-│                  │ (KubectlPort)│                           │
-│                  └─────────────┘                           │
-└─────────────────────────┬───────────────────────────────────┘
-                          │ 実装する
-                          ▼
+│  │ (Pod等定義) │ │ (listのみ)  │ │  (状態管理) │           │
+│  └─────────────┘ └─────────────┘ └─────────────┘           │
+└─────────────────────┬───────────────────────────────────────┘
+                      │ 利用する
+                      ▼
 ┌─────────────────────────────────────────────────────────────┐
 │                    インフラ層                               │
 │  ┌─────────────┐                                           │
-│  │   Kubectl   │ アダプタ: KubectlPortの実装               │
-│  │   Adapter   │ (vim.system経由でkubectl実行)              │
-│  └─────────────┘                                           │
+│  │   Kubectl   │ describe, delete, scale, restart,        │
+│  │   Adapter   │ get_resources, exec, logs, port_forward  │
+│  └─────────────┘ (vim.system経由でkubectl実行)              │
 └─────────────────────────────────────────────────────────────┘
 ```
 
@@ -576,37 +571,20 @@ k8s.nvim/
 │       │   │   ├── service.lua    # Service定義
 │       │   │   └── ...            # 他リソース
 │       │   │
-│       │   ├── actions/           # 操作（ビジネスロジック）
-│       │   │   ├── list.lua       # 参照: 一覧取得
-│       │   │   ├── list_spec.lua
-│       │   │   ├── describe.lua   # 参照: 詳細取得
-│       │   │   ├── describe_spec.lua
-│       │   │   ├── delete.lua     # 変更: 削除
-│       │   │   ├── delete_spec.lua
-│       │   │   ├── scale.lua      # 変更: スケール
-│       │   │   ├── scale_spec.lua
-│       │   │   ├── restart.lua    # 変更: 再起動
-│       │   │   ├── restart_spec.lua
-│       │   │   ├── exec.lua       # 接続: exec
-│       │   │   ├── exec_spec.lua
-│       │   │   ├── logs.lua       # 接続: ログ
-│       │   │   ├── logs_spec.lua
-│       │   │   ├── port_forward.lua # 接続: ポートフォワード
-│       │   │   ├── port_forward_spec.lua
-│       │   │   └── fixtures/      # テスト用フィクスチャ
+│       │   ├── actions/           # ロジックを持つ操作のみ
+│       │   │   ├── list.lua       # fetch, filter, sort
+│       │   │   └── list_spec.lua
+│       │   │   # describe, delete, scale, restart等はadapterを直接利用
 │       │   │
-│       │   ├── state/             # 状態管理
-│       │   │   ├── scope.lua      # Context/Namespace + ResourceCache
-│       │   │   ├── scope_spec.lua
-│       │   │   ├── connections.lua # アクティブ接続（PF等）
-│       │   │   └── connections_spec.lua
-│       │   │
-│       │   └── ports/             # インターフェース定義（LuaCATS）
-│       │       └── kubectl_port.lua # KubectlPort型定義
+│       │   └── state/             # 状態管理
+│       │       ├── scope.lua      # Context/Namespace + ResourceCache
+│       │       ├── scope_spec.lua
+│       │       ├── connections.lua # アクティブ接続（PF等）
+│       │       └── connections_spec.lua
 │       │
 │       ├── infra/                 # インフラ層
 │       │   └── kubectl/           # Kubectlアダプタ
-│       │       ├── adapter.lua    # KubectlPortの実装
+│       │       ├── adapter.lua    # kubectl操作の実装
 │       │       ├── adapter_spec.lua
 │       │       ├── parser.lua     # JSON/YAMLパーサー
 │       │       └── parser_spec.lua
@@ -640,14 +618,13 @@ k8s.nvim/
 | モジュール | 責務 |
 |-----------|------|
 | `init.lua` | Public API (setup, toggle, open, close) |
-| `api.lua` | ファサード。UI向け統一API、内部依存を隠蔽 |
+| `api.lua` | ファサード。UI向け統一API、adapterを直接利用 |
 | `config.lua` | ユーザー設定のマージ・検証・提供 |
 | `domain/resources/*` | リソース定義（データ構造 + メタ情報） |
-| `domain/actions/*` | 操作のビジネスロジック（Portsに依存） |
+| `domain/actions/list.lua` | リソース一覧のfetch, filter, sort（純粋関数） |
 | `domain/state/scope.lua` | 現在のContext/Namespace + ResourceCache |
 | `domain/state/connections.lua` | アクティブな接続（PF等）の管理 |
-| `domain/ports/*` | 外部インターフェース定義（LuaCATS型） |
-| `infra/kubectl/*` | KubectlPortの実装（vim.system経由） |
+| `infra/kubectl/*` | kubectl操作の実装（vim.system経由） |
 | `ui/views/*` | 各画面のView（描画 + キーマップ） |
 | `ui/components/*` | 再利用可能なUIコンポーネント |
 | `ui/columns.lua` | リソースタイプごとのカラム定義 |
