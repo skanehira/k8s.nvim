@@ -125,23 +125,23 @@ local function calculate_widths(columns, rows)
   return widths
 end
 
----Prepare table content with header and rows
+---Prepare table content with header and rows (separated)
 ---@param columns { key: string, header: string }[]
 ---@param rows table[]
----@return { lines: string[], widths: number[] }
+---@return { header_line: string, data_lines: string[], widths: number[] }
 function M.prepare_table_content(columns, rows)
   local widths = calculate_widths(columns, rows)
-  local lines = {}
 
   -- Header line
-  table.insert(lines, M.create_header_line(columns, widths))
+  local header_line = M.create_header_line(columns, widths)
 
   -- Data rows
+  local data_lines = {}
   for _, row in ipairs(rows) do
-    table.insert(lines, M.create_table_line(columns, widths, row))
+    table.insert(data_lines, M.create_table_line(columns, widths, row))
   end
 
-  return { lines = lines, widths = widths }
+  return { header_line = header_line, data_lines = data_lines, widths = widths }
 end
 
 ---Create initial buffer state

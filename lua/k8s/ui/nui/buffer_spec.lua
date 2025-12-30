@@ -194,10 +194,10 @@ describe("buffer", function()
 
       local content = buffer.prepare_table_content(columns, rows)
 
-      assert.equals(3, #content.lines) -- 1 header + 2 data rows
       assert.is_table(content.widths)
-      assert(content.lines[1]:find("NAME"))
-      assert(content.lines[2]:find("pod1"))
+      assert(content.header_line:find("NAME"))
+      assert.equals(2, #content.data_lines) -- 2 data rows
+      assert(content.data_lines[1]:find("pod1"))
     end)
 
     it("should handle empty rows", function()
@@ -208,7 +208,8 @@ describe("buffer", function()
 
       local content = buffer.prepare_table_content(columns, rows)
 
-      assert.equals(1, #content.lines) -- header only
+      assert(content.header_line:find("NAME"))
+      assert.equals(0, #content.data_lines) -- no data rows
     end)
   end)
 
