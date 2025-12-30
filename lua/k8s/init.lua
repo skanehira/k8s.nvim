@@ -138,12 +138,11 @@ function M.setup(user_config)
   end
 
   -- Setup VimLeavePre autocmd
-  local autocmd = require("k8s.autocmd")
-  local group = vim.api.nvim_create_augroup(autocmd.get_group_name(), { clear = true })
+  local group = vim.api.nvim_create_augroup("k8s_nvim", { clear = true })
   vim.api.nvim_create_autocmd("VimLeavePre", {
     group = group,
     pattern = "*",
-    desc = autocmd.format_autocmd_desc("cleanup all port forwards"),
+    desc = "k8s.nvim: cleanup all port forwards",
     callback = function()
       local connections = require("k8s.core.connections")
       for _, conn in ipairs(connections.get_all()) do
