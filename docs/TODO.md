@@ -81,24 +81,24 @@ Neovim内でKubernetesクラスタを管理するLuaプラグイン。k9sライ�
 
 ### フェーズ6: UI層（Components）
 
-- [ ] [RED] layout.luaのテスト作成（3ウィンドウ構成）
-- [ ] [GREEN] layout.lua実装（NuiPopup×3）
+- [x] [RED] layout.luaのテスト作成（3ウィンドウ構成）
+- [x] [GREEN] layout.lua実装（NuiPopup×3）
 
-- [ ] [RED] table.luaのテスト作成（NuiLine/NuiText描画）
-- [ ] [GREEN] table.lua実装
+- [x] [RED] table.luaのテスト作成（NuiLine/NuiText描画）
+- [x] [GREEN] table.lua実装
 
-- [ ] [RED] header.luaのテスト作成
-- [ ] [GREEN] header.lua実装（Context/NS/View表示、Loading...）
+- [x] [RED] header.luaのテスト作成
+- [x] [GREEN] header.lua実装（Context/NS/View表示、Loading...）
 
-- [ ] [RED] menu.luaのテスト作成（telescope/NuiMenu切り替え）
-- [ ] [GREEN] menu.lua実装
+- [x] [RED] menu.luaのテスト作成（telescope/NuiMenu切り替え）
+- [x] [GREEN] menu.lua実装
 
-- [ ] [RED] input.luaのテスト作成（NuiInput）
-- [ ] [GREEN] input.lua実装
+- [x] [RED] input.luaのテスト作成（NuiInput）
+- [x] [GREEN] input.lua実装
 
-- [ ] [RED] confirm.luaのテスト作成（vim.fn.confirm）
-- [ ] [GREEN] confirm.lua実装
-- [ ] [REFACTOR] コンポーネント間の整合性確認
+- [x] [RED] confirm.luaのテスト作成（vim.fn.confirm）
+- [x] [GREEN] confirm.lua実装
+- [x] [REFACTOR] コンポーネント間の整合性確認
 
 ### フェーズ7: UI層（Views）
 

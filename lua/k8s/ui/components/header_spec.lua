@@ -1,0 +1,78 @@
+local header = require("k8s.ui.components.header")
+
+describe("header", function()
+  describe("format", function()
+    it("should format header with context, namespace and view", function()
+      local text = header.format({
+        context = "minikube",
+        namespace = "default",
+        view = "Pods",
+      })
+
+      assert.equals("[Context: minikube] [Namespace: default] [Pods]", text)
+    end)
+
+    it("should show 'All Namespaces' when namespace is nil", function()
+      local text = header.format({
+        context = "minikube",
+        namespace = nil,
+        view = "Pods",
+      })
+
+      assert.equals("[Context: minikube] [Namespace: All] [Pods]", text)
+    end)
+
+    it("should append Loading... when loading is true", function()
+      local text = header.format({
+        context = "minikube",
+        namespace = "default",
+        view = "Pods",
+        loading = true,
+      })
+
+      assert.equals("[Context: minikube] [Namespace: default] [Pods] Loading...", text)
+    end)
+
+    it("should append filter text when provided", function()
+      local text = header.format({
+        context = "minikube",
+        namespace = "default",
+        view = "Pods",
+        filter = "nginx",
+      })
+
+      assert.equals("[Context: minikube] [Namespace: default] [Pods] Filter: nginx", text)
+    end)
+
+    it("should show both loading and filter", function()
+      local text = header.format({
+        context = "minikube",
+        namespace = "default",
+        view = "Pods",
+        loading = true,
+        filter = "nginx",
+      })
+
+      assert.equals("[Context: minikube] [Namespace: default] [Pods] Filter: nginx Loading...", text)
+    end)
+  end)
+
+  describe("format_footer", function()
+    it("should format footer with keymaps", function()
+      local text = header.format_footer({
+        "<CR> Select",
+        "d Describe",
+        "l Logs",
+        "? Help",
+      })
+
+      assert.equals("<CR> Select  d Describe  l Logs  ? Help", text)
+    end)
+
+    it("should handle empty keymaps", function()
+      local text = header.format_footer({})
+
+      assert.equals("", text)
+    end)
+  end)
+end)
