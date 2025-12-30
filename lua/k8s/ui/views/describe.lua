@@ -1,6 +1,6 @@
 --- describe.lua - describe View
 
-local resource = require("k8s.domain.resources.resource")
+local resource = require("k8s.core.resource")
 
 local M = {}
 

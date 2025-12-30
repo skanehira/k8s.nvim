@@ -1,4 +1,4 @@
-local resource = require("k8s.domain.resources.resource")
+local resource = require("k8s.core.resource")
 
 describe("resource", function()
   describe("new", function()

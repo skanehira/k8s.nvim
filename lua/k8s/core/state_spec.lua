@@ -1,6 +1,6 @@
 --- app_spec.lua - アプリケーションコントローラのテスト
 
-local app = require("k8s.app.app")
+local app = require("k8s.core.state")
 
 describe("app", function()
   describe("create_state", function()

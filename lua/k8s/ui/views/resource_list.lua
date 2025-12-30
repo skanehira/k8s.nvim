@@ -1,7 +1,7 @@
 --- resource_list.lua - リソース一覧View
 
-local list = require("k8s.domain.actions.list")
-local resource = require("k8s.domain.resources.resource")
+local state = require("k8s.core.state")
+local resource = require("k8s.core.resource")
 
 local M = {}
 
@@ -46,8 +46,8 @@ local resource_required_actions = {
 ---@param filter_text string Filter text
 ---@return table[] Filtered and sorted resources
 function M.prepare_display_data(resources, filter_text)
-  local filtered = list.filter(resources, filter_text)
-  return list.sort(filtered)
+  local filtered = state.filter_resources(resources, filter_text)
+  return state.sort_resources(filtered)
 end
 
 ---Calculate cursor position within bounds

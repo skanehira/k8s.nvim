@@ -6,7 +6,7 @@ local M = {}
 ---@param view_type string
 ---@param kind? string Resource kind for capability filtering
 function M.render_footer(view_type, kind)
-  local global_state = require("k8s.app.global_state")
+  local global_state = require("k8s.core.global_state")
   local window = require("k8s.ui.nui.window")
   local buffer = require("k8s.ui.nui.buffer")
   local keymap = require("k8s.handlers.keymap")
@@ -30,9 +30,9 @@ end
 ---@param opts? { preserve_cursor?: boolean, restore_cursor?: number }
 function M.fetch_and_render(kind, namespace, opts)
   opts = opts or {}
-  local global_state = require("k8s.app.global_state")
+  local global_state = require("k8s.core.global_state")
   local window = require("k8s.ui.nui.window")
-  local app = require("k8s.app.app")
+  local app = require("k8s.core.state")
   local buffer = require("k8s.ui.nui.buffer")
   local adapter = require("k8s.infra.kubectl.adapter")
   local resource_list_view = require("k8s.ui.views.resource_list")

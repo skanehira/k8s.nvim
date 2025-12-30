@@ -11,8 +11,8 @@ local restorers = {}
 ---@param restore_cursor number|nil
 ---@param deps table
 restorers.list = function(view, callbacks, restore_cursor, deps)
-  local global_state = deps.global_state or require("k8s.app.global_state")
-  local app = deps.app or require("k8s.app.app")
+  local global_state = deps.global_state or require("k8s.core.global_state")
+  local app = deps.app or require("k8s.core.state")
   local window = deps.window or require("k8s.ui.nui.window")
 
   local app_state = global_state.get_app_state()

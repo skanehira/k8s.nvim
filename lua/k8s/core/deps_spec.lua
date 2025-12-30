@@ -1,6 +1,6 @@
 --- deps_spec.lua - 依存性コンテナのテスト
 
-local deps = require("k8s.app.deps")
+local deps = require("k8s.core.deps")
 
 describe("deps", function()
   after_each(function()

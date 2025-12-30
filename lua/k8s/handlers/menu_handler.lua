@@ -15,11 +15,11 @@ local help_action_to_capability = {
 ---Handle resource menu action
 ---@param callbacks table { setup_keymaps_for_window: function, get_footer_keymaps: function, fetch_and_render: function }
 function M.handle_resource_menu(callbacks)
-  local global_state = require("k8s.app.global_state")
+  local global_state = require("k8s.core.global_state")
   local menu_actions = require("k8s.handlers.menu_actions")
   local view_helper = require("k8s.handlers.view_helper")
   local window = require("k8s.ui.nui.window")
-  local app = require("k8s.app.app")
+  local app = require("k8s.core.state")
 
   local config = global_state.get_config()
   local win = global_state.get_window()
@@ -83,7 +83,7 @@ end
 function M.handle_context_menu(callbacks)
   local adapter = require("k8s.infra.kubectl.adapter")
   local menu_actions = require("k8s.handlers.menu_actions")
-  local notify = require("k8s.api.notify")
+  local notify = require("k8s.core.notify")
 
   adapter.get_contexts(function(result)
     vim.schedule(function()
@@ -117,11 +117,11 @@ end
 ---Handle namespace menu action
 ---@param callbacks table { fetch_and_render: function }
 function M.handle_namespace_menu(callbacks)
-  local global_state = require("k8s.app.global_state")
+  local global_state = require("k8s.core.global_state")
   local adapter = require("k8s.infra.kubectl.adapter")
   local menu_actions = require("k8s.handlers.menu_actions")
-  local app = require("k8s.app.app")
-  local notify = require("k8s.api.notify")
+  local app = require("k8s.core.state")
+  local notify = require("k8s.core.notify")
 
   adapter.get_namespaces(function(result)
     vim.schedule(function()
@@ -159,11 +159,11 @@ end
 ---Handle help action
 ---@param callbacks table { setup_keymaps_for_window: function, render_footer: function }
 function M.handle_help(callbacks)
-  local global_state = require("k8s.app.global_state")
+  local global_state = require("k8s.core.global_state")
   local view_helper = require("k8s.handlers.view_helper")
   local window = require("k8s.ui.nui.window")
   local help = require("k8s.ui.views.help")
-  local resource_mod = require("k8s.domain.resources.resource")
+  local resource_mod = require("k8s.core.resource")
   local keymap_mod = require("k8s.handlers.keymap")
 
   local win = global_state.get_window()

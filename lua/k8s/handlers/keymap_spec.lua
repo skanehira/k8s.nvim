@@ -5,7 +5,7 @@ describe("keymap", function()
 
   before_each(function()
     package.loaded["k8s.handlers.keymap"] = nil
-    package.loaded["k8s.app.global_state"] = nil
+    package.loaded["k8s.core.global_state"] = nil
     keymap = require("k8s.handlers.keymap")
   end)
 
@@ -49,19 +49,19 @@ describe("keymap", function()
 
   describe("get_current_view_type", function()
     it("should return nil when view_stack is nil", function()
-      local global_state = require("k8s.app.global_state")
+      local global_state = require("k8s.core.global_state")
       global_state.set_view_stack(nil)
       assert.is_nil(keymap.get_current_view_type())
     end)
 
     it("should return current view type", function()
-      local global_state = require("k8s.app.global_state")
+      local global_state = require("k8s.core.global_state")
       global_state.set_view_stack({ { type = "list", kind = "Pod" } })
       assert.equals("list", keymap.get_current_view_type())
     end)
 
     it("should return describe view type", function()
-      local global_state = require("k8s.app.global_state")
+      local global_state = require("k8s.core.global_state")
       global_state.set_view_stack({
         { type = "list", kind = "Pod" },
         { type = "describe", resource = { name = "test" } },
@@ -72,13 +72,13 @@ describe("keymap", function()
 
   describe("is_action_allowed", function()
     it("should return false when no view_stack", function()
-      local global_state = require("k8s.app.global_state")
+      local global_state = require("k8s.core.global_state")
       global_state.set_view_stack(nil)
       assert.is_false(keymap.is_action_allowed("describe"))
     end)
 
     it("should return true for allowed actions in list view", function()
-      local global_state = require("k8s.app.global_state")
+      local global_state = require("k8s.core.global_state")
       global_state.set_view_stack({ { type = "list", kind = "Pod" } })
 
       assert.is_true(keymap.is_action_allowed("describe"))
@@ -88,7 +88,7 @@ describe("keymap", function()
     end)
 
     it("should return false for disallowed actions in describe view", function()
-      local global_state = require("k8s.app.global_state")
+      local global_state = require("k8s.core.global_state")
       global_state.set_view_stack({
         { type = "list", kind = "Pod" },
         { type = "describe", resource = { name = "test" } },
@@ -101,7 +101,7 @@ describe("keymap", function()
     end)
 
     it("should return true for allowed actions in describe view", function()
-      local global_state = require("k8s.app.global_state")
+      local global_state = require("k8s.core.global_state")
       global_state.set_view_stack({
         { type = "list", kind = "Pod" },
         { type = "describe", resource = { name = "test" } },
@@ -114,7 +114,7 @@ describe("keymap", function()
     end)
 
     it("should return true for stop action in port_forward_list view", function()
-      local global_state = require("k8s.app.global_state")
+      local global_state = require("k8s.core.global_state")
       global_state.set_view_stack({
         { type = "list", kind = "Pod" },
         { type = "port_forward_list" },

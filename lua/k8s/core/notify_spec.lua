@@ -1,6 +1,6 @@
 --- notify_spec.lua - 通知ヘルパーのテスト
 
-local notify = require("k8s.api.notify")
+local notify = require("k8s.core.notify")
 
 describe("notify", function()
   describe("create_notification", function()

@@ -1,4 +1,4 @@
-local connections = require("k8s.domain.state.connections")
+local connections = require("k8s.core.connections")
 
 describe("connections", function()
   before_each(function()

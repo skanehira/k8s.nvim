@@ -21,7 +21,7 @@ local command_to_kind = {
 ---Get current state
 ---@return table
 function M.get_state()
-  local global_state = require("k8s.app.global_state")
+  local global_state = require("k8s.core.global_state")
   return {
     setup_done = global_state.is_setup_done(),
     config = global_state.get_config(),
@@ -31,7 +31,7 @@ end
 ---Check if setup is done
 ---@return boolean
 function M.is_setup_done()
-  local global_state = require("k8s.app.global_state")
+  local global_state = require("k8s.core.global_state")
   return global_state.is_setup_done()
 end
 
@@ -115,7 +115,7 @@ end
 ---Setup k8s.nvim
 ---@param user_config? table
 function M.setup(user_config)
-  local global_state = require("k8s.app.global_state")
+  local global_state = require("k8s.core.global_state")
 
   if global_state.is_setup_done() then
     return
@@ -145,7 +145,7 @@ function M.setup(user_config)
     pattern = "*",
     desc = autocmd.format_autocmd_desc("cleanup all port forwards"),
     callback = function()
-      local connections = require("k8s.domain.state.connections")
+      local connections = require("k8s.core.connections")
       for _, conn in ipairs(connections.get_all()) do
         pcall(vim.fn.jobstop, conn.job_id)
       end
@@ -174,7 +174,7 @@ end
 function M.open(opts)
   opts = opts or {}
 
-  local global_state = require("k8s.app.global_state")
+  local global_state = require("k8s.core.global_state")
 
   if not global_state.is_setup_done() then
     M.setup()
@@ -183,7 +183,7 @@ function M.open(opts)
   local config = global_state.get_config()
 
   -- Check kubectl availability
-  if not require("k8s.api.health").check_kubectl() then
+  if not require("k8s.core.health").check_kubectl() then
     vim.notify("k8s.nvim: kubectl not found.", vim.log.levels.ERROR)
     return
   end
@@ -198,11 +198,11 @@ function M.open(opts)
   end
 
   local window = require("k8s.ui.nui.window")
-  local app = require("k8s.app.app")
+  local app = require("k8s.core.state")
   local buffer = require("k8s.ui.nui.buffer")
-  local view_stack = require("k8s.app.view_stack")
+  local view_stack = require("k8s.core.view_stack")
   local renderer = require("k8s.handlers.renderer")
-  local timer = require("k8s.app.timer")
+  local timer = require("k8s.core.timer")
 
   local list_window = window.create_list_view({ transparent = config.transparent })
   global_state.set_window(list_window)
@@ -244,9 +244,9 @@ end
 
 ---Close k8s.nvim UI
 function M.close()
-  local global_state = require("k8s.app.global_state")
+  local global_state = require("k8s.core.global_state")
   local window = require("k8s.ui.nui.window")
-  local timer = require("k8s.app.timer")
+  local timer = require("k8s.core.timer")
 
   timer.stop_auto_refresh()
 
@@ -266,7 +266,7 @@ end
 
 ---Toggle k8s.nvim UI
 function M.toggle()
-  local global_state = require("k8s.app.global_state")
+  local global_state = require("k8s.core.global_state")
   local win = global_state.get_window()
 
   if win then
@@ -286,7 +286,7 @@ end
 ---Switch to a specific context
 ---@param context_name string|nil
 function M.switch_context(context_name)
-  local global_state = require("k8s.app.global_state")
+  local global_state = require("k8s.core.global_state")
   local dispatcher = require("k8s.handlers.dispatcher")
 
   if not context_name then
@@ -302,7 +302,7 @@ function M.switch_context(context_name)
   adapter.use_context(context_name, function(result)
     vim.schedule(function()
       if result.ok then
-        vim.notify(require("k8s.api.notify").format_context_switch_message(context_name), vim.log.levels.INFO)
+        vim.notify(require("k8s.core.notify").format_context_switch_message(context_name), vim.log.levels.INFO)
         if global_state.get_window() and global_state.get_app_state() then
           dispatcher.dispatch("refresh", M._setup_keymaps_for_window)
         end
@@ -316,7 +316,7 @@ end
 ---Switch to a specific namespace
 ---@param namespace_name string|nil
 function M.switch_namespace(namespace_name)
-  local global_state = require("k8s.app.global_state")
+  local global_state = require("k8s.core.global_state")
   local dispatcher = require("k8s.handlers.dispatcher")
 
   if not namespace_name then
@@ -328,13 +328,13 @@ function M.switch_namespace(namespace_name)
     return
   end
 
-  local app = require("k8s.app.app")
+  local app = require("k8s.core.state")
   local namespace = namespace_name == "all" and "" or namespace_name
 
   local app_state = global_state.get_app_state()
   if app_state then
     global_state.set_app_state(app.set_namespace(app_state, namespace))
-    vim.notify(require("k8s.api.notify").format_namespace_switch_message(namespace_name), vim.log.levels.INFO)
+    vim.notify(require("k8s.core.notify").format_namespace_switch_message(namespace_name), vim.log.levels.INFO)
     app_state = global_state.get_app_state()
     require("k8s.handlers.renderer").fetch_and_render(app_state.current_kind, namespace)
   else
@@ -344,7 +344,7 @@ end
 
 ---Show port forwards list
 function M.show_port_forwards()
-  local global_state = require("k8s.app.global_state")
+  local global_state = require("k8s.core.global_state")
   local dispatcher = require("k8s.handlers.dispatcher")
 
   if not global_state.get_window() then

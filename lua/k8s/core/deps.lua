@@ -4,14 +4,14 @@ local M = {}
 
 -- Default module mappings
 local defaults = {
-  global_state = "k8s.app.global_state",
-  app = "k8s.app.app",
-  view_stack = "k8s.app.view_stack",
+  global_state = "k8s.core.global_state",
+  app = "k8s.core.state",
+  view_stack = "k8s.core.view_stack",
   window = "k8s.ui.nui.window",
   buffer = "k8s.ui.nui.buffer",
   adapter = "k8s.infra.kubectl.adapter",
-  resource = "k8s.domain.resources.resource",
-  connections = "k8s.domain.state.connections",
+  resource = "k8s.core.resource",
+  connections = "k8s.core.connections",
 }
 
 -- Override storage

@@ -5,7 +5,7 @@ describe("port_forward_handler", function()
 
   before_each(function()
     package.loaded["k8s.handlers.port_forward_handler"] = nil
-    package.loaded["k8s.app.global_state"] = nil
+    package.loaded["k8s.core.global_state"] = nil
     port_forward_handler = require("k8s.handlers.port_forward_handler")
   end)
 

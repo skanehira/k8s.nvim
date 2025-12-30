@@ -5,7 +5,7 @@ local M = {}
 ---Handle describe action
 ---@param callbacks table { setup_keymaps_for_window: function, get_footer_keymaps: function }
 function M.handle_describe(callbacks)
-  local global_state = require("k8s.app.global_state")
+  local global_state = require("k8s.core.global_state")
   local list_handler = require("k8s.handlers.list_handler")
   local view_helper = require("k8s.handlers.view_helper")
   local adapter = require("k8s.infra.kubectl.adapter")

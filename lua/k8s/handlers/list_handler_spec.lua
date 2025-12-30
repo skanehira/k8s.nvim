@@ -6,9 +6,9 @@ describe("list_handler", function()
 
   before_each(function()
     package.loaded["k8s.handlers.list_handler"] = nil
-    package.loaded["k8s.app.global_state"] = nil
+    package.loaded["k8s.core.global_state"] = nil
     list_handler = require("k8s.handlers.list_handler")
-    global_state = require("k8s.app.global_state")
+    global_state = require("k8s.core.global_state")
     global_state.reset()
   end)
 

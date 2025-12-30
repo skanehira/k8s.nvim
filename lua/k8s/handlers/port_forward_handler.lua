@@ -35,11 +35,11 @@ end
 ---Handle port forward action
 function M.handle_port_forward()
   local list_handler = require("k8s.handlers.list_handler")
-  local resource_mod = require("k8s.domain.resources.resource")
+  local resource_mod = require("k8s.core.resource")
   local pod_actions = require("k8s.handlers.pod_actions")
   local adapter = require("k8s.infra.kubectl.adapter")
-  local connections = require("k8s.domain.state.connections")
-  local notify = require("k8s.api.notify")
+  local connections = require("k8s.core.connections")
+  local notify = require("k8s.core.notify")
 
   local resource = list_handler.get_current_resource()
   if not resource then
@@ -181,10 +181,10 @@ end
 ---Handle port forward list action
 ---@param callbacks table { setup_keymaps_for_window: function, render_footer: function }
 function M.handle_port_forward_list(callbacks)
-  local global_state = require("k8s.app.global_state")
+  local global_state = require("k8s.core.global_state")
   local view_helper = require("k8s.handlers.view_helper")
   local window = require("k8s.ui.nui.window")
-  local connections = require("k8s.domain.state.connections")
+  local connections = require("k8s.core.connections")
   local port_forward_list = require("k8s.ui.views.port_forward_list")
 
   local win = global_state.get_window()
@@ -229,11 +229,11 @@ end
 ---Handle stop port forward action (D key in port forward list view)
 ---@param callbacks table { handle_port_forward_list: function }
 function M.handle_stop_port_forward(callbacks)
-  local global_state = require("k8s.app.global_state")
-  local view_stack_mod = require("k8s.app.view_stack")
+  local global_state = require("k8s.core.global_state")
+  local view_stack_mod = require("k8s.core.view_stack")
   local window = require("k8s.ui.nui.window")
-  local connections = require("k8s.domain.state.connections")
-  local notify = require("k8s.api.notify")
+  local connections = require("k8s.core.connections")
+  local notify = require("k8s.core.notify")
 
   local view_stack = global_state.get_view_stack()
   local current = view_stack_mod.current(view_stack)

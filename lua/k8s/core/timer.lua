@@ -5,7 +5,7 @@ local M = {}
 ---Start auto-refresh timer
 ---@param on_refresh function Callback to call on refresh
 function M.start_auto_refresh(on_refresh)
-  local global_state = require("k8s.app.global_state")
+  local global_state = require("k8s.core.global_state")
 
   -- Don't start if already running
   if global_state.get_timer() then
@@ -35,7 +35,7 @@ function M.start_auto_refresh(on_refresh)
         return
       end
 
-      local view_stack_mod = require("k8s.app.view_stack")
+      local view_stack_mod = require("k8s.core.view_stack")
       local vs = global_state.get_view_stack()
       local current = view_stack_mod.current(vs)
 
@@ -51,7 +51,7 @@ end
 
 ---Stop auto-refresh timer
 function M.stop_auto_refresh()
-  local global_state = require("k8s.app.global_state")
+  local global_state = require("k8s.core.global_state")
   local timer = global_state.get_timer()
 
   if timer then

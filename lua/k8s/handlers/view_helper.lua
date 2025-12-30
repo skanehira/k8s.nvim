@@ -93,10 +93,10 @@ end
 ---@param callbacks table
 ---@return K8sWindow
 function M.create_view(config, callbacks)
-  local global_state = require("k8s.app.global_state")
+  local global_state = require("k8s.core.global_state")
   local window = require("k8s.ui.nui.window")
   local buffer = require("k8s.ui.nui.buffer")
-  local view_stack = require("k8s.app.view_stack")
+  local view_stack = require("k8s.core.view_stack")
 
   -- Get current window and cursor position
   local prev_window = global_state.get_window()

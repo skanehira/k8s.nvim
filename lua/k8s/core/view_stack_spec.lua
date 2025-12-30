@@ -1,6 +1,6 @@
 --- view_stack_spec.lua - ビュースタック管理のテスト
 
-local view_stack = require("k8s.app.view_stack")
+local view_stack = require("k8s.core.view_stack")
 
 describe("view_stack", function()
   describe("create", function()

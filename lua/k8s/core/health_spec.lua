@@ -1,6 +1,6 @@
 --- health_spec.lua - ヘルスチェックのテスト
 
-local health = require("k8s.api.health")
+local health = require("k8s.core.health")
 
 describe("health", function()
   describe("create_check_result", function()

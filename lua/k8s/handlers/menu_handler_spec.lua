@@ -5,7 +5,7 @@ describe("menu_handler", function()
 
   before_each(function()
     package.loaded["k8s.handlers.menu_handler"] = nil
-    package.loaded["k8s.app.global_state"] = nil
+    package.loaded["k8s.core.global_state"] = nil
     menu_handler = require("k8s.handlers.menu_handler")
   end)
 

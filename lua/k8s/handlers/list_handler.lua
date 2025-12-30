@@ -9,8 +9,8 @@ local M = {}
 ---Get current resource at cursor position
 ---@return table|nil
 function M.get_current_resource()
-  local global_state = require("k8s.app.global_state")
-  local app = require("k8s.app.app")
+  local global_state = require("k8s.core.global_state")
+  local app = require("k8s.core.state")
   local window = require("k8s.ui.nui.window")
 
   local app_state = global_state.get_app_state()
@@ -42,8 +42,8 @@ end
 ---Handle back action
 ---@param callbacks table { render_footer: function }
 function M.handle_back(callbacks)
-  local global_state = require("k8s.app.global_state")
-  local view_stack_mod = require("k8s.app.view_stack")
+  local global_state = require("k8s.core.global_state")
+  local view_stack_mod = require("k8s.core.view_stack")
   local window = require("k8s.ui.nui.window")
   local view_restorer = require("k8s.handlers.view_restorer")
 
@@ -90,7 +90,7 @@ end
 ---Handle refresh action
 ---@param callbacks table { fetch_and_render: function }
 function M.handle_refresh(callbacks)
-  local global_state = require("k8s.app.global_state")
+  local global_state = require("k8s.core.global_state")
 
   local app_state = global_state.get_app_state()
   if not app_state then
@@ -103,9 +103,9 @@ end
 ---Handle filter action
 ---@param callbacks table { render_filtered_resources: function }
 function M.handle_filter(callbacks)
-  local global_state = require("k8s.app.global_state")
+  local global_state = require("k8s.core.global_state")
   local filter_actions = require("k8s.handlers.filter_actions")
-  local app = require("k8s.app.app")
+  local app = require("k8s.core.state")
 
   local app_state = global_state.get_app_state()
   local prompt = filter_actions.format_filter_prompt()
@@ -136,9 +136,9 @@ end
 ---Render resources with current filter
 ---@param callbacks table { }
 function M.render_filtered_resources(callbacks)
-  local global_state = require("k8s.app.global_state")
+  local global_state = require("k8s.core.global_state")
   local window = require("k8s.ui.nui.window")
-  local app = require("k8s.app.app")
+  local app = require("k8s.core.state")
   local buffer = require("k8s.ui.nui.buffer")
   local resource_list_view = require("k8s.ui.views.resource_list")
 
@@ -308,8 +308,8 @@ end
 ---Handle toggle_secret action
 ---@param callbacks table { render_filtered_resources: function }
 function M.handle_toggle_secret(callbacks)
-  local global_state = require("k8s.app.global_state")
-  local app = require("k8s.app.app")
+  local global_state = require("k8s.core.global_state")
+  local app = require("k8s.core.state")
 
   local app_state = global_state.get_app_state()
   if not app_state then

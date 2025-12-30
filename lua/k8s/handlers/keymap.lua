@@ -116,8 +116,8 @@ end
 ---Get current view type from view stack
 ---@return string|nil
 function M.get_current_view_type()
-  local global_state = require("k8s.app.global_state")
-  local view_stack = require("k8s.app.view_stack")
+  local global_state = require("k8s.core.global_state")
+  local view_stack = require("k8s.core.view_stack")
 
   local vs = global_state.get_view_stack()
   if not vs then
@@ -143,8 +143,8 @@ end
 ---Get current resource at cursor position
 ---@return table|nil
 local function get_current_resource()
-  local global_state = require("k8s.app.global_state")
-  local app = require("k8s.app.app")
+  local global_state = require("k8s.core.global_state")
+  local app = require("k8s.core.state")
   local window = require("k8s.ui.nui.window")
 
   local app_state = global_state.get_app_state()
@@ -184,7 +184,7 @@ function M.is_resource_capability_allowed(action)
     return false
   end
 
-  local resource_mod = require("k8s.domain.resources.resource")
+  local resource_mod = require("k8s.core.resource")
   local caps = resource_mod.capabilities(resource.kind)
   return caps[capability] == true
 end
@@ -202,7 +202,7 @@ function M.get_footer_keymaps(view_type, kind)
   end
 
   -- Filter keymaps based on resource capabilities
-  local resource_mod = require("k8s.domain.resources.resource")
+  local resource_mod = require("k8s.core.resource")
   local caps = resource_mod.capabilities(kind)
 
   local filtered = {}

@@ -4,8 +4,8 @@ describe("global_state", function()
   local global_state
 
   before_each(function()
-    package.loaded["k8s.app.global_state"] = nil
-    global_state = require("k8s.app.global_state")
+    package.loaded["k8s.core.global_state"] = nil
+    global_state = require("k8s.core.global_state")
     global_state.reset()
   end)
 
