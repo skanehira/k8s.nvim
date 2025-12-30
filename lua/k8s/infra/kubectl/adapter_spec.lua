@@ -22,9 +22,9 @@ describe("adapter", function()
   ]
 }
 ]]
-      adapter._set_executor(function(_, opts)
-        if opts and opts.on_exit then
-          opts.on_exit({ code = 0, stdout = mock_output, stderr = "" })
+      adapter._set_executor(function(_, _, callback)
+        if callback then
+          callback({ code = 0, stdout = mock_output, stderr = "" })
         end
         return { wait = function() end }
       end)
@@ -42,9 +42,9 @@ describe("adapter", function()
     end)
 
     it("should handle kubectl errors", function()
-      adapter._set_executor(function(_, opts)
-        if opts and opts.on_exit then
-          opts.on_exit({ code = 1, stdout = "", stderr = "error: resource not found" })
+      adapter._set_executor(function(_, _, callback)
+        if callback then
+          callback({ code = 1, stdout = "", stderr = "error: resource not found" })
         end
         return { wait = function() end }
       end)
@@ -60,10 +60,10 @@ describe("adapter", function()
 
     it("should use default namespace when empty string", function()
       local captured_cmd
-      adapter._set_executor(function(cmd, opts)
+      adapter._set_executor(function(cmd, _, callback)
         captured_cmd = cmd
-        if opts and opts.on_exit then
-          opts.on_exit({ code = 0, stdout = '{"kind":"PodList","items":[]}', stderr = "" })
+        if callback then
+          callback({ code = 0, stdout = '{"kind":"PodList","items":[]}', stderr = "" })
         end
         return { wait = function() end }
       end)
@@ -83,10 +83,10 @@ describe("adapter", function()
 
     it("should handle nil namespace (all namespaces)", function()
       local captured_cmd
-      adapter._set_executor(function(cmd, opts)
+      adapter._set_executor(function(cmd, _, callback)
         captured_cmd = cmd
-        if opts and opts.on_exit then
-          opts.on_exit({ code = 0, stdout = '{"kind":"PodList","items":[]}', stderr = "" })
+        if callback then
+          callback({ code = 0, stdout = '{"kind":"PodList","items":[]}', stderr = "" })
         end
         return { wait = function() end }
       end)
@@ -106,10 +106,10 @@ describe("adapter", function()
 
     it("should include namespace flag when namespace is provided", function()
       local captured_cmd
-      adapter._set_executor(function(cmd, opts)
+      adapter._set_executor(function(cmd, _, callback)
         captured_cmd = cmd
-        if opts and opts.on_exit then
-          opts.on_exit({ code = 0, stdout = '{"kind":"PodList","items":[]}', stderr = "" })
+        if callback then
+          callback({ code = 0, stdout = '{"kind":"PodList","items":[]}', stderr = "" })
         end
         return { wait = function() end }
       end)
@@ -135,9 +135,9 @@ Namespace:    default
 Priority:     0
 Node:         minikube/192.168.49.2
 ]]
-      adapter._set_executor(function(_, opts)
-        if opts and opts.on_exit then
-          opts.on_exit({ code = 0, stdout = mock_output, stderr = "" })
+      adapter._set_executor(function(_, _, callback)
+        if callback then
+          callback({ code = 0, stdout = mock_output, stderr = "" })
         end
         return { wait = function() end }
       end)
@@ -152,9 +152,9 @@ Node:         minikube/192.168.49.2
     end)
 
     it("should handle kubectl errors", function()
-      adapter._set_executor(function(_, opts)
-        if opts and opts.on_exit then
-          opts.on_exit({ code = 1, stdout = "", stderr = 'Error from server (NotFound): pods "nonexistent" not found' })
+      adapter._set_executor(function(_, _, callback)
+        if callback then
+          callback({ code = 1, stdout = "", stderr = 'Error from server (NotFound): pods "nonexistent" not found' })
         end
         return { wait = function() end }
       end)
@@ -170,10 +170,10 @@ Node:         minikube/192.168.49.2
 
     it("should build correct command", function()
       local captured_cmd
-      adapter._set_executor(function(cmd, opts)
+      adapter._set_executor(function(cmd, _, callback)
         captured_cmd = cmd
-        if opts and opts.on_exit then
-          opts.on_exit({ code = 0, stdout = "", stderr = "" })
+        if callback then
+          callback({ code = 0, stdout = "", stderr = "" })
         end
         return { wait = function() end }
       end)
@@ -191,9 +191,9 @@ Node:         minikube/192.168.49.2
 
   describe("delete", function()
     it("should delete a resource", function()
-      adapter._set_executor(function(_, opts)
-        if opts and opts.on_exit then
-          opts.on_exit({ code = 0, stdout = 'pod "nginx-abc123" deleted', stderr = "" })
+      adapter._set_executor(function(_, _, callback)
+        if callback then
+          callback({ code = 0, stdout = 'pod "nginx-abc123" deleted', stderr = "" })
         end
         return { wait = function() end }
       end)
@@ -207,9 +207,9 @@ Node:         minikube/192.168.49.2
     end)
 
     it("should handle errors", function()
-      adapter._set_executor(function(_, opts)
-        if opts and opts.on_exit then
-          opts.on_exit({ code = 1, stdout = "", stderr = "Error from server (NotFound)" })
+      adapter._set_executor(function(_, _, callback)
+        if callback then
+          callback({ code = 1, stdout = "", stderr = "Error from server (NotFound)" })
         end
         return { wait = function() end }
       end)
@@ -224,10 +224,10 @@ Node:         minikube/192.168.49.2
 
     it("should build correct command", function()
       local captured_cmd
-      adapter._set_executor(function(cmd, opts)
+      adapter._set_executor(function(cmd, _, callback)
         captured_cmd = cmd
-        if opts and opts.on_exit then
-          opts.on_exit({ code = 0, stdout = "", stderr = "" })
+        if callback then
+          callback({ code = 0, stdout = "", stderr = "" })
         end
         return { wait = function() end }
       end)
@@ -243,9 +243,9 @@ Node:         minikube/192.168.49.2
 
   describe("scale", function()
     it("should scale a deployment", function()
-      adapter._set_executor(function(_, opts)
-        if opts and opts.on_exit then
-          opts.on_exit({ code = 0, stdout = "deployment.apps/nginx-deploy scaled", stderr = "" })
+      adapter._set_executor(function(_, _, callback)
+        if callback then
+          callback({ code = 0, stdout = "deployment.apps/nginx-deploy scaled", stderr = "" })
         end
         return { wait = function() end }
       end)
@@ -260,10 +260,10 @@ Node:         minikube/192.168.49.2
 
     it("should build correct command with replicas", function()
       local captured_cmd
-      adapter._set_executor(function(cmd, opts)
+      adapter._set_executor(function(cmd, _, callback)
         captured_cmd = cmd
-        if opts and opts.on_exit then
-          opts.on_exit({ code = 0, stdout = "", stderr = "" })
+        if callback then
+          callback({ code = 0, stdout = "", stderr = "" })
         end
         return { wait = function() end }
       end)
@@ -288,9 +288,9 @@ Node:         minikube/192.168.49.2
 
   describe("restart", function()
     it("should restart a deployment", function()
-      adapter._set_executor(function(_, opts)
-        if opts and opts.on_exit then
-          opts.on_exit({ code = 0, stdout = "deployment.apps/nginx-deploy restarted", stderr = "" })
+      adapter._set_executor(function(_, _, callback)
+        if callback then
+          callback({ code = 0, stdout = "deployment.apps/nginx-deploy restarted", stderr = "" })
         end
         return { wait = function() end }
       end)
@@ -305,10 +305,10 @@ Node:         minikube/192.168.49.2
 
     it("should build correct command", function()
       local captured_cmd
-      adapter._set_executor(function(cmd, opts)
+      adapter._set_executor(function(cmd, _, callback)
         captured_cmd = cmd
-        if opts and opts.on_exit then
-          opts.on_exit({ code = 0, stdout = "", stderr = "" })
+        if callback then
+          callback({ code = 0, stdout = "", stderr = "" })
         end
         return { wait = function() end }
       end)
@@ -430,7 +430,7 @@ Node:         minikube/192.168.49.2
   describe("port_forward", function()
     it("should build correct command", function()
       local captured_cmd
-      adapter._set_term_opener(function(cmd)
+      adapter._set_job_starter(function(cmd)
         captured_cmd = cmd
         return 12345
       end)
@@ -439,18 +439,32 @@ Node:         minikube/192.168.49.2
 
       assert.is_true(result.ok)
       assert.equals(12345, result.data.job_id)
-      assert.is_true(captured_cmd:find("kubectl") ~= nil)
-      assert.is_true(captured_cmd:find("port%-forward") ~= nil)
-      assert.is_true(captured_cmd:find("pod/nginx%-abc123") ~= nil)
-      assert.is_true(captured_cmd:find("8080:80") ~= nil)
+      -- cmd is now a table
+      assert.equals("kubectl", captured_cmd[1])
+      assert.equals("port-forward", captured_cmd[2])
+      assert.equals("-n", captured_cmd[3])
+      assert.equals("default", captured_cmd[4])
+      assert.equals("pod/nginx-abc123", captured_cmd[5])
+      assert.equals("8080:80", captured_cmd[6])
+    end)
+
+    it("should return error when job fails to start", function()
+      adapter._set_job_starter(function()
+        return 0 -- 0 means failure
+      end)
+
+      local result = adapter.port_forward("pod/nginx-abc123", "default", 8080, 80)
+
+      assert.is_false(result.ok)
+      assert.is.Not.Nil(result.error)
     end)
   end)
 
   describe("get_contexts", function()
     it("should return list of contexts", function()
-      adapter._set_executor(function(_, opts)
-        if opts and opts.on_exit then
-          opts.on_exit({ code = 0, stdout = "minikube\ndocker-desktop\nproduction", stderr = "" })
+      adapter._set_executor(function(_, _, callback)
+        if callback then
+          callback({ code = 0, stdout = "minikube\ndocker-desktop\nproduction", stderr = "" })
         end
         return { wait = function() end }
       end)
@@ -468,9 +482,9 @@ Node:         minikube/192.168.49.2
     end)
 
     it("should handle errors", function()
-      adapter._set_executor(function(_, opts)
-        if opts and opts.on_exit then
-          opts.on_exit({ code = 1, stdout = "", stderr = "error: no contexts" })
+      adapter._set_executor(function(_, _, callback)
+        if callback then
+          callback({ code = 1, stdout = "", stderr = "error: no contexts" })
         end
         return { wait = function() end }
       end)
@@ -486,9 +500,9 @@ Node:         minikube/192.168.49.2
 
   describe("use_context", function()
     it("should switch context", function()
-      adapter._set_executor(function(_, opts)
-        if opts and opts.on_exit then
-          opts.on_exit({ code = 0, stdout = 'Switched to context "minikube".', stderr = "" })
+      adapter._set_executor(function(_, _, callback)
+        if callback then
+          callback({ code = 0, stdout = 'Switched to context "minikube".', stderr = "" })
         end
         return { wait = function() end }
       end)
@@ -503,10 +517,10 @@ Node:         minikube/192.168.49.2
 
     it("should build correct command", function()
       local captured_cmd
-      adapter._set_executor(function(cmd, opts)
+      adapter._set_executor(function(cmd, _, callback)
         captured_cmd = cmd
-        if opts and opts.on_exit then
-          opts.on_exit({ code = 0, stdout = "", stderr = "" })
+        if callback then
+          callback({ code = 0, stdout = "", stderr = "" })
         end
         return { wait = function() end }
       end)
@@ -533,9 +547,9 @@ Node:         minikube/192.168.49.2
   ]
 }
 ]]
-      adapter._set_executor(function(_, opts)
-        if opts and opts.on_exit then
-          opts.on_exit({ code = 0, stdout = mock_output, stderr = "" })
+      adapter._set_executor(function(_, _, callback)
+        if callback then
+          callback({ code = 0, stdout = mock_output, stderr = "" })
         end
         return { wait = function() end }
       end)
@@ -557,5 +571,6 @@ Node:         minikube/192.168.49.2
   after_each(function()
     adapter._reset_executor()
     adapter._reset_term_opener()
+    adapter._reset_job_starter()
   end)
 end)

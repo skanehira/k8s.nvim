@@ -43,6 +43,20 @@ function M._reset_term_opener()
   term_opener = default_term_opener
 end
 
+-- Default job starter for background processes
+local job_starter = vim.fn.jobstart
+
+---Set custom job starter for testing
+---@param starter function
+function M._set_job_starter(starter)
+  job_starter = starter
+end
+
+---Reset job starter to default
+function M._reset_job_starter()
+  job_starter = vim.fn.jobstart
+end
+
 ---Create a success result
 ---@param data any
 ---@return K8sResult
@@ -82,16 +96,13 @@ end
 ---@param on_success fun(stdout: string): K8sResult
 ---@param callback fun(result: K8sResult)
 local function run_async(cmd, on_success, callback)
-  executor(cmd, {
-    text = true,
-    on_exit = function(result)
-      if result.code ~= 0 then
-        callback(err("kubectl error: " .. (result.stderr or "unknown error")))
-        return
-      end
-      callback(on_success(result.stdout))
-    end,
-  })
+  executor(cmd, { text = true }, function(result)
+    if result.code ~= 0 then
+      callback(err("kubectl error: " .. (result.stderr or "unknown error")))
+      return
+    end
+    callback(on_success(result.stdout))
+  end)
 end
 
 ---Get resources from kubectl
@@ -205,15 +216,26 @@ function M.logs(pod, container, namespace, opts)
   return ok({ job_id = job_id })
 end
 
----Start port forwarding
+---Start port forwarding (runs as background job, not terminal)
 ---@param resource string
 ---@param namespace string
 ---@param local_port number
 ---@param remote_port number
 ---@return K8sResult
 function M.port_forward(resource, namespace, local_port, remote_port)
-  local cmd = string.format("kubectl port-forward -n %s %s %d:%d", namespace, resource, local_port, remote_port)
-  local job_id = term_opener(cmd)
+  local cmd = { "kubectl", "port-forward", "-n", namespace, resource, string.format("%d:%d", local_port, remote_port) }
+  local job_id = job_starter(cmd, {
+    on_stderr = function(_, data)
+      if data and data[1] and data[1] ~= "" then
+        vim.schedule(function()
+          vim.notify("Port forward error: " .. table.concat(data, "\n"), vim.log.levels.ERROR)
+        end)
+      end
+    end,
+  })
+  if job_id <= 0 then
+    return err("Failed to start port forward")
+  end
   return ok({ job_id = job_id })
 end
 
