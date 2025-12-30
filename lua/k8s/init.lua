@@ -187,7 +187,33 @@ function M.setup(user_config)
     vim.api.nvim_set_hl(0, name, hl)
   end
 
+  -- Setup VimLeavePre autocmd to stop all port forwards
+  local autocmd = require("k8s.autocmd")
+  local group = vim.api.nvim_create_augroup(autocmd.get_group_name(), { clear = true })
+  vim.api.nvim_create_autocmd("VimLeavePre", {
+    group = group,
+    pattern = "*",
+    desc = autocmd.format_autocmd_desc("cleanup all port forwards"),
+    callback = function()
+      M._stop_all_port_forwards()
+    end,
+  })
+
   state.setup_done = true
+end
+
+---Stop all active port forwards
+function M._stop_all_port_forwards()
+  local connections = require("k8s.domain.state.connections")
+
+  local all_connections = connections.get_all()
+  for _, conn in ipairs(all_connections) do
+    -- Stop the job
+    pcall(vim.fn.jobstop, conn.job_id)
+  end
+
+  -- Clear connections
+  connections.clear()
 end
 
 ---Open k8s.nvim UI
@@ -198,6 +224,13 @@ function M.open(opts)
   -- Ensure setup was called
   if not state.setup_done then
     M.setup()
+  end
+
+  -- Check kubectl availability
+  local health = require("k8s.api.health")
+  if not health.check_kubectl() then
+    vim.notify("k8s.nvim: kubectl not found. Please install kubectl first.", vim.log.levels.ERROR)
+    return
   end
 
   -- Don't open if already open
@@ -438,6 +471,16 @@ function M._setup_keymaps()
     M._handle_namespace_menu()
   end, { desc = keymaps.namespace_menu.desc })
 
+  -- logs_previous
+  window.map_key(state.window, keymaps.logs_previous.key, function()
+    M._handle_logs_previous()
+  end, { desc = keymaps.logs_previous.desc })
+
+  -- toggle_secret
+  window.map_key(state.window, keymaps.toggle_secret.key, function()
+    M._handle_toggle_secret()
+  end, { desc = keymaps.toggle_secret.desc })
+
   -- help
   window.map_key(state.window, keymaps.help.key, function()
     M._handle_help()
@@ -447,13 +490,35 @@ end
 ---Fetch resources and render
 ---@param kind string
 ---@param namespace string
-function M._fetch_and_render(kind, namespace)
+---@param opts? { preserve_cursor?: boolean }
+function M._fetch_and_render(kind, namespace, opts)
+  opts = opts or {}
   local window = require("k8s.ui.nui.window")
   local app = require("k8s.app.app")
   local columns = require("k8s.ui.views.columns")
   local buffer = require("k8s.ui.nui.buffer")
   local adapter = require("k8s.infra.kubectl.adapter")
   local table_component = require("k8s.ui.components.table")
+
+  -- Save current cursor position before refresh
+  local saved_cursor_row = nil
+  if opts.preserve_cursor and state.window then
+    saved_cursor_row = window.get_cursor(state.window)
+  end
+
+  -- Show loading indicator in header
+  if state.window and window.is_mounted(state.window) then
+    local header_bufnr = window.get_header_bufnr(state.window)
+    if header_bufnr then
+      local header_content = buffer.create_header_content({
+        context = vim.fn.system("kubectl config current-context"):gsub("\n", ""),
+        namespace = namespace,
+        view = kind .. "s",
+        loading = true,
+      })
+      window.set_lines(header_bufnr, { header_content })
+    end
+  end
 
   adapter.get_resources(kind, namespace, function(result)
     vim.schedule(function()
@@ -516,8 +581,14 @@ function M._fetch_and_render(kind, namespace)
         end
       end
 
-      -- Set cursor to first data row
-      if #rows > 0 then
+      -- Restore cursor position or set to first data row
+      if saved_cursor_row and #rows > 0 then
+        -- Clamp cursor to valid range (row 2 to #rows + 1, accounting for header)
+        local max_row = #rows + 1
+        local target_row = math.min(saved_cursor_row, max_row)
+        target_row = math.max(target_row, 2)
+        window.set_cursor(state.window, target_row, 0)
+      elseif #rows > 0 then
         window.set_cursor(state.window, 2, 0)
       end
     end)
@@ -615,6 +686,13 @@ function M._handle_describe()
 
       -- Set lines
       local lines = vim.split(result.data, "\n")
+
+      -- Apply secret mask if viewing a Secret
+      if resource.kind == "Secret" and state.app_state and state.app_state.mask_secrets then
+        local secret_mask = require("k8s.ui.components.secret_mask")
+        lines = secret_mask.mask_describe_output(true, lines)
+      end
+
       window.set_lines(content_bufnr, lines)
 
       -- Set filetype for syntax highlighting
@@ -644,7 +722,7 @@ function M._handle_refresh()
     return
   end
 
-  M._fetch_and_render(state.app_state.current_kind, state.app_state.current_namespace)
+  M._fetch_and_render(state.app_state.current_kind, state.app_state.current_namespace, { preserve_cursor = true })
 end
 
 ---Handle filter action
@@ -745,6 +823,14 @@ end
 
 ---Handle delete action
 function M._handle_delete()
+  -- Check if we're in port_forward_list view
+  local view_stack = require("k8s.app.view_stack")
+  local current = view_stack.current(state.view_stack)
+  if current and current.type == "port_forward_list" then
+    M._handle_stop_port_forward()
+    return
+  end
+
   local resource = M._get_current_resource()
   if not resource then
     vim.notify("No resource selected", vim.log.levels.WARN)
@@ -800,29 +886,47 @@ function M._handle_logs()
     return
   end
 
-  local container = pod_actions.get_default_container(resource)
-  if not container then
+  -- Get containers for selection
+  local containers = pod_actions.get_containers(resource)
+  if not containers or #containers == 0 then
     vim.notify("No container found", vim.log.levels.WARN)
     return
   end
 
-  -- Open in new tab
-  vim.cmd("tabnew")
+  local function open_logs(container)
+    -- Open in new tab
+    vim.cmd("tabnew")
 
-  local adapter = require("k8s.infra.kubectl.adapter")
-  local result = adapter.logs(resource.name, container, resource.namespace, {
-    follow = true,
-    timestamps = true,
-  })
+    local adapter = require("k8s.infra.kubectl.adapter")
+    local result = adapter.logs(resource.name, container, resource.namespace, {
+      follow = true,
+      timestamps = true,
+    })
 
-  if not result.ok then
-    vim.notify("Failed to open logs: " .. (result.error or "Unknown error"), vim.log.levels.ERROR)
+    if not result.ok then
+      vim.notify("Failed to open logs: " .. (result.error or "Unknown error"), vim.log.levels.ERROR)
+      return
+    end
+
+    -- Set tab name
+    local tab_name = pod_actions.format_tab_name("logs", resource.name, container)
+    vim.api.nvim_buf_set_name(0, tab_name)
+  end
+
+  -- If single container, open directly
+  if #containers == 1 then
+    open_logs(containers[1])
     return
   end
 
-  -- Set tab name
-  local tab_name = pod_actions.format_tab_name("logs", resource.name, container)
-  vim.api.nvim_buf_set_name(0, tab_name)
+  -- Multiple containers - show selection menu
+  vim.ui.select(containers, {
+    prompt = "Select Container:",
+  }, function(choice)
+    if choice then
+      open_logs(choice)
+    end
+  end)
 end
 
 ---Handle exec action
@@ -840,26 +944,44 @@ function M._handle_exec()
     return
   end
 
-  local container = pod_actions.get_default_container(resource)
-  if not container then
+  -- Get containers for selection
+  local containers = pod_actions.get_containers(resource)
+  if not containers or #containers == 0 then
     vim.notify("No container found", vim.log.levels.WARN)
     return
   end
 
-  -- Open in new tab
-  vim.cmd("tabnew")
+  local function open_exec(container)
+    -- Open in new tab
+    vim.cmd("tabnew")
 
-  local adapter = require("k8s.infra.kubectl.adapter")
-  local result = adapter.exec(resource.name, container, resource.namespace)
+    local adapter = require("k8s.infra.kubectl.adapter")
+    local result = adapter.exec(resource.name, container, resource.namespace)
 
-  if not result.ok then
-    vim.notify("Failed to exec: " .. (result.error or "Unknown error"), vim.log.levels.ERROR)
+    if not result.ok then
+      vim.notify("Failed to exec: " .. (result.error or "Unknown error"), vim.log.levels.ERROR)
+      return
+    end
+
+    -- Set tab name
+    local tab_name = pod_actions.format_tab_name("exec", resource.name, container)
+    vim.api.nvim_buf_set_name(0, tab_name)
+  end
+
+  -- If single container, open directly
+  if #containers == 1 then
+    open_exec(containers[1])
     return
   end
 
-  -- Set tab name
-  local tab_name = pod_actions.format_tab_name("exec", resource.name, container)
-  vim.api.nvim_buf_set_name(0, tab_name)
+  -- Multiple containers - show selection menu
+  vim.ui.select(containers, {
+    prompt = "Select Container:",
+  }, function(choice)
+    if choice then
+      open_exec(choice)
+    end
+  end)
 end
 
 ---Handle scale action
@@ -966,6 +1088,87 @@ function M._handle_port_forward()
     return
   end
 
+  -- Get container ports for auto-detection
+  local container_ports = pod_actions.get_container_ports(resource)
+
+  -- Helper function to start port forward
+  local function start_port_forward(local_port, remote_port)
+    local adapter = require("k8s.infra.kubectl.adapter")
+    local connections = require("k8s.domain.state.connections")
+
+    local pod_resource = "pod/" .. resource.name
+    local result = adapter.port_forward(pod_resource, resource.namespace, local_port, remote_port)
+
+    if result.ok then
+      -- Add to connections (connections module uses singleton pattern)
+      connections.add({
+        job_id = result.data.job_id,
+        resource = pod_resource,
+        namespace = resource.namespace,
+        local_port = local_port,
+        remote_port = remote_port,
+      })
+
+      local notify = require("k8s.api.notify")
+      local msg = notify.format_port_forward_message(pod_resource, local_port, remote_port, "start")
+      vim.notify(msg, vim.log.levels.INFO)
+    else
+      vim.notify("Failed to start port forward: " .. (result.error or "Unknown error"), vim.log.levels.ERROR)
+    end
+  end
+
+  -- If container ports exist, show selection menu
+  if #container_ports > 0 then
+    local options = {}
+    for _, port in ipairs(container_ports) do
+      local label = string.format("%d (%s)", port.port, port.container)
+      if port.name and port.name ~= "" then
+        label = string.format("%d/%s (%s)", port.port, port.name, port.container)
+      end
+      table.insert(options, { label = label, port = port.port })
+    end
+    table.insert(options, { label = "Custom port...", port = nil })
+
+    local labels = {}
+    for _, opt in ipairs(options) do
+      table.insert(labels, opt.label)
+    end
+
+    vim.ui.select(labels, {
+      prompt = "Select Remote Port:",
+    }, function(choice, idx)
+      if not choice then
+        return
+      end
+
+      local selected = options[idx]
+      if selected.port then
+        -- Auto-detected port selected
+        vim.ui.input({ prompt = "Local port: ", default = tostring(selected.port) }, function(local_port_str)
+          if local_port_str == nil or local_port_str == "" then
+            return
+          end
+          local local_port = tonumber(local_port_str)
+          if not local_port then
+            vim.notify("Invalid port number", vim.log.levels.WARN)
+            return
+          end
+          start_port_forward(local_port, selected.port)
+        end)
+      else
+        -- Custom port selected
+        M._prompt_custom_port_forward(start_port_forward)
+      end
+    end)
+  else
+    -- No container ports defined, prompt manually
+    M._prompt_custom_port_forward(start_port_forward)
+  end
+end
+
+---Prompt for custom port forward (when no auto-detected ports)
+---@param callback function(local_port: number, remote_port: number)
+function M._prompt_custom_port_forward(callback)
   vim.ui.input({ prompt = "Local port: " }, function(local_port_str)
     if local_port_str == nil or local_port_str == "" then
       return
@@ -988,38 +1191,9 @@ function M._handle_port_forward()
         return
       end
 
-      local adapter = require("k8s.infra.kubectl.adapter")
-      local connections = require("k8s.domain.state.connections")
-
-      local pod_resource = "pod/" .. resource.name
-      local result = adapter.port_forward(pod_resource, resource.namespace, local_port, remote_port)
-
-      if result.ok then
-        -- Add to connections
-        if not state.connections then
-          state.connections = connections.create()
-        end
-        state.connections = connections.add(state.connections, {
-          job_id = result.data.job_id,
-          resource = pod_resource,
-          namespace = resource.namespace,
-          local_port = local_port,
-          remote_port = remote_port,
-        })
-
-        local notify = require("k8s.api.notify")
-        local msg = notify.format_port_forward_message(pod_resource, local_port, remote_port, "start")
-        vim.notify(msg, vim.log.levels.INFO)
-      else
-        vim.notify("Failed to start port forward: " .. (result.error or "Unknown error"), vim.log.levels.ERROR)
-      end
+      callback(local_port, remote_port)
     end)
   end)
-end
-
----Handle port forward list action
-function M._handle_port_forward_list()
-  vim.notify("Port forward list not yet implemented", vim.log.levels.INFO)
 end
 
 ---Handle resource menu action
@@ -1153,6 +1327,183 @@ function M._handle_help()
       end,
     })
   end
+end
+
+---Handle logs_previous action (previous container logs with -p)
+function M._handle_logs_previous()
+  local resource = M._get_current_resource()
+  if not resource then
+    vim.notify("No resource selected", vim.log.levels.WARN)
+    return
+  end
+
+  local pod_actions = require("k8s.handlers.pod_actions")
+
+  if not pod_actions.validate_pod_action(resource.kind) then
+    vim.notify("Previous logs are only available for Pods", vim.log.levels.WARN)
+    return
+  end
+
+  -- Get containers for selection
+  local containers = pod_actions.get_containers(resource)
+  if not containers or #containers == 0 then
+    vim.notify("No container found", vim.log.levels.WARN)
+    return
+  end
+
+  local function open_previous_logs(container)
+    -- Open in new tab
+    vim.cmd("tabnew")
+
+    local adapter = require("k8s.infra.kubectl.adapter")
+    local result = adapter.logs(resource.name, container, resource.namespace, {
+      follow = false,
+      timestamps = true,
+      previous = true,
+    })
+
+    if not result.ok then
+      vim.notify("Failed to open previous logs: " .. (result.error or "Unknown error"), vim.log.levels.ERROR)
+      return
+    end
+
+    -- Set tab name
+    local tab_name = pod_actions.format_tab_name("logs-prev", resource.name, container)
+    vim.api.nvim_buf_set_name(0, tab_name)
+  end
+
+  -- If single container, open directly
+  if #containers == 1 then
+    open_previous_logs(containers[1])
+    return
+  end
+
+  -- Multiple containers - show selection menu
+  vim.ui.select(containers, {
+    prompt = "Select Container:",
+  }, function(choice)
+    if choice then
+      open_previous_logs(choice)
+    end
+  end)
+end
+
+---Handle toggle_secret action
+function M._handle_toggle_secret()
+  if not state.app_state then
+    return
+  end
+
+  local app = require("k8s.app.app")
+
+  -- Toggle secret mask state
+  local current_mask = state.app_state.mask_secrets
+  state.app_state = app.set_mask_secrets(state.app_state, not current_mask)
+
+  local status = state.app_state.mask_secrets and "masked" or "visible"
+  vim.notify("Secrets are now " .. status, vim.log.levels.INFO)
+
+  -- Re-render if viewing secrets
+  if state.app_state.current_kind == "Secret" then
+    M._render_filtered_resources()
+  end
+end
+
+---Handle port forward list action
+function M._handle_port_forward_list()
+  if not state.window then
+    return
+  end
+
+  local window = require("k8s.ui.nui.window")
+  local view_stack = require("k8s.app.view_stack")
+  local connections = require("k8s.domain.state.connections")
+  local port_forward_list = require("k8s.ui.views.port_forward_list")
+
+  -- Push port forward list view to stack
+  state.view_stack = view_stack.push(state.view_stack, {
+    type = "port_forward_list",
+  })
+
+  -- Update footer
+  M._render_footer("port_forward_list")
+
+  -- Get active connections
+  local active = connections.get_all()
+
+  -- Store connections reference for stop action
+  state.pf_list_connections = active
+
+  -- Render port forward list
+  local content_bufnr = window.get_content_bufnr(state.window)
+  if content_bufnr then
+    local lines = port_forward_list.create_content(active)
+    window.set_lines(content_bufnr, lines)
+
+    -- Set cursor to first data row if connections exist
+    if #active > 0 then
+      window.set_cursor(state.window, 2, 0)
+    end
+  end
+
+  -- Update header
+  local header_bufnr = window.get_header_bufnr(state.window)
+  if header_bufnr then
+    local buffer = require("k8s.ui.nui.buffer")
+    local header_content = buffer.create_header_content({
+      context = vim.fn.system("kubectl config current-context"):gsub("\n", ""),
+      namespace = "",
+      view = "Port Forwards",
+    })
+    window.set_lines(header_bufnr, { header_content })
+  end
+end
+
+---Handle stop port forward action (D key in port forward list view)
+function M._handle_stop_port_forward()
+  local view_stack = require("k8s.app.view_stack")
+  local current = view_stack.current(state.view_stack)
+
+  -- Only allow in port_forward_list view
+  if not current or current.type ~= "port_forward_list" then
+    return
+  end
+
+  if not state.pf_list_connections or #state.pf_list_connections == 0 then
+    vim.notify("No active port forwards", vim.log.levels.INFO)
+    return
+  end
+
+  local window = require("k8s.ui.nui.window")
+
+  -- Get cursor position (1-indexed, row 1 is header)
+  local row = window.get_cursor(state.window)
+  local cursor_idx = row - 1
+
+  if cursor_idx < 1 or cursor_idx > #state.pf_list_connections then
+    vim.notify("No port forward selected", vim.log.levels.WARN)
+    return
+  end
+
+  local conn = state.pf_list_connections[cursor_idx]
+  if not conn then
+    return
+  end
+
+  -- Stop the port forward job
+  pcall(vim.fn.jobstop, conn.job_id)
+
+  -- Remove from connections
+  local connections = require("k8s.domain.state.connections")
+  connections.remove(conn.job_id)
+
+  -- Notify user
+  local notify = require("k8s.api.notify")
+  local msg = notify.format_port_forward_message(conn.resource, conn.local_port, conn.remote_port, "stop")
+  vim.notify(msg, vim.log.levels.INFO)
+
+  -- Refresh the port forward list view
+  M._handle_port_forward_list()
 end
 
 return M
