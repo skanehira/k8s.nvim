@@ -79,4 +79,37 @@ function M.calculate_cursor_position(current_pos, item_count)
   return current_pos
 end
 
+---Create content lines for port forward list view
+---@param connections table[] List of active connections
+---@return string[] lines Content lines for display
+function M.create_content(connections)
+  local lines = {}
+
+  -- Header
+  local header = string.format("%-10s %-10s %-30s %-10s", "LOCAL", "REMOTE", "RESOURCE", "STATUS")
+  table.insert(lines, header)
+
+  -- Empty list case
+  if not connections or #connections == 0 then
+    table.insert(lines, "")
+    table.insert(lines, "  No active port forwards")
+    return lines
+  end
+
+  -- Data rows
+  for _, conn in ipairs(connections) do
+    local formatted = M.format_connection(conn)
+    local row = string.format(
+      "%-10s %-10s %-30s %-10s",
+      tostring(formatted.local_port),
+      tostring(formatted.remote_port),
+      formatted.resource,
+      formatted.status
+    )
+    table.insert(lines, row)
+  end
+
+  return lines
+end
+
 return M
