@@ -45,6 +45,7 @@ function M.handle_back(callbacks)
   local global_state = require("k8s.app.global_state")
   local view_stack_mod = require("k8s.app.view_stack")
   local window = require("k8s.ui.nui.window")
+  local view_restorer = require("k8s.handlers.view_restorer")
 
   local view_stack = global_state.get_view_stack()
   if not view_stack or not view_stack_mod.can_pop(view_stack) then
@@ -76,41 +77,8 @@ function M.handle_back(callbacks)
     -- Update global window reference
     global_state.set_window(prev_view.window)
 
-    -- Update footer based on view type
-    local app_state = global_state.get_app_state()
-    if prev_view.type == "list" then
-      local kind = prev_view.kind or (app_state and app_state.current_kind)
-      callbacks.render_footer("list", kind)
-
-      -- Restore the kind if different
-      if prev_view.kind and app_state and prev_view.kind ~= app_state.current_kind then
-        local app = require("k8s.app.app")
-        global_state.set_app_state(app.set_kind(app_state, prev_view.kind))
-        -- Re-fetch and render for the previous kind
-        callbacks.fetch_and_render(prev_view.kind, app_state.current_namespace, { restore_cursor = restore_cursor })
-      elseif restore_cursor then
-        window.set_cursor(prev_view.window, restore_cursor, 0)
-      end
-    elseif prev_view.type == "describe" then
-      local kind = prev_view.resource and prev_view.resource.kind
-      callbacks.render_footer("describe", kind)
-
-      if restore_cursor then
-        window.set_cursor(prev_view.window, restore_cursor, 0)
-      end
-    elseif prev_view.type == "help" then
-      callbacks.render_footer("help")
-
-      if restore_cursor then
-        window.set_cursor(prev_view.window, restore_cursor, 0)
-      end
-    elseif prev_view.type == "port_forward_list" then
-      callbacks.render_footer("port_forward_list")
-
-      if restore_cursor then
-        window.set_cursor(prev_view.window, restore_cursor, 0)
-      end
-    end
+    -- Restore view using polymorphic dispatch
+    view_restorer.restore(prev_view, callbacks, restore_cursor)
 
     -- Unmount the current (popped) view's window after showing previous
     if current_view and current_view.window and not same_window then
