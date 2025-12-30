@@ -65,4 +65,24 @@ function M.format_health_report(checks)
   return table.concat(lines, "\n")
 end
 
+---Check if kubectl is available
+---@return boolean found
+function M.check_kubectl()
+  local result = vim.fn.executable("kubectl")
+  return result == 1
+end
+
+---Run all health checks
+---@return table[] checks
+function M.run_checks()
+  local checks = {}
+
+  for _, executable in ipairs(required_executables) do
+    local found = vim.fn.executable(executable) == 1
+    table.insert(checks, M.create_check_result(found, M.format_check_message(executable, found)))
+  end
+
+  return checks
+end
+
 return M
