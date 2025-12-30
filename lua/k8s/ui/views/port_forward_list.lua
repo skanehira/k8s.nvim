@@ -4,7 +4,7 @@ local M = {}
 
 -- Default keymap definitions for port forward list view
 local default_keymaps = {
-  ["<Esc>"] = "back",
+  ["<C-h>"] = "back",
   ["D"] = "stop",
   ["q"] = "quit",
 }
@@ -89,10 +89,8 @@ function M.create_content(connections)
   local header = string.format("%-10s %-10s %-30s %-10s", "LOCAL", "REMOTE", "RESOURCE", "STATUS")
   table.insert(lines, header)
 
-  -- Empty list case
+  -- Empty list case - just return header only
   if not connections or #connections == 0 then
-    table.insert(lines, "")
-    table.insert(lines, "  No active port forwards")
     return lines
   end
 

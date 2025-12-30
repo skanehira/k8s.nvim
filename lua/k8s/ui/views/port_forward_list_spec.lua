@@ -7,8 +7,8 @@ describe("port_forward_list", function()
     it("should return keymap definitions", function()
       local keymaps = pf_list.get_default_keymaps()
 
-      assert.is.Not.Nil(keymaps["<Esc>"])
-      assert.equals("back", keymaps["<Esc>"])
+      assert.is.Not.Nil(keymaps["<C-h>"])
+      assert.equals("back", keymaps["<C-h>"])
 
       assert.is.Not.Nil(keymaps["D"])
       assert.equals("stop", keymaps["D"])

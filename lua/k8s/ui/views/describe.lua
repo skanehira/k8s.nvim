@@ -6,7 +6,7 @@ local M = {}
 
 -- Default keymap definitions for describe view
 local default_keymaps = {
-  ["<Esc>"] = "back",
+  ["<C-h>"] = "back",
   ["l"] = "logs",
   ["e"] = "exec",
   ["D"] = "delete",

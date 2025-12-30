@@ -7,8 +7,8 @@ describe("describe_view", function()
     it("should return keymap definitions", function()
       local keymaps = describe_view.get_default_keymaps()
 
-      assert.is.Not.Nil(keymaps["<Esc>"])
-      assert.equals("back", keymaps["<Esc>"])
+      assert.is.Not.Nil(keymaps["<C-h>"])
+      assert.equals("back", keymaps["<C-h>"])
 
       assert.is.Not.Nil(keymaps["l"])
       assert.equals("logs", keymaps["l"])
@@ -26,7 +26,7 @@ describe("describe_view", function()
 
   describe("get_action_for_key", function()
     it("should return action name for valid key", function()
-      local action = describe_view.get_action_for_key("<Esc>")
+      local action = describe_view.get_action_for_key("<C-h>")
       assert.equals("back", action)
     end)
 

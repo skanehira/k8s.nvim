@@ -25,7 +25,7 @@ local default_keymaps = {
   ["N"] = "namespace_menu",
   ["?"] = "help",
   ["q"] = "quit",
-  ["<Esc>"] = "back",
+  ["<C-h>"] = "back",
 }
 
 -- Actions that require a resource to be selected

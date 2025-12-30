@@ -180,8 +180,8 @@ describe("resource_list", function()
       assert.is.Not.Nil(keymaps["?"])
       assert.equals("help", keymaps["?"])
 
-      assert.is.Not.Nil(keymaps["<Esc>"])
-      assert.equals("back", keymaps["<Esc>"])
+      assert.is.Not.Nil(keymaps["<C-h>"])
+      assert.equals("back", keymaps["<C-h>"])
 
       assert.is.Not.Nil(keymaps["R"])
       assert.equals("resource_menu", keymaps["R"])

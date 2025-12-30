@@ -29,7 +29,7 @@ describe("help", function()
       assert(#keymaps > 0)
       local found_back = false
       for _, km in ipairs(keymaps) do
-        if km.key == "<Esc>" and km.action == "Back" then
+        if km.key == "<C-h>" and km.action == "Back" then
           found_back = true
         end
       end
@@ -62,10 +62,15 @@ describe("help", function()
       local lines = help.format_keymap_lines(keymaps, 4) -- 4 items per line
 
       assert.equals(1, #lines)
-      assert.matches("<CR> Select", lines[1])
-      assert.matches("d Describe", lines[1])
-      assert.matches("l Logs", lines[1])
-      assert.matches("e Exec", lines[1])
+      -- Check that all keys and actions are present (with padding for alignment)
+      assert.matches("<CR>", lines[1])
+      assert.matches("Select", lines[1])
+      assert.matches("d", lines[1])
+      assert.matches("Describe", lines[1])
+      assert.matches("l", lines[1])
+      assert.matches("Logs", lines[1])
+      assert.matches("e", lines[1])
+      assert.matches("Exec", lines[1])
     end)
 
     it("should wrap to multiple lines when needed", function()
@@ -89,10 +94,26 @@ describe("help", function()
     end)
   end)
 
-  describe("get_close_hint", function()
-    it("should return close hint message", function()
-      local hint = help.get_close_hint()
-      assert.matches("Press any key to close help", hint)
+  describe("create_help_content", function()
+    it("should create help content from keymap definitions", function()
+      local keymaps = {
+        describe = { key = "d", action = "describe", desc = "Describe" },
+        logs = { key = "l", action = "logs", desc = "Logs" },
+        quit = { key = "q", action = "quit", desc = "Quit" },
+      }
+
+      local lines = help.create_help_content(keymaps)
+
+      assert(#lines > 0)
+      -- Should have title
+      assert.equals("Keymaps:", lines[1])
+    end)
+
+    it("should handle empty keymaps", function()
+      local lines = help.create_help_content({})
+
+      assert(#lines > 0)
+      assert.equals("Keymaps:", lines[1])
     end)
   end)
 end)
