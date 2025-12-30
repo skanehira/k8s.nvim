@@ -66,7 +66,6 @@ function M.format_keymap_lines(keymaps, items_per_line)
   end
 
   -- Format each keymap with fixed width
-  local item_width = max_key_width + 1 + max_action_width + 2 -- key + space + action + gap
   local format_str = "%-" .. max_key_width .. "s %-" .. max_action_width .. "s"
 
   local lines = {}
