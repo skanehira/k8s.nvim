@@ -88,15 +88,15 @@ Neovim内でKubernetesクラスタを管理するLuaプラグイン。k9sライ�
 
 ### フェーズ7: ドメイン層（Actions - 変更系）
 
-- [ ] [RED] delete.luaのテスト作成
-- [ ] [GREEN] delete.lua実装
+- [x] [RED] delete.luaのテスト作成
+- [x] [GREEN] delete.lua実装
 
-- [ ] [RED] scale.luaのテスト作成
-- [ ] [GREEN] scale.lua実装
+- [x] [RED] scale.luaのテスト作成
+- [x] [GREEN] scale.lua実装
 
-- [ ] [RED] restart.luaのテスト作成
-- [ ] [GREEN] restart.lua実装
-- [ ] [REFACTOR] 変更系アクションの共通処理抽出
+- [x] [RED] restart.luaのテスト作成
+- [x] [GREEN] restart.lua実装
+- [x] [REFACTOR] 変更系アクションの共通処理抽出（変更不要）
 
 ### フェーズ8: ドメイン層（Actions - 接続系）
 
