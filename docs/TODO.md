@@ -378,6 +378,67 @@ Neovim内でKubernetesクラスタを管理するLuaプラグイン。k9sライ�
 - [ ] doc/k8s.txt（Vimヘルプ）作成 - 必要時に実施
   - [ ] トラブルシューティング
 
+### フェーズ15: アーキテクチャ改善
+
+コードベースの保守性・テスタビリティを向上させるリファクタリング。
+
+#### 状態管理の統一（完了）
+- [x] scope.lua 削除（未使用）
+- [x] update_loop.lua 削除（未使用）
+- [x] app.lua から view_stack フィールド削除（重複）
+
+#### Window初期化の共通化（完了）
+describe_handler, port_forward_handler, menu_handler に重複する初期化コードを統一。
+
+- [x] [RED] view_helper.lua のテスト作成
+- [x] [GREEN] view_helper.lua 実装
+  - [x] create_view_config() - ビュー設定生成
+  - [x] validate_config() - 設定バリデーション
+  - [x] create_view() - ウィンドウ作成・マウント・初期化を一括処理
+  - [x] prepare_header_content() - ヘッダーコンテンツ生成
+  - [x] prepare_footer_content() - フッターコンテンツ生成
+- [x] [REFACTOR] 各ハンドラーを view_helper 使用に変更
+  - [x] describe_handler.lua
+  - [x] port_forward_handler.lua
+  - [x] menu_handler.lua (handle_resource_menu, handle_help)
+
+#### テスタビリティ向上（完了）
+グローバル状態への依存を減らし、依存性注入パターンを導入。
+
+- [x] [RED] 依存性注入パターンのテスト作成
+- [x] [GREEN] deps.lua 実装
+  - [x] get(name) - 依存性取得（オーバーライド優先）
+  - [x] set(name, module) - 依存性オーバーライド
+  - [x] reset() - オーバーライドリセット
+  - [x] with_mocks(mocks, fn) - 一時的モック適用
+  - [x] create_mock_global_state() - テスト用global_stateモック生成
+  - [x] create_mock_adapter() - テスト用adapterモック生成
+  - [x] create_mock_window() - テスト用windowモック生成
+- [x] [REFACTOR] テストのセットアップ簡素化（モックファクトリ提供）
+
+#### コールバック構造の明確化（完了）
+callbacksオブジェクトの型定義と整理。
+
+- [x] [RED] コールバック型定義のテスト作成
+- [x] [GREEN] LuaCATS型注釈でCallbacks型を定義
+  - [x] @class K8sCallbacks - ハンドラーに渡されるコールバック
+  - [x] @class K8sHandlers - キーマップにバインドされるハンドラー
+  - [x] validate_callbacks() - コールバック検証関数
+  - [x] get_callback_requirements() - ハンドラー別要件取得
+- [x] [REFACTOR] dispatcher.luaで型を使用
+
+#### View Stackのポリモーフィズム化（完了）
+handle_back() の条件分岐を削減。各viewに復帰処理を持たせる。
+
+- [x] [RED] view type別 restore 関数のテスト作成
+- [x] [GREEN] view_restorer.lua 実装
+  - [x] get_restorer(view_type) - ビュータイプ別リストア関数取得
+  - [x] get_footer_params(view, app_state) - フッターパラメータ取得
+  - [x] needs_refetch(view, app_state) - 再フェッチ要否判定
+  - [x] restore(view, callbacks, cursor, deps) - ポリモーフィック復帰処理
+  - [x] restorers.list / describe / help / port_forward_list - 各ビュー固有の復帰ロジック
+- [x] [REFACTOR] handle_back() を view_restorer.restore() 呼び出しに簡素化（75行→45行）
+
 ## 実装ノート
 
 ### アーキテクチャ変更（2025-12-30）
