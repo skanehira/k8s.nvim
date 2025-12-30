@@ -15,7 +15,6 @@ function M.create_state(opts)
     resources = {},
     filter = nil,
     cursor = 1,
-    view_stack = {},
     mask_secrets = true, -- Default: mask secrets
   }
 end
@@ -164,7 +163,6 @@ function M._copy_state(state)
     resources = state.resources,
     filter = state.filter,
     cursor = state.cursor,
-    view_stack = state.view_stack,
     mask_secrets = state.mask_secrets,
   }
 end

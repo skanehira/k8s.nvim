@@ -11,7 +11,6 @@ describe("app", function()
       assert.is_nil(state.current_kind)
       assert.is_nil(state.current_namespace)
       assert.is_table(state.resources)
-      assert.is_table(state.view_stack)
     end)
   end)
 
