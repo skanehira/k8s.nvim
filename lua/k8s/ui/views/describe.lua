@@ -68,4 +68,47 @@ function M.can_perform_action(kind, action)
   return caps[action]
 end
 
+-- =============================================================================
+-- View Rendering
+-- =============================================================================
+
+---@class DescribeViewRenderOptions
+---@field lines string[] Lines to render
+---@field kind string Resource kind
+---@field name string Resource name
+---@field namespace string Resource namespace
+---@field mask_secrets? boolean Whether to mask secrets
+
+---Render describe view (content only, hide table_header)
+---@param win K8sWindow Window instance
+---@param opts DescribeViewRenderOptions
+function M.render(win, opts)
+  local window = require("k8s.ui.nui.window")
+
+  -- Hide table header for describe view
+  window.hide_table_header(win)
+
+  -- Render content
+  local content_bufnr = window.get_content_bufnr(win)
+  if not content_bufnr then
+    return
+  end
+
+  local lines = opts.lines
+
+  -- Apply secret mask if needed
+  if opts.kind == "Secret" and opts.mask_secrets then
+    local secret_mask = require("k8s.ui.components.secret_mask")
+    lines = secret_mask.mask_describe_output(true, lines)
+  end
+
+  window.set_lines(content_bufnr, lines)
+
+  -- Set filetype for syntax highlighting
+  vim.api.nvim_buf_set_option(content_bufnr, "filetype", M.get_filetype())
+
+  -- Set cursor to top
+  window.set_cursor(win, 1, 0)
+end
+
 return M

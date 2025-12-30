@@ -165,4 +165,76 @@ function M.mark_refresh_complete(state, current_time)
   state.last_refresh = current_time
 end
 
+-- =============================================================================
+-- View Rendering
+-- =============================================================================
+
+---@class TableViewRenderOptions
+---@field resources table[] Resources to render (domain objects)
+---@field kind string Resource kind
+---@field restore_cursor? number Cursor position to restore
+
+---Render table view (table_header + content)
+---@param win K8sWindow Window instance
+---@param opts TableViewRenderOptions
+function M.render(win, opts)
+  local window = require("k8s.ui.nui.window")
+  local buffer = require("k8s.ui.nui.buffer")
+  local columns_module = require("k8s.ui.views.columns")
+  local table_component = require("k8s.ui.components.table")
+
+  -- Get columns for this kind
+  local columns = columns_module.get_columns(opts.kind)
+
+  -- Extract row data from resources
+  local rows = {}
+  for _, res in ipairs(opts.resources) do
+    table.insert(rows, columns_module.extract_row(res))
+  end
+
+  -- Prepare table content
+  local content = buffer.prepare_table_content(columns, rows)
+
+  -- Render table header
+  local table_header_bufnr = window.get_table_header_bufnr(win)
+  if table_header_bufnr then
+    window.set_lines(table_header_bufnr, { content.header_line })
+  end
+
+  -- Render table content
+  local content_bufnr = window.get_content_bufnr(win)
+  if content_bufnr then
+    window.set_lines(content_bufnr, content.data_lines)
+
+    -- Apply status highlights
+    local status_key = columns_module.get_status_column_key(opts.kind)
+    local status_col_idx = buffer.find_status_column_index(columns, status_key)
+
+    if status_col_idx then
+      local hl_range = buffer.get_highlight_range(content.widths, status_col_idx)
+
+      for i, row in ipairs(rows) do
+        local status = row[status_key]
+        local hl_group = table_component.get_status_highlight(status)
+        if hl_group then
+          window.add_highlight(content_bufnr, hl_group, i - 1, hl_range.start_col, hl_range.end_col)
+        end
+      end
+    end
+  end
+
+  -- Restore cursor if specified
+  if opts.restore_cursor then
+    local pos = M.calculate_cursor_position(opts.restore_cursor, #rows)
+    window.set_cursor(win, pos, 0)
+  elseif #rows > 0 then
+    window.set_cursor(win, 1, 0)
+  end
+
+  return {
+    widths = content.widths,
+    row_count = #rows,
+  }
+end
+
 return M
