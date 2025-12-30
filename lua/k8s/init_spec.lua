@@ -87,6 +87,12 @@ describe("init", function()
 
       assert.equals("toggle", cmd)
     end)
+
+    it("should parse portforwards command", function()
+      local cmd = init.parse_command_args({ "portforwards" })
+
+      assert.equals("portforwards", cmd)
+    end)
   end)
 
   describe("get_resource_kind_from_command", function()

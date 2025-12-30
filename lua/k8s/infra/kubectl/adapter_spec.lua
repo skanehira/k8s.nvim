@@ -344,7 +344,7 @@ Node:         minikube/192.168.49.2
       assert.is_true(cmd_str:find("%-c nginx") ~= nil)
     end)
 
-    it("should use sh as default shell", function()
+    it("should use auto-detect shell command as default", function()
       local captured_cmd
       adapter._set_term_opener(function(cmd)
         captured_cmd = cmd
@@ -353,7 +353,23 @@ Node:         minikube/192.168.49.2
 
       adapter.exec("nginx-abc123", "nginx", "default")
 
-      assert.is_true(captured_cmd:find("sh$") ~= nil)
+      -- Should use sh -c "[ -e /bin/bash ] && exec bash || exec sh" for auto-detection
+      assert.is_true(captured_cmd:find("sh %-c") ~= nil, "Should use sh -c for auto-detection")
+      assert.is_true(captured_cmd:find("/bin/bash") ~= nil, "Should check for /bin/bash")
+    end)
+
+    it("should pass on_exit callback to term opener", function()
+      local captured_opts
+      adapter._set_term_opener(function(_, opts)
+        captured_opts = opts
+        return 12345
+      end)
+
+      local on_exit = function() end
+      adapter.exec("nginx-abc123", "nginx", "default", nil, { on_exit = on_exit })
+
+      assert.is.Not.Nil(captured_opts)
+      assert.equals(on_exit, captured_opts.on_exit)
     end)
   end)
 

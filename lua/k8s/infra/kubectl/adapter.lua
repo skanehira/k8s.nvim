@@ -9,8 +9,15 @@ local M = {}
 local executor = vim.system
 
 -- Default term opener using vim.fn.jobstart with term option
-local function default_term_opener(cmd)
-  return vim.fn.jobstart(cmd, { term = true })
+---@param cmd string
+---@param opts? { on_exit?: function }
+local function default_term_opener(cmd, opts)
+  opts = opts or {}
+  local job_opts = { term = true }
+  if opts.on_exit then
+    job_opts.on_exit = opts.on_exit
+  end
+  return vim.fn.jobstart(cmd, job_opts)
 end
 local term_opener = default_term_opener
 
@@ -147,16 +154,24 @@ end
 ---@class Job
 ---@field job_id number
 
+-- Default shell command for auto-detection (bash preferred, fallback to sh)
+local DEFAULT_SHELL = 'sh -c "[ -e /bin/bash ] && exec bash || exec sh"'
+
+---@class ExecOpts
+---@field on_exit? fun(job_id: number, exit_code: number, event: string) Callback when process exits
+
 ---Execute a command in a container
 ---@param pod string
 ---@param container string
 ---@param namespace string
 ---@param shell string|nil
+---@param opts? ExecOpts
 ---@return K8sResult
-function M.exec(pod, container, namespace, shell)
-  shell = shell or "sh"
+function M.exec(pod, container, namespace, shell, opts)
+  opts = opts or {}
+  shell = shell or DEFAULT_SHELL
   local cmd = string.format("kubectl exec -it -n %s %s -c %s -- %s", namespace, pod, container, shell)
-  local job_id = term_opener(cmd)
+  local job_id = term_opener(cmd, opts)
   return ok({ job_id = job_id })
 end
 

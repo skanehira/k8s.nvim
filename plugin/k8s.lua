@@ -18,6 +18,12 @@ vim.api.nvim_create_user_command("K8s", function(opts)
     k8s.close()
   elseif cmd == "open_resource" and args then
     k8s.open({ kind = args.kind })
+  elseif cmd == "context" and args then
+    k8s.switch_context(args.name)
+  elseif cmd == "namespace" and args then
+    k8s.switch_namespace(args.name)
+  elseif cmd == "portforwards" then
+    k8s.show_port_forwards()
   end
 end, {
   nargs = "*",

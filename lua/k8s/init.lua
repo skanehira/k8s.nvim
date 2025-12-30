@@ -150,6 +150,8 @@ function M.parse_command_args(args)
     return "context", { name = args[2] }
   elseif cmd == "namespace" then
     return "namespace", { name = args[2] }
+  elseif cmd == "portforwards" then
+    return "portforwards", nil
   else
     local kind = M.get_resource_kind_from_command(cmd)
     if kind then
@@ -311,6 +313,76 @@ function M.toggle()
     end
   end
   M.open()
+end
+
+---Switch to a specific context
+---@param context_name string|nil Context name (if nil, shows menu)
+function M.switch_context(context_name)
+  if not context_name then
+    -- If UI is open, use the menu handler
+    if state.window then
+      M._handle_context_menu()
+    else
+      vim.notify("Context name required. Usage: :K8s context <name>", vim.log.levels.WARN)
+    end
+    return
+  end
+
+  local adapter = require("k8s.infra.kubectl.adapter")
+  adapter.use_context(context_name, function(result)
+    vim.schedule(function()
+      if result.ok then
+        local notify = require("k8s.api.notify")
+        vim.notify(notify.format_context_switch_message(context_name), vim.log.levels.INFO)
+        -- Refresh if UI is open
+        if state.window and state.app_state then
+          M._handle_refresh()
+        end
+      else
+        vim.notify("Failed to switch context: " .. (result.error or "Unknown error"), vim.log.levels.ERROR)
+      end
+    end)
+  end)
+end
+
+---Switch to a specific namespace
+---@param namespace_name string|nil Namespace name (if nil, shows menu)
+function M.switch_namespace(namespace_name)
+  if not namespace_name then
+    -- If UI is open, use the menu handler
+    if state.window then
+      M._handle_namespace_menu()
+    else
+      vim.notify("Namespace name required. Usage: :K8s namespace <name>", vim.log.levels.WARN)
+    end
+    return
+  end
+
+  local app = require("k8s.app.app")
+  local namespace = namespace_name == "all" and "" or namespace_name
+
+  if state.app_state then
+    state.app_state = app.set_namespace(state.app_state, namespace)
+    local notify = require("k8s.api.notify")
+    vim.notify(notify.format_namespace_switch_message(namespace_name), vim.log.levels.INFO)
+    M._fetch_and_render(state.app_state.current_kind, namespace)
+  else
+    vim.notify("Namespace set to: " .. namespace_name, vim.log.levels.INFO)
+  end
+end
+
+---Show port forwards list
+function M.show_port_forwards()
+  -- Ensure UI is open
+  if not state.window then
+    M.open()
+    -- Wait for window to be ready, then show port forwards
+    vim.schedule(function()
+      M._handle_port_forward_list()
+    end)
+  else
+    M._handle_port_forward_list()
+  end
 end
 
 ---Start auto-refresh timer
@@ -955,8 +1027,21 @@ function M._handle_exec()
     -- Open in new tab
     vim.cmd("tabnew")
 
+    -- Capture current buffer for auto-close
+    local bufnr = vim.api.nvim_get_current_buf()
+
     local adapter = require("k8s.infra.kubectl.adapter")
-    local result = adapter.exec(resource.name, container, resource.namespace)
+    local result = adapter.exec(resource.name, container, resource.namespace, nil, {
+      on_exit = function()
+        -- Auto-close tab when shell exits
+        vim.schedule(function()
+          if vim.api.nvim_buf_is_valid(bufnr) then
+            -- Close the buffer (this will close the tab if it's the only buffer)
+            pcall(vim.api.nvim_buf_delete, bufnr, { force = true })
+          end
+        end)
+      end,
+    })
 
     if not result.ok then
       vim.notify("Failed to exec: " .. (result.error or "Unknown error"), vim.log.levels.ERROR)
