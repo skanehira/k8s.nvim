@@ -58,6 +58,36 @@ describe("parser", function()
       assert.is.Not.Nil(result.error)
     end)
 
+    it("should parse generic List kind with item kinds", function()
+      -- Some kubectl versions return kind: "List" instead of "PodList"
+      local json = [[
+{
+  "apiVersion": "v1",
+  "kind": "List",
+  "items": [
+    {
+      "apiVersion": "v1",
+      "kind": "Pod",
+      "metadata": {
+        "name": "nginx-abc123",
+        "namespace": "default",
+        "creationTimestamp": "2024-12-30T10:00:00Z"
+      },
+      "status": {
+        "phase": "Running"
+      }
+    }
+  ]
+}
+]]
+      local result = parser.parse_resources(json)
+
+      assert.is_true(result.ok)
+      assert.equals(1, #result.data)
+      assert.equals("nginx-abc123", result.data[1].name)
+      assert.equals("Pod", result.data[1].kind)
+    end)
+
     it("should parse deployment list JSON", function()
       local json = [[
 {

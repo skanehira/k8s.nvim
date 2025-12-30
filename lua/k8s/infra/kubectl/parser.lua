@@ -109,17 +109,26 @@ function M.parse_resources(json)
     return err("Failed to parse JSON: " .. tostring(data))
   end
 
-  local kind = extract_kind(data.kind or "")
   local items = data.items or {}
+
+  -- Extract kind from list kind (e.g., "PodList" -> "Pod")
+  -- If kind is just "List", get kind from first item
+  local kind = extract_kind(data.kind or "")
+  if kind == "" and #items > 0 and items[1].kind then
+    kind = items[1].kind
+  end
+
   local resources = {}
 
   for _, item in ipairs(items) do
     local metadata = item.metadata or {}
+    -- Use item's kind if available, otherwise use list kind
+    local item_kind = item.kind or kind
     table.insert(resources, {
-      kind = kind,
+      kind = item_kind,
       name = metadata.name or "",
       namespace = metadata.namespace or "",
-      status = get_status(item, kind),
+      status = get_status(item, item_kind),
       age = calculate_age(metadata.creationTimestamp or ""),
       raw = item,
     })
