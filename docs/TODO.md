@@ -23,21 +23,21 @@ Neovim内でKubernetesクラスタを管理するLuaプラグイン。k9sライ�
 
 依存なし。最初に実装することでドメイン層のテストが容易になる。
 
-- [ ] [RED] parserのテスト作成（JSON→Resourceパース）
-- [ ] [GREEN] parser.lua実装
-- [ ] [REFACTOR] パーサーのエラーハンドリング改善
+- [x] [RED] parserのテスト作成（JSON→Resourceパース）
+- [x] [GREEN] parser.lua実装
+- [x] [REFACTOR] パーサーのエラーハンドリング改善
 
-- [ ] [RED] kubectl adapterのテスト作成（get_resources）
-- [ ] [GREEN] adapter.lua実装（get_resources）
-- [ ] [RED] adapter describeのテスト作成
-- [ ] [GREEN] describe実装
-- [ ] [RED] adapter delete/scale/restartのテスト作成
-- [ ] [GREEN] delete/scale/restart実装
-- [ ] [RED] adapter exec/logs/port_forwardのテスト作成
-- [ ] [GREEN] exec/logs/port_forward実装（vim.fn.termopen）
-- [ ] [RED] adapter get_contexts/use_context/get_namespacesのテスト作成
-- [ ] [GREEN] context/namespace操作実装
-- [ ] [REFACTOR] adapter全体の共通処理抽出
+- [x] [RED] kubectl adapterのテスト作成（get_resources）
+- [x] [GREEN] adapter.lua実装（get_resources）
+- [x] [RED] adapter describeのテスト作成
+- [x] [GREEN] describe実装
+- [x] [RED] adapter delete/scale/restartのテスト作成
+- [x] [GREEN] delete/scale/restart実装
+- [x] [RED] adapter exec/logs/port_forwardのテスト作成
+- [x] [GREEN] exec/logs/port_forward実装（vim.fn.termopen）
+- [x] [RED] adapter get_contexts/use_context/get_namespacesのテスト作成
+- [x] [GREEN] context/namespace操作実装
+- [x] [REFACTOR] adapter全体の共通処理抽出
 
 ### フェーズ3: ドメイン層（Ports）
 

@@ -1,0 +1,545 @@
+local adapter = require("k8s.infra.kubectl.adapter")
+
+describe("adapter", function()
+  describe("get_resources", function()
+    it("should return resources for pods", function()
+      -- モックを設定
+      local mock_output = [[
+{
+  "apiVersion": "v1",
+  "kind": "PodList",
+  "items": [
+    {
+      "metadata": {
+        "name": "nginx-abc123",
+        "namespace": "default",
+        "creationTimestamp": "2024-12-30T10:00:00Z"
+      },
+      "status": {
+        "phase": "Running"
+      }
+    }
+  ]
+}
+]]
+      adapter._set_executor(function(_, opts)
+        if opts and opts.on_exit then
+          opts.on_exit({ code = 0, stdout = mock_output, stderr = "" })
+        end
+        return { wait = function() end }
+      end)
+
+      local result
+      adapter.get_resources("pods", "default", function(res)
+        result = res
+      end)
+
+      assert.is_true(result.ok)
+      assert.equals(1, #result.data)
+      assert.equals("nginx-abc123", result.data[1].name)
+      assert.equals("default", result.data[1].namespace)
+      assert.equals("Pod", result.data[1].kind)
+    end)
+
+    it("should handle kubectl errors", function()
+      adapter._set_executor(function(_, opts)
+        if opts and opts.on_exit then
+          opts.on_exit({ code = 1, stdout = "", stderr = "error: resource not found" })
+        end
+        return { wait = function() end }
+      end)
+
+      local result
+      adapter.get_resources("pods", "nonexistent", function(res)
+        result = res
+      end)
+
+      assert.is_false(result.ok)
+      assert.is.Not.Nil(result.error)
+    end)
+
+    it("should use default namespace when empty string", function()
+      local captured_cmd
+      adapter._set_executor(function(cmd, opts)
+        captured_cmd = cmd
+        if opts and opts.on_exit then
+          opts.on_exit({ code = 0, stdout = '{"kind":"PodList","items":[]}', stderr = "" })
+        end
+        return { wait = function() end }
+      end)
+
+      adapter.get_resources("pods", "", function() end)
+
+      assert.is.Not.Nil(captured_cmd)
+      local has_default = false
+      for i, arg in ipairs(captured_cmd) do
+        if arg == "-n" and captured_cmd[i + 1] == "default" then
+          has_default = true
+          break
+        end
+      end
+      assert.is_true(has_default)
+    end)
+
+    it("should handle nil namespace (all namespaces)", function()
+      local captured_cmd
+      adapter._set_executor(function(cmd, opts)
+        captured_cmd = cmd
+        if opts and opts.on_exit then
+          opts.on_exit({ code = 0, stdout = '{"kind":"PodList","items":[]}', stderr = "" })
+        end
+        return { wait = function() end }
+      end)
+
+      adapter.get_resources("pods", nil, function() end)
+
+      assert.is.Not.Nil(captured_cmd)
+      local has_all_namespaces = false
+      for _, arg in ipairs(captured_cmd) do
+        if arg == "--all-namespaces" or arg == "-A" then
+          has_all_namespaces = true
+          break
+        end
+      end
+      assert.is_true(has_all_namespaces)
+    end)
+
+    it("should include namespace flag when namespace is provided", function()
+      local captured_cmd
+      adapter._set_executor(function(cmd, opts)
+        captured_cmd = cmd
+        if opts and opts.on_exit then
+          opts.on_exit({ code = 0, stdout = '{"kind":"PodList","items":[]}', stderr = "" })
+        end
+        return { wait = function() end }
+      end)
+
+      adapter.get_resources("pods", "kube-system", function() end)
+
+      local has_namespace = false
+      for i, arg in ipairs(captured_cmd) do
+        if arg == "-n" and captured_cmd[i + 1] == "kube-system" then
+          has_namespace = true
+          break
+        end
+      end
+      assert.is_true(has_namespace)
+    end)
+  end)
+
+  describe("describe", function()
+    it("should return describe output", function()
+      local mock_output = [[
+Name:         nginx-abc123
+Namespace:    default
+Priority:     0
+Node:         minikube/192.168.49.2
+]]
+      adapter._set_executor(function(_, opts)
+        if opts and opts.on_exit then
+          opts.on_exit({ code = 0, stdout = mock_output, stderr = "" })
+        end
+        return { wait = function() end }
+      end)
+
+      local result
+      adapter.describe("pod", "nginx-abc123", "default", function(res)
+        result = res
+      end)
+
+      assert.is_true(result.ok)
+      assert.equals(mock_output, result.data)
+    end)
+
+    it("should handle kubectl errors", function()
+      adapter._set_executor(function(_, opts)
+        if opts and opts.on_exit then
+          opts.on_exit({ code = 1, stdout = "", stderr = 'Error from server (NotFound): pods "nonexistent" not found' })
+        end
+        return { wait = function() end }
+      end)
+
+      local result
+      adapter.describe("pod", "nonexistent", "default", function(res)
+        result = res
+      end)
+
+      assert.is_false(result.ok)
+      assert.is.Not.Nil(result.error)
+    end)
+
+    it("should build correct command", function()
+      local captured_cmd
+      adapter._set_executor(function(cmd, opts)
+        captured_cmd = cmd
+        if opts and opts.on_exit then
+          opts.on_exit({ code = 0, stdout = "", stderr = "" })
+        end
+        return { wait = function() end }
+      end)
+
+      adapter.describe("deployment", "nginx-deploy", "kube-system", function() end)
+
+      assert.is.Not.Nil(captured_cmd)
+      -- kubectl describe deployment nginx-deploy -n kube-system
+      assert.equals("kubectl", captured_cmd[1])
+      assert.equals("describe", captured_cmd[2])
+      assert.equals("deployment", captured_cmd[3])
+      assert.equals("nginx-deploy", captured_cmd[4])
+    end)
+  end)
+
+  describe("delete", function()
+    it("should delete a resource", function()
+      adapter._set_executor(function(_, opts)
+        if opts and opts.on_exit then
+          opts.on_exit({ code = 0, stdout = 'pod "nginx-abc123" deleted', stderr = "" })
+        end
+        return { wait = function() end }
+      end)
+
+      local result
+      adapter.delete("pod", "nginx-abc123", "default", function(res)
+        result = res
+      end)
+
+      assert.is_true(result.ok)
+    end)
+
+    it("should handle errors", function()
+      adapter._set_executor(function(_, opts)
+        if opts and opts.on_exit then
+          opts.on_exit({ code = 1, stdout = "", stderr = "Error from server (NotFound)" })
+        end
+        return { wait = function() end }
+      end)
+
+      local result
+      adapter.delete("pod", "nonexistent", "default", function(res)
+        result = res
+      end)
+
+      assert.is_false(result.ok)
+    end)
+
+    it("should build correct command", function()
+      local captured_cmd
+      adapter._set_executor(function(cmd, opts)
+        captured_cmd = cmd
+        if opts and opts.on_exit then
+          opts.on_exit({ code = 0, stdout = "", stderr = "" })
+        end
+        return { wait = function() end }
+      end)
+
+      adapter.delete("pod", "nginx-abc123", "kube-system", function() end)
+
+      assert.equals("kubectl", captured_cmd[1])
+      assert.equals("delete", captured_cmd[2])
+      assert.equals("pod", captured_cmd[3])
+      assert.equals("nginx-abc123", captured_cmd[4])
+    end)
+  end)
+
+  describe("scale", function()
+    it("should scale a deployment", function()
+      adapter._set_executor(function(_, opts)
+        if opts and opts.on_exit then
+          opts.on_exit({ code = 0, stdout = "deployment.apps/nginx-deploy scaled", stderr = "" })
+        end
+        return { wait = function() end }
+      end)
+
+      local result
+      adapter.scale("deployment", "nginx-deploy", "default", 3, function(res)
+        result = res
+      end)
+
+      assert.is_true(result.ok)
+    end)
+
+    it("should build correct command with replicas", function()
+      local captured_cmd
+      adapter._set_executor(function(cmd, opts)
+        captured_cmd = cmd
+        if opts and opts.on_exit then
+          opts.on_exit({ code = 0, stdout = "", stderr = "" })
+        end
+        return { wait = function() end }
+      end)
+
+      adapter.scale("deployment", "nginx-deploy", "default", 5, function() end)
+
+      assert.equals("kubectl", captured_cmd[1])
+      assert.equals("scale", captured_cmd[2])
+      assert.equals("deployment", captured_cmd[3])
+      assert.equals("nginx-deploy", captured_cmd[4])
+      -- Check for --replicas=5
+      local has_replicas = false
+      for _, arg in ipairs(captured_cmd) do
+        if arg == "--replicas=5" then
+          has_replicas = true
+          break
+        end
+      end
+      assert.is_true(has_replicas)
+    end)
+  end)
+
+  describe("restart", function()
+    it("should restart a deployment", function()
+      adapter._set_executor(function(_, opts)
+        if opts and opts.on_exit then
+          opts.on_exit({ code = 0, stdout = "deployment.apps/nginx-deploy restarted", stderr = "" })
+        end
+        return { wait = function() end }
+      end)
+
+      local result
+      adapter.restart("deployment", "nginx-deploy", "default", function(res)
+        result = res
+      end)
+
+      assert.is_true(result.ok)
+    end)
+
+    it("should build correct command", function()
+      local captured_cmd
+      adapter._set_executor(function(cmd, opts)
+        captured_cmd = cmd
+        if opts and opts.on_exit then
+          opts.on_exit({ code = 0, stdout = "", stderr = "" })
+        end
+        return { wait = function() end }
+      end)
+
+      adapter.restart("deployment", "nginx-deploy", "default", function() end)
+
+      assert.equals("kubectl", captured_cmd[1])
+      assert.equals("rollout", captured_cmd[2])
+      assert.equals("restart", captured_cmd[3])
+      assert.equals("deployment", captured_cmd[4])
+      assert.equals("nginx-deploy", captured_cmd[5])
+    end)
+  end)
+
+  describe("exec", function()
+    it("should build correct command", function()
+      local captured_cmd
+      adapter._set_term_opener(function(cmd)
+        captured_cmd = cmd
+        return 12345 -- mock job id
+      end)
+
+      local result = adapter.exec("nginx-abc123", "nginx", "default")
+
+      assert.is_true(result.ok)
+      assert.equals(12345, result.data.job_id)
+      assert.is.not_nil(captured_cmd)
+      -- kubectl exec -it -n default nginx-abc123 -c nginx -- sh
+      local cmd_str = captured_cmd
+      assert.is_true(cmd_str:find("kubectl") ~= nil)
+      assert.is_true(cmd_str:find("exec") ~= nil)
+      assert.is_true(cmd_str:find("nginx%-abc123") ~= nil)
+      assert.is_true(cmd_str:find("%-c nginx") ~= nil)
+    end)
+
+    it("should use sh as default shell", function()
+      local captured_cmd
+      adapter._set_term_opener(function(cmd)
+        captured_cmd = cmd
+        return 12345
+      end)
+
+      adapter.exec("nginx-abc123", "nginx", "default")
+
+      assert.is_true(captured_cmd:find("sh$") ~= nil)
+    end)
+  end)
+
+  describe("logs", function()
+    it("should build correct command", function()
+      local captured_cmd
+      adapter._set_term_opener(function(cmd)
+        captured_cmd = cmd
+        return 12345
+      end)
+
+      local result = adapter.logs("nginx-abc123", "nginx", "default", {})
+
+      assert.is_true(result.ok)
+      assert.equals(12345, result.data.job_id)
+      assert.is_true(captured_cmd:find("kubectl") ~= nil)
+      assert.is_true(captured_cmd:find("logs") ~= nil)
+      assert.is_true(captured_cmd:find("nginx%-abc123") ~= nil)
+    end)
+
+    it("should add -f flag when follow is true", function()
+      local captured_cmd
+      adapter._set_term_opener(function(cmd)
+        captured_cmd = cmd
+        return 12345
+      end)
+
+      adapter.logs("nginx-abc123", "nginx", "default", { follow = true })
+
+      assert.is_true(captured_cmd:find("%-f") ~= nil)
+    end)
+
+    it("should add --timestamps flag when timestamps is true", function()
+      local captured_cmd
+      adapter._set_term_opener(function(cmd)
+        captured_cmd = cmd
+        return 12345
+      end)
+
+      adapter.logs("nginx-abc123", "nginx", "default", { timestamps = true })
+
+      assert.is_true(captured_cmd:find("%-%-timestamps") ~= nil)
+    end)
+
+    it("should add -p flag when previous is true", function()
+      local captured_cmd
+      adapter._set_term_opener(function(cmd)
+        captured_cmd = cmd
+        return 12345
+      end)
+
+      adapter.logs("nginx-abc123", "nginx", "default", { previous = true })
+
+      assert.is_true(captured_cmd:find("%-p") ~= nil)
+    end)
+  end)
+
+  describe("port_forward", function()
+    it("should build correct command", function()
+      local captured_cmd
+      adapter._set_term_opener(function(cmd)
+        captured_cmd = cmd
+        return 12345
+      end)
+
+      local result = adapter.port_forward("pod/nginx-abc123", "default", 8080, 80)
+
+      assert.is_true(result.ok)
+      assert.equals(12345, result.data.job_id)
+      assert.is_true(captured_cmd:find("kubectl") ~= nil)
+      assert.is_true(captured_cmd:find("port%-forward") ~= nil)
+      assert.is_true(captured_cmd:find("pod/nginx%-abc123") ~= nil)
+      assert.is_true(captured_cmd:find("8080:80") ~= nil)
+    end)
+  end)
+
+  describe("get_contexts", function()
+    it("should return list of contexts", function()
+      adapter._set_executor(function(_, opts)
+        if opts and opts.on_exit then
+          opts.on_exit({ code = 0, stdout = "minikube\ndocker-desktop\nproduction", stderr = "" })
+        end
+        return { wait = function() end }
+      end)
+
+      local result
+      adapter.get_contexts(function(res)
+        result = res
+      end)
+
+      assert.is_true(result.ok)
+      assert.equals(3, #result.data)
+      assert.equals("minikube", result.data[1])
+      assert.equals("docker-desktop", result.data[2])
+      assert.equals("production", result.data[3])
+    end)
+
+    it("should handle errors", function()
+      adapter._set_executor(function(_, opts)
+        if opts and opts.on_exit then
+          opts.on_exit({ code = 1, stdout = "", stderr = "error: no contexts" })
+        end
+        return { wait = function() end }
+      end)
+
+      local result
+      adapter.get_contexts(function(res)
+        result = res
+      end)
+
+      assert.is_false(result.ok)
+    end)
+  end)
+
+  describe("use_context", function()
+    it("should switch context", function()
+      adapter._set_executor(function(_, opts)
+        if opts and opts.on_exit then
+          opts.on_exit({ code = 0, stdout = 'Switched to context "minikube".', stderr = "" })
+        end
+        return { wait = function() end }
+      end)
+
+      local result
+      adapter.use_context("minikube", function(res)
+        result = res
+      end)
+
+      assert.is_true(result.ok)
+    end)
+
+    it("should build correct command", function()
+      local captured_cmd
+      adapter._set_executor(function(cmd, opts)
+        captured_cmd = cmd
+        if opts and opts.on_exit then
+          opts.on_exit({ code = 0, stdout = "", stderr = "" })
+        end
+        return { wait = function() end }
+      end)
+
+      adapter.use_context("production", function() end)
+
+      assert.equals("kubectl", captured_cmd[1])
+      assert.equals("config", captured_cmd[2])
+      assert.equals("use-context", captured_cmd[3])
+      assert.equals("production", captured_cmd[4])
+    end)
+  end)
+
+  describe("get_namespaces", function()
+    it("should return list of namespaces", function()
+      local mock_output = [[
+{
+  "apiVersion": "v1",
+  "kind": "NamespaceList",
+  "items": [
+    {"metadata": {"name": "default"}},
+    {"metadata": {"name": "kube-system"}},
+    {"metadata": {"name": "monitoring"}}
+  ]
+}
+]]
+      adapter._set_executor(function(_, opts)
+        if opts and opts.on_exit then
+          opts.on_exit({ code = 0, stdout = mock_output, stderr = "" })
+        end
+        return { wait = function() end }
+      end)
+
+      local result
+      adapter.get_namespaces(function(res)
+        result = res
+      end)
+
+      assert.is_true(result.ok)
+      assert.equals(3, #result.data)
+      assert.equals("default", result.data[1])
+      assert.equals("kube-system", result.data[2])
+      assert.equals("monitoring", result.data[3])
+    end)
+  end)
+
+  -- テスト後にexecutorをリセット
+  after_each(function()
+    adapter._reset_executor()
+    adapter._reset_term_opener()
+  end)
+end)
