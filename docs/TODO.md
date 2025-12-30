@@ -75,16 +75,16 @@ Neovim内でKubernetesクラスタを管理するLuaプラグイン。k9sライ�
 
 ### フェーズ6: ドメイン層（Actions - 参照系）
 
-- [ ] [RED] list.luaのテスト作成（リソース一覧取得）
-- [ ] [GREEN] list.lua実装（KubectlPortを使用）
-- [ ] [RED] フィルタリングのテスト作成
-- [ ] [GREEN] フィルタリング実装
-- [ ] [RED] ソート（NAME順）のテスト作成
-- [ ] [GREEN] ソート実装
+- [x] [RED] list.luaのテスト作成（リソース一覧取得）
+- [x] [GREEN] list.lua実装（KubectlPortを使用）
+- [x] ~~[RED] フィルタリングのテスト作成~~ (list_spec.luaに統合)
+- [x] ~~[GREEN] フィルタリング実装~~ (list.luaに統合)
+- [x] ~~[RED] ソート（NAME順）のテスト作成~~ (list_spec.luaに統合)
+- [x] ~~[GREEN] ソート実装~~ (list.luaに統合)
 
-- [ ] [RED] describe.luaのテスト作成
-- [ ] [GREEN] describe.lua実装
-- [ ] [REFACTOR] 参照系アクションの共通処理抽出
+- [x] [RED] describe.luaのテスト作成
+- [x] [GREEN] describe.lua実装
+- [x] [REFACTOR] 参照系アクションの共通処理抽出（変更不要）
 
 ### フェーズ7: ドメイン層（Actions - 変更系）
 

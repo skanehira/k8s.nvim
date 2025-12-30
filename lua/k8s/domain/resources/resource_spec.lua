@@ -73,8 +73,12 @@ describe("resource", function()
       local has_pod = false
       local has_deployment = false
       for _, k in ipairs(kinds) do
-        if k == "Pod" then has_pod = true end
-        if k == "Deployment" then has_deployment = true end
+        if k == "Pod" then
+          has_pod = true
+        end
+        if k == "Deployment" then
+          has_deployment = true
+        end
       end
       assert.is_true(has_pod)
       assert.is_true(has_deployment)
