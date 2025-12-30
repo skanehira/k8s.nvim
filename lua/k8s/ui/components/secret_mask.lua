@@ -71,4 +71,45 @@ function M.get_status_text(state)
   return "Visible"
 end
 
+---Mask secret data in describe output lines
+---@param masked boolean Whether to mask
+---@param lines string[] Lines from describe output
+---@return string[] Masked lines
+function M.mask_describe_output(masked, lines)
+  if not masked then
+    return lines
+  end
+
+  local result = {}
+  local in_data_section = false
+
+  for _, line in ipairs(lines) do
+    -- Check for Data section header
+    if line:match("^Data$") or line:match("^Data:$") then
+      in_data_section = true
+      table.insert(result, line)
+    -- Check for next section (ends Data section) - starts with letter without indent
+    elseif in_data_section and line:match("^[A-Z]") and not line:match("^%s") and not line:match("^=") then
+      in_data_section = false
+      table.insert(result, line)
+    -- Skip separator lines like "===="
+    elseif in_data_section and line:match("^=+$") then
+      table.insert(result, line)
+    -- Mask value lines in Data section (format: "key:  N bytes" without leading space)
+    elseif in_data_section and line:match("^[%w%-_%.]+:%s+%d+%s+bytes") then
+      -- Keep key, replace bytes info with mask
+      local key = line:match("^([%w%-_%.]+:)")
+      if key then
+        table.insert(result, key .. "  " .. MASK_STRING)
+      else
+        table.insert(result, line)
+      end
+    else
+      table.insert(result, line)
+    end
+  end
+
+  return result
+end
+
 return M

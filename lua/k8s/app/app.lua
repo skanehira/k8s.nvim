@@ -16,6 +16,7 @@ function M.create_state(opts)
     filter = nil,
     cursor = 1,
     view_stack = {},
+    mask_secrets = true, -- Default: mask secrets
   }
 end
 
@@ -141,6 +142,16 @@ function M.create_initial_view(kind)
   }
 end
 
+---Set mask_secrets (immutable)
+---@param state table
+---@param mask boolean
+---@return table new_state
+function M.set_mask_secrets(state, mask)
+  local new_state = M._copy_state(state)
+  new_state.mask_secrets = mask
+  return new_state
+end
+
 ---Copy state helper
 ---@param state table
 ---@return table
@@ -154,6 +165,7 @@ function M._copy_state(state)
     filter = state.filter,
     cursor = state.cursor,
     view_stack = state.view_stack,
+    mask_secrets = state.mask_secrets,
   }
 end
 

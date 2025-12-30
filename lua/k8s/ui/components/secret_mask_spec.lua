@@ -121,4 +121,42 @@ describe("secret_mask", function()
       assert.equals("Visible", secret_mask.get_status_text(state))
     end)
   end)
+
+  describe("mask_describe_output", function()
+    it("should mask data values in Data section when masked", function()
+      local lines = {
+        "Name:         my-secret",
+        "Namespace:    default",
+        "Data",
+        "====",
+        "username:  5 bytes",
+        "password:  10 bytes",
+        "Events:  <none>",
+      }
+
+      local result = secret_mask.mask_describe_output(true, lines)
+
+      assert.equals("Name:         my-secret", result[1])
+      assert.equals("Data", result[3])
+      assert.equals("username:  ********", result[5])
+      assert.equals("password:  ********", result[6])
+      assert.equals("Events:  <none>", result[7])
+    end)
+
+    it("should return original lines when not masked", function()
+      local lines = {
+        "Data",
+        "username:  5 bytes",
+      }
+
+      local result = secret_mask.mask_describe_output(false, lines)
+
+      assert.same(lines, result)
+    end)
+
+    it("should handle empty lines", function()
+      local result = secret_mask.mask_describe_output(true, {})
+      assert.same({}, result)
+    end)
+  end)
 end)
