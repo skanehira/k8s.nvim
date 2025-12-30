@@ -19,7 +19,7 @@ local default_keymaps = {
   port_forward_list = "P",
   help = "?",
   quit = "q",
-  back = "<Esc>",
+  back = "<C-h>",
   select = "<CR>",
 }
 
@@ -29,6 +29,7 @@ local defaults = {
   timeout = 30000, -- 30 seconds
   default_namespace = "default",
   default_kind = "Pod",
+  transparent = false, -- Transparent window background
   keymaps = default_keymaps,
 }
 

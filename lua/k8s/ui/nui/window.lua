@@ -32,11 +32,24 @@ end
 ---Create popup config for a specific section
 ---@param section SectionType
 ---@param opts { width: number, height: number }
+-- Border characters for single style: top-left, top, top-right, right, bottom-right, bottom, bottom-left, left
+local border_chars = {
+  -- Header: top + sides + bottom separator
+  header = { "┌", "─", "┐", "│", "┤", "─", "├", "│" },
+  -- Content: sides + bottom separator
+  content = { "", "", "", "│", "┤", "─", "├", "│" },
+  -- Footer: sides + bottom
+  footer = { "", "", "", "│", "┘", "─", "└", "│" },
+}
+
+-- Border rows: header top (1) + header bottom sep (1) + content bottom sep (1) + footer bottom (1) = 4
+local BORDER_ROWS = 4
+
 ---@return table config NuiPopup configuration
 function M.create_popup_config(section, opts)
   local width = opts.width
   local height = opts.height
-  local content_height = height - HEADER_HEIGHT - FOOTER_HEIGHT
+  local content_height = height - HEADER_HEIGHT - FOOTER_HEIGHT - BORDER_ROWS
 
   local section_config = {
     header = {
@@ -56,7 +69,9 @@ function M.create_popup_config(section, opts)
   local cfg = section_config[section]
 
   return {
-    border = "none",
+    border = {
+      style = border_chars[section],
+    },
     size = {
       width = width,
       height = cfg.height,
@@ -126,15 +141,23 @@ end
 ---Get window options
 ---@param section? SectionType
 ---@return table
-function M.get_window_options(section)
+function M.get_window_options(section, opts)
+  opts = opts or {}
   local cursorline = section ~= "header" and section ~= "footer"
 
-  return {
+  local win_opts = {
     wrap = false,
     number = false,
     relativenumber = false,
     cursorline = cursorline,
   }
+
+  -- Set transparent background if enabled
+  if opts.transparent then
+    win_opts.winhighlight = "Normal:K8sNormal,CursorLine:K8sCursorLine"
+  end
+
+  return win_opts
 end
 
 -- =============================================================================
@@ -151,7 +174,7 @@ local function get_popup()
 end
 
 ---Create a new K8sWindow instance
----@param opts? { width_pct?: number, height_pct?: number }
+---@param opts? { width_pct?: number, height_pct?: number, transparent?: boolean }
 ---@return K8sWindow
 function M.create(opts)
   opts = opts or {}
@@ -162,34 +185,39 @@ function M.create(opts)
   local size = M.calculate_popup_size(screen_width, screen_height, opts)
   local center = M.get_center_position(screen_width, screen_height, size.width, size.height)
 
-  -- Create header popup
+  -- content_height for position calculation
+  local content_height = size.height - HEADER_HEIGHT - FOOTER_HEIGHT - BORDER_ROWS
+
+  -- Create header popup (top border + bottom separator)
   local header_config = M.create_popup_config("header", size)
   header_config.relative = "editor"
   header_config.position = {
     row = center.row,
     col = center.col,
   }
-  header_config.win_options = M.get_window_options("header")
+  header_config.win_options = M.get_window_options("header", opts)
   header_config.buf_options = M.get_buffer_options()
 
-  -- Create content popup
+  -- Create content popup (bottom separator)
+  -- Position: after header top border (1) + header content (1) + header bottom sep (1) = 3
   local content_config = M.create_popup_config("content", size)
   content_config.relative = "editor"
   content_config.position = {
-    row = center.row + HEADER_HEIGHT,
+    row = center.row + HEADER_HEIGHT + 2,
     col = center.col,
   }
-  content_config.win_options = M.get_window_options("content")
+  content_config.win_options = M.get_window_options("content", opts)
   content_config.buf_options = M.get_buffer_options()
 
-  -- Create footer popup
+  -- Create footer popup (bottom border)
+  -- Position: after content + content bottom sep (1)
   local footer_config = M.create_popup_config("footer", size)
   footer_config.relative = "editor"
   footer_config.position = {
-    row = center.row + size.height - FOOTER_HEIGHT,
+    row = center.row + HEADER_HEIGHT + 2 + content_height + 1,
     col = center.col,
   }
-  footer_config.win_options = M.get_window_options("footer")
+  footer_config.win_options = M.get_window_options("footer", opts)
   footer_config.buf_options = M.get_buffer_options()
 
   local PopupClass = get_popup()
@@ -339,12 +367,12 @@ function M.map_key(win, key, callback, opts)
   })
 end
 
----Setup close handlers (q and <Esc>)
+---Setup close handlers (q and <C-h>)
 ---@param win K8sWindow
 ---@param on_close function
 function M.setup_close_handlers(win, on_close)
   M.map_key(win, "q", on_close, { desc = "Close" })
-  M.map_key(win, "<Esc>", on_close, { desc = "Close" })
+  M.map_key(win, "<C-h>", on_close, { desc = "Close" })
 end
 
 return M
