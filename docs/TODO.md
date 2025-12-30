@@ -49,14 +49,14 @@ Neovim内でKubernetesクラスタを管理するLuaプラグイン。k9sライ�
 
 リソース定義。メタ情報（対応操作、カラム定義へのヒント）を含む。
 
-- [ ] [RED] resource基底クラスのテスト作成
-- [ ] [GREEN] resource.lua実装
-- [ ] [RED] Podリソースのテスト作成
-- [ ] [GREEN] pod.lua実装（supports_exec, supports_logs等）
-- [ ] [RED] Deploymentリソースのテスト作成
-- [ ] [GREEN] deployment.lua実装（supports_scale, supports_restart等）
-- [ ] [GREEN] service.lua, configmap.lua, secret.lua, node.lua, namespace.lua実装
-- [ ] [REFACTOR] リソース共通処理の抽出
+- [x] [RED] resource基底クラスのテスト作成
+- [x] [GREEN] resource.lua実装（全リソースの capabilities を含む）
+- [x] ~~[RED] Podリソースのテスト作成~~ (resource.lua に統合)
+- [x] ~~[GREEN] pod.lua実装~~ (resource.lua に統合)
+- [x] ~~[RED] Deploymentリソースのテスト作成~~ (resource.lua に統合)
+- [x] ~~[GREEN] deployment.lua実装~~ (resource.lua に統合)
+- [x] ~~[GREEN] service.lua等~~ (resource.lua に統合)
+- [x] [REFACTOR] リソース共通処理の抽出 → 最初から resource.lua に統合済み
 
 ### フェーズ5: ドメイン層（State）
 
