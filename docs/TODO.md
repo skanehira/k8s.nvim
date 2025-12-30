@@ -62,16 +62,16 @@ Neovim内でKubernetesクラスタを管理するLuaプラグイン。k9sライ�
 
 状態管理。ScopeとConnectionsに分離。
 
-- [ ] [RED] scope.luaのテスト作成（context/namespace/cache管理）
-- [ ] [GREEN] scope.lua実装
-- [ ] [RED] scope更新時のキャッシュ無効化テスト
-- [ ] [GREEN] キャッシュ無効化実装
+- [x] [RED] scope.luaのテスト作成（context/namespace/cache管理）
+- [x] [GREEN] scope.lua実装
+- [x] ~~[RED] scope更新時のキャッシュ無効化テスト~~ (scope.lua内に統合)
+- [x] ~~[GREEN] キャッシュ無効化実装~~ (scope.lua内に統合)
 
-- [ ] [RED] connections.luaのテスト作成（PF管理）
-- [ ] [GREEN] connections.lua実装
-- [ ] [RED] PF追加・削除・一覧のテスト
-- [ ] [GREEN] PF操作実装
-- [ ] [REFACTOR] State全体の整理
+- [x] [RED] connections.luaのテスト作成（PF管理）
+- [x] [GREEN] connections.lua実装
+- [x] ~~[RED] PF追加・削除・一覧のテスト~~ (connections_spec.luaに統合)
+- [x] ~~[GREEN] PF操作実装~~ (connections.luaに統合)
+- [x] [REFACTOR] State全体の整理（変更不要）
 
 ### フェーズ6: ドメイン層（Actions - 参照系）
 
