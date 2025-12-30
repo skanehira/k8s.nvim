@@ -40,7 +40,7 @@ local capabilities_map = {
     logs = false,
     scale = true,
     restart = true,
-    port_forward = false,
+    port_forward = true,
   },
   Service = {
     exec = false,
