@@ -365,11 +365,15 @@ function M.open(opts)
   local window = require("k8s.ui.nui.window")
   local app = require("k8s.app.app")
   local buffer = require("k8s.ui.nui.buffer")
+  local view_stack = require("k8s.app.view_stack")
 
-  -- Create window
-  state.window = window.create({
+  -- Create list view window
+  local list_window = window.create_list_view({
     transparent = state.config.transparent,
   })
+
+  -- Store current window reference
+  state.window = list_window
 
   -- Create app state
   local kind = opts.kind or state.config.default_kind or "Pod"
@@ -377,10 +381,10 @@ function M.open(opts)
   state.app_state = app.create_state({ kind = kind, namespace = namespace })
 
   -- Mount window
-  window.mount(state.window)
+  window.mount(list_window)
 
   -- Render initial header
-  local header_bufnr = window.get_header_bufnr(state.window)
+  local header_bufnr = window.get_header_bufnr(list_window)
   if header_bufnr then
     local header_content = buffer.create_header_content({
       context = "loading...",
@@ -397,9 +401,12 @@ function M.open(opts)
   -- Setup keymaps
   M._setup_keymaps()
 
-  -- Initialize view stack with list view
-  local view_stack = require("k8s.app.view_stack")
-  state.view_stack = view_stack.push({}, { type = "list", kind = kind })
+  -- Initialize view stack with list view (store window reference)
+  state.view_stack = view_stack.push({}, {
+    type = "list",
+    kind = kind,
+    window = list_window,
+  })
 
   -- Fetch resources
   M._fetch_and_render(kind, namespace)
@@ -413,12 +420,17 @@ function M.close()
   -- Stop auto-refresh timer
   M._stop_auto_refresh()
 
-  if not state.window then
-    return
+  local window = require("k8s.ui.nui.window")
+
+  -- Unmount all windows in the view stack
+  if state.view_stack then
+    for _, view in ipairs(state.view_stack) do
+      if view.window then
+        window.unmount(view.window)
+      end
+    end
   end
 
-  local window = require("k8s.ui.nui.window")
-  window.unmount(state.window)
   state.window = nil
   state.app_state = nil
   state.view_stack = nil
@@ -538,8 +550,8 @@ function M._start_auto_refresh()
       local view_stack = require("k8s.app.view_stack")
       local current = view_stack.current(state.view_stack)
 
-      -- Only auto-refresh in list view
-      if current and current.type == "list" then
+      -- Only auto-refresh in list view and ensure window matches
+      if current and current.type == "list" and current.window == state.window then
         M._handle_refresh()
       end
     end)
@@ -577,54 +589,52 @@ function M._render_footer(view_type, kind)
 end
 
 ---Setup keymaps for the content buffer
-function M._setup_keymaps()
-  if not state.window then
-    return
-  end
-
+---Setup keymaps for a specific window
+---@param win K8sWindow
+function M._setup_keymaps_for_window(win)
   local window = require("k8s.ui.nui.window")
   local keymaps = M.get_keymap_definitions()
 
   -- quit (always allowed)
-  window.map_key(state.window, keymaps.quit.key, function()
+  window.map_key(win, keymaps.quit.key, function()
     M.close()
   end, { desc = keymaps.quit.desc })
 
   -- back (always allowed)
-  window.map_key(state.window, keymaps.back.key, function()
+  window.map_key(win, keymaps.back.key, function()
     M._handle_back()
   end, { desc = keymaps.back.desc })
 
   -- describe
-  window.map_key(state.window, keymaps.describe.key, function()
+  window.map_key(win, keymaps.describe.key, function()
     if M._is_action_allowed("describe") then
       M._handle_describe()
     end
   end, { desc = keymaps.describe.desc })
 
   -- select (Enter key)
-  window.map_key(state.window, keymaps.select.key, function()
+  window.map_key(win, keymaps.select.key, function()
     if M._is_action_allowed("select") then
       M._handle_describe()
     end
   end, { desc = keymaps.select.desc })
 
   -- refresh
-  window.map_key(state.window, keymaps.refresh.key, function()
+  window.map_key(win, keymaps.refresh.key, function()
     if M._is_action_allowed("refresh") then
       M._handle_refresh()
     end
   end, { desc = keymaps.refresh.desc })
 
   -- filter
-  window.map_key(state.window, keymaps.filter.key, function()
+  window.map_key(win, keymaps.filter.key, function()
     if M._is_action_allowed("filter") then
       M._handle_filter()
     end
   end, { desc = keymaps.filter.desc })
 
   -- delete (D key) - different behavior per view
-  window.map_key(state.window, keymaps.delete.key, function()
+  window.map_key(win, keymaps.delete.key, function()
     local view_type = M._get_current_view_type()
     if view_type == "port_forward_list" then
       if M._is_action_allowed("stop") then
@@ -636,88 +646,95 @@ function M._setup_keymaps()
   end, { desc = keymaps.delete.desc })
 
   -- logs
-  window.map_key(state.window, keymaps.logs.key, function()
+  window.map_key(win, keymaps.logs.key, function()
     if M._is_action_allowed("logs") and M._is_resource_capability_allowed("logs") then
       M._handle_logs()
     end
   end, { desc = keymaps.logs.desc })
 
   -- exec
-  window.map_key(state.window, keymaps.exec.key, function()
+  window.map_key(win, keymaps.exec.key, function()
     if M._is_action_allowed("exec") and M._is_resource_capability_allowed("exec") then
       M._handle_exec()
     end
   end, { desc = keymaps.exec.desc })
 
   -- scale
-  window.map_key(state.window, keymaps.scale.key, function()
+  window.map_key(win, keymaps.scale.key, function()
     if M._is_action_allowed("scale") and M._is_resource_capability_allowed("scale") then
       M._handle_scale()
     end
   end, { desc = keymaps.scale.desc })
 
   -- restart
-  window.map_key(state.window, keymaps.restart.key, function()
+  window.map_key(win, keymaps.restart.key, function()
     if M._is_action_allowed("restart") and M._is_resource_capability_allowed("restart") then
       M._handle_restart()
     end
   end, { desc = keymaps.restart.desc })
 
   -- port_forward
-  window.map_key(state.window, keymaps.port_forward.key, function()
+  window.map_key(win, keymaps.port_forward.key, function()
     if M._is_action_allowed("port_forward") and M._is_resource_capability_allowed("port_forward") then
       M._handle_port_forward()
     end
   end, { desc = keymaps.port_forward.desc })
 
   -- port_forward_list
-  window.map_key(state.window, keymaps.port_forward_list.key, function()
+  window.map_key(win, keymaps.port_forward_list.key, function()
     if M._is_action_allowed("port_forward_list") then
       M._handle_port_forward_list()
     end
   end, { desc = keymaps.port_forward_list.desc })
 
   -- resource_menu
-  window.map_key(state.window, keymaps.resource_menu.key, function()
+  window.map_key(win, keymaps.resource_menu.key, function()
     if M._is_action_allowed("resource_menu") then
       M._handle_resource_menu()
     end
   end, { desc = keymaps.resource_menu.desc })
 
   -- context_menu
-  window.map_key(state.window, keymaps.context_menu.key, function()
+  window.map_key(win, keymaps.context_menu.key, function()
     if M._is_action_allowed("context_menu") then
       M._handle_context_menu()
     end
   end, { desc = keymaps.context_menu.desc })
 
   -- namespace_menu
-  window.map_key(state.window, keymaps.namespace_menu.key, function()
+  window.map_key(win, keymaps.namespace_menu.key, function()
     if M._is_action_allowed("namespace_menu") then
       M._handle_namespace_menu()
     end
   end, { desc = keymaps.namespace_menu.desc })
 
   -- logs_previous
-  window.map_key(state.window, keymaps.logs_previous.key, function()
+  window.map_key(win, keymaps.logs_previous.key, function()
     if M._is_action_allowed("logs_previous") and M._is_resource_capability_allowed("logs_previous") then
       M._handle_logs_previous()
     end
   end, { desc = keymaps.logs_previous.desc })
 
   -- toggle_secret
-  window.map_key(state.window, keymaps.toggle_secret.key, function()
+  window.map_key(win, keymaps.toggle_secret.key, function()
     if M._is_action_allowed("toggle_secret") then
       M._handle_toggle_secret()
     end
   end, { desc = keymaps.toggle_secret.desc })
 
   -- help
-  window.map_key(state.window, keymaps.help.key, function()
+  window.map_key(win, keymaps.help.key, function()
     if M._is_action_allowed("help") then
       M._handle_help()
     end
   end, { desc = keymaps.help.desc })
+end
+
+---Setup keymaps (wrapper for backward compatibility)
+function M._setup_keymaps()
+  if state.window then
+    M._setup_keymaps_for_window(state.window)
+  end
 end
 
 ---Fetch resources and render
@@ -728,10 +745,9 @@ function M._fetch_and_render(kind, namespace, opts)
   opts = opts or {}
   local window = require("k8s.ui.nui.window")
   local app = require("k8s.app.app")
-  local columns = require("k8s.ui.views.columns")
   local buffer = require("k8s.ui.nui.buffer")
   local adapter = require("k8s.infra.kubectl.adapter")
-  local table_component = require("k8s.ui.components.table")
+  local resource_list_view = require("k8s.ui.views.resource_list")
 
   -- Save current cursor position before refresh, or use restore_cursor if provided
   local saved_cursor_row = nil
@@ -786,53 +802,18 @@ function M._fetch_and_render(kind, namespace, opts)
       -- Update app state
       state.app_state = app.set_resources(state.app_state, result.data)
 
-      -- Get columns for this kind
-      local cols = columns.get_columns(kind)
-
       -- Get filtered resources (apply current filter)
       local filtered_resources = app.get_filtered_resources(state.app_state)
 
-      -- Extract row data
-      local rows = {}
-      for _, resource in ipairs(filtered_resources) do
-        table.insert(rows, columns.extract_row(resource))
-      end
-
-      -- Prepare table content
-      local content = buffer.prepare_table_content(cols, rows)
-
-      -- Set lines
-      window.set_lines(content_bufnr, content.lines)
-
-      -- Add highlights for status column
-      local status_key = columns.get_status_column_key(kind)
-      local status_col_idx = buffer.find_status_column_index(cols, status_key)
-
-      if status_col_idx then
-        local hl_range = buffer.get_highlight_range(content.widths, status_col_idx)
-
-        for i, row in ipairs(rows) do
-          local status = row[status_key]
-          local hl_group = table_component.get_status_highlight(status)
-          if hl_group then
-            window.add_highlight(content_bufnr, hl_group, i, hl_range.start_col, hl_range.end_col)
-          end
-        end
-      end
+      -- Render table view
+      resource_list_view.render(state.window, {
+        resources = filtered_resources,
+        kind = kind,
+        restore_cursor = saved_cursor_row,
+      })
 
       -- Update footer with capability-filtered keymaps
       M._render_footer("list", kind)
-
-      -- Restore cursor position or set to first data row
-      if saved_cursor_row and #rows > 0 then
-        -- Clamp cursor to valid range (row 2 to #rows + 1, accounting for header)
-        local max_row = #rows + 1
-        local target_row = math.min(saved_cursor_row, max_row)
-        target_row = math.max(target_row, 2)
-        window.set_cursor(state.window, target_row, 0)
-      elseif #rows > 0 then
-        window.set_cursor(state.window, 2, 0)
-      end
     end)
   end)
 end
@@ -843,9 +824,7 @@ function M._render_cached_resources(opts)
   opts = opts or {}
   local window = require("k8s.ui.nui.window")
   local app = require("k8s.app.app")
-  local columns = require("k8s.ui.views.columns")
-  local buffer = require("k8s.ui.nui.buffer")
-  local table_component = require("k8s.ui.components.table")
+  local resource_list_view = require("k8s.ui.views.resource_list")
 
   if not state.window or not window.is_mounted(state.window) then
     return
@@ -863,54 +842,15 @@ function M._render_cached_resources(opts)
     saved_cursor_row = window.get_cursor(state.window)
   end
 
-  -- Skip header update on back - context/namespace hasn't changed and kubectl is slow
-
-  local content_bufnr = window.get_content_bufnr(state.window)
-  if not content_bufnr then
-    return
-  end
-
-  -- Get columns for this kind
-  local cols = columns.get_columns(kind)
-
-  -- Extract row data from filtered resources
+  -- Get filtered resources
   local filtered = app.get_filtered_resources(state.app_state)
-  local rows = {}
-  for _, resource in ipairs(filtered) do
-    table.insert(rows, columns.extract_row(resource))
-  end
 
-  -- Prepare table content
-  local content = buffer.prepare_table_content(cols, rows)
-
-  -- Set lines
-  window.set_lines(content_bufnr, content.lines)
-
-  -- Add highlights for status column
-  local status_key = columns.get_status_column_key(kind)
-  local status_col_idx = buffer.find_status_column_index(cols, status_key)
-
-  if status_col_idx then
-    local hl_range = buffer.get_highlight_range(content.widths, status_col_idx)
-
-    for i, row in ipairs(rows) do
-      local status = row[status_key]
-      local hl_group = table_component.get_status_highlight(status)
-      if hl_group then
-        window.add_highlight(content_bufnr, hl_group, i, hl_range.start_col, hl_range.end_col)
-      end
-    end
-  end
-
-  -- Restore cursor position or set to first data row
-  if saved_cursor_row and #rows > 0 then
-    local max_row = #rows + 1
-    local target_row = math.min(saved_cursor_row, max_row)
-    target_row = math.max(target_row, 2)
-    window.set_cursor(state.window, target_row, 0)
-  elseif #rows > 0 then
-    window.set_cursor(state.window, 2, 0)
-  end
+  -- Render table view
+  resource_list_view.render(state.window, {
+    resources = filtered,
+    kind = kind,
+    restore_cursor = saved_cursor_row,
+  })
 end
 
 -- =============================================================================
@@ -927,10 +867,10 @@ function M._get_current_resource()
   local app = require("k8s.app.app")
   local window = require("k8s.ui.nui.window")
 
-  -- Get cursor position (1-indexed, row 1 is header)
+  -- Get cursor position (1-indexed, no header in content)
   local row = window.get_cursor(state.window)
-  -- Subtract 1 for header row
-  local cursor_idx = row - 1
+  -- Row is directly the index (no header row to subtract)
+  local cursor_idx = row
 
   local filtered = app.get_filtered_resources(state.app_state)
   if cursor_idx < 1 or cursor_idx > #filtered then
@@ -950,39 +890,72 @@ function M._handle_back()
     return
   end
 
-  -- pop returns (new_stack, popped_view)
+  -- Get the current view before popping (to unmount its window)
+  local current_view = view_stack.current(state.view_stack)
+
+  -- Pop returns (new_stack, popped_view)
   local new_stack, popped_view = view_stack.pop(state.view_stack)
   state.view_stack = new_stack
 
   -- Get cursor position to restore from popped view
   local restore_cursor = popped_view and popped_view.parent_cursor
 
-  local current = view_stack.current(state.view_stack)
+  -- Get the previous view (now current after pop)
+  local prev_view = view_stack.current(state.view_stack)
 
-  if current then
-    if current.type == "list" then
-      local kind = current.kind or state.app_state.current_kind
+  -- Check if current and previous views share the same window
+  local same_window = current_view and prev_view and current_view.window == prev_view.window
+
+  if prev_view and prev_view.window then
+    -- Show the previous view's window first (only if different window)
+    if not same_window then
+      window.show(prev_view.window)
+    end
+
+    -- Update state.window to point to the previous view's window
+    state.window = prev_view.window
+
+    -- Update footer based on view type
+    if prev_view.type == "list" then
+      local kind = prev_view.kind or state.app_state.current_kind
       M._render_footer("list", kind)
 
       -- Restore the kind if different
-      if current.kind and current.kind ~= state.app_state.current_kind then
+      if prev_view.kind and prev_view.kind ~= state.app_state.current_kind then
         local app = require("k8s.app.app")
-        state.app_state = app.set_kind(state.app_state, current.kind)
-      end
-
-      -- Always fetch fresh resources with cursor restore
-      M._fetch_and_render(kind, state.app_state.current_namespace, {
-        restore_cursor = restore_cursor,
-      })
-    elseif current.type == "describe" then
-      -- Re-render describe view
-      local kind = current.resource and current.resource.kind
-      M._render_footer("describe", kind)
-      -- Describe content should still be in buffer, just update footer
-      -- Restore cursor if available
-      if restore_cursor and state.window then
+        state.app_state = app.set_kind(state.app_state, prev_view.kind)
+        -- Re-fetch and render for the previous kind
+        M._fetch_and_render(prev_view.kind, state.app_state.current_namespace, { restore_cursor = restore_cursor })
+      elseif restore_cursor then
         window.set_cursor(state.window, restore_cursor, 0)
       end
+    elseif prev_view.type == "describe" then
+      local kind = prev_view.resource and prev_view.resource.kind
+      M._render_footer("describe", kind)
+
+      -- Restore cursor if available
+      if restore_cursor then
+        window.set_cursor(state.window, restore_cursor, 0)
+      end
+    elseif prev_view.type == "help" then
+      M._render_footer("help")
+
+      -- Restore cursor if available
+      if restore_cursor then
+        window.set_cursor(state.window, restore_cursor, 0)
+      end
+    elseif prev_view.type == "port_forward_list" then
+      M._render_footer("port_forward_list")
+
+      -- Restore cursor if available
+      if restore_cursor then
+        window.set_cursor(state.window, restore_cursor, 0)
+      end
+    end
+
+    -- Unmount the current (popped) view's window after showing previous (to avoid flicker)
+    if current_view and current_view.window and not same_window then
+      window.unmount(current_view.window)
     end
   end
 end
@@ -998,25 +971,65 @@ function M._handle_describe()
   local window = require("k8s.ui.nui.window")
   local adapter = require("k8s.infra.kubectl.adapter")
   local view_stack = require("k8s.app.view_stack")
+  local buffer = require("k8s.ui.nui.buffer")
 
-  -- Save current cursor position before pushing new view
+  -- Save current cursor position and window reference
   local cursor_row = 1
+  local prev_window = state.window
   if state.window then
     cursor_row = window.get_cursor(state.window)
   end
 
-  -- Push describe view to stack with parent cursor
-  if not state.view_stack then
-    state.view_stack = {}
+  -- Create new detail view window (not mounted yet)
+  local detail_window = window.create_detail_view({
+    transparent = state.config.transparent,
+  })
+
+  -- Write content to buffers BEFORE mount (to avoid flicker)
+  local header_bufnr = window.get_header_bufnr(detail_window)
+  if header_bufnr then
+    local header_content = buffer.create_header_content({
+      context = vim.fn.system("kubectl config current-context"):gsub("\n", ""),
+      namespace = resource.namespace,
+      view = resource.kind .. ": " .. resource.name,
+      loading = true,
+    })
+    window.set_lines(header_bufnr, { header_content })
   end
+
+  local content_bufnr = window.get_content_bufnr(detail_window)
+  if content_bufnr then
+    window.set_lines(content_bufnr, { "Loading..." })
+  end
+
+  local footer_bufnr = window.get_footer_bufnr(detail_window)
+  if footer_bufnr then
+    local keymaps = M.get_footer_keymaps("describe", resource.kind)
+    local footer_content = buffer.create_footer_content(keymaps)
+    window.set_lines(footer_bufnr, { footer_content })
+  end
+
+  -- Now mount the window with content already filled
+  window.mount(detail_window)
+
+  -- Setup keymaps on new window
+  M._setup_keymaps_for_window(detail_window)
+
+  -- Update state.window to new window
+  state.window = detail_window
+
+  -- Push describe view to stack with window reference
   state.view_stack = view_stack.push(state.view_stack, {
     type = "describe",
     resource = resource,
     parent_cursor = cursor_row,
+    window = detail_window,
   })
 
-  -- Update footer
-  M._render_footer("describe", resource.kind)
+  -- Hide previous window after new window is shown (to avoid flicker)
+  if prev_window then
+    window.hide(prev_window)
+  end
 
   -- Fetch describe output
   adapter.describe(resource.kind, resource.name, resource.namespace, function(result)
@@ -1036,7 +1049,7 @@ function M._handle_describe()
         return
       end
 
-      -- Set lines
+      -- Render content
       local lines = vim.split(result.data, "\n")
 
       -- Apply secret mask if viewing a Secret
@@ -1050,16 +1063,15 @@ function M._handle_describe()
       -- Set filetype for syntax highlighting
       vim.api.nvim_buf_set_option(content_bufnr, "filetype", "yaml")
 
-      -- Update header
-      local header_bufnr = window.get_header_bufnr(state.window)
-      if header_bufnr then
-        local buffer = require("k8s.ui.nui.buffer")
+      -- Update header (remove loading)
+      local hdr_bufnr = window.get_header_bufnr(state.window)
+      if hdr_bufnr then
         local header_content = buffer.create_header_content({
           context = vim.fn.system("kubectl config current-context"):gsub("\n", ""),
           namespace = resource.namespace,
           view = resource.kind .. ": " .. resource.name,
         })
-        window.set_lines(header_bufnr, { header_content })
+        window.set_lines(hdr_bufnr, { header_content })
       end
 
       -- Set cursor to top
@@ -1111,49 +1123,18 @@ function M._render_filtered_resources()
 
   local window = require("k8s.ui.nui.window")
   local app = require("k8s.app.app")
-  local columns = require("k8s.ui.views.columns")
   local buffer = require("k8s.ui.nui.buffer")
-  local table_component = require("k8s.ui.components.table")
-
-  local content_bufnr = window.get_content_bufnr(state.window)
-  if not content_bufnr then
-    return
-  end
+  local resource_list_view = require("k8s.ui.views.resource_list")
 
   -- Get filtered resources
   local resources = app.get_filtered_resources(state.app_state)
   local kind = state.app_state.current_kind
 
-  -- Get columns
-  local cols = columns.get_columns(kind)
-
-  -- Extract row data
-  local rows = {}
-  for _, resource in ipairs(resources) do
-    table.insert(rows, columns.extract_row(resource))
-  end
-
-  -- Prepare table content
-  local content = buffer.prepare_table_content(cols, rows)
-
-  -- Set lines
-  window.set_lines(content_bufnr, content.lines)
-
-  -- Add highlights
-  local status_key = columns.get_status_column_key(kind)
-  local status_col_idx = buffer.find_status_column_index(cols, status_key)
-
-  if status_col_idx then
-    local hl_range = buffer.get_highlight_range(content.widths, status_col_idx)
-
-    for i, row in ipairs(rows) do
-      local status = row[status_key]
-      local hl_group = table_component.get_status_highlight(status)
-      if hl_group then
-        window.add_highlight(content_bufnr, hl_group, i, hl_range.start_col, hl_range.end_col)
-      end
-    end
-  end
+  -- Render table view
+  resource_list_view.render(state.window, {
+    resources = resources,
+    kind = kind,
+  })
 
   -- Update header to show filter
   local header_bufnr = window.get_header_bufnr(state.window)
@@ -1165,11 +1146,6 @@ function M._render_filtered_resources()
       filter = state.app_state.filter,
     })
     window.set_lines(header_bufnr, { header_content })
-  end
-
-  -- Set cursor
-  if #rows > 0 then
-    window.set_cursor(state.window, 2, 0)
   end
 end
 
@@ -1619,6 +1595,7 @@ function M._handle_resource_menu()
   local menu_actions = require("k8s.handlers.menu_actions")
   local view_stack = require("k8s.app.view_stack")
   local window = require("k8s.ui.nui.window")
+  local buffer = require("k8s.ui.nui.buffer")
 
   -- Save current cursor position before showing menu
   local cursor_row = 1
@@ -1643,13 +1620,65 @@ function M._handle_resource_menu()
       if item.text == choice then
         local app = require("k8s.app.app")
 
-        -- Push new list view to stack for back navigation
+        -- Save previous window reference
+        local prev_window = state.window
+
+        -- Create new list view window (not mounted yet)
+        local new_list_window = window.create_list_view({
+          transparent = state.config.transparent,
+        })
+
+        -- Write content to buffers BEFORE mount (to avoid flicker)
+        local header_bufnr = window.get_header_bufnr(new_list_window)
+        if header_bufnr then
+          local header_content = buffer.create_header_content({
+            context = vim.fn.system("kubectl config current-context"):gsub("\n", ""),
+            namespace = state.app_state.current_namespace,
+            view = item.value .. "s",
+            loading = true,
+          })
+          window.set_lines(header_bufnr, { header_content })
+        end
+
+        local table_header_bufnr = window.get_table_header_bufnr(new_list_window)
+        if table_header_bufnr then
+          window.set_lines(table_header_bufnr, { "" })
+        end
+
+        local content_bufnr = window.get_content_bufnr(new_list_window)
+        if content_bufnr then
+          window.set_lines(content_bufnr, { "Loading..." })
+        end
+
+        local footer_bufnr = window.get_footer_bufnr(new_list_window)
+        if footer_bufnr then
+          local keymaps = M.get_footer_keymaps("list", item.value)
+          local footer_content = buffer.create_footer_content(keymaps)
+          window.set_lines(footer_bufnr, { footer_content })
+        end
+
+        -- Now mount the window with content already filled
+        window.mount(new_list_window)
+
+        -- Setup keymaps on new window
+        M._setup_keymaps_for_window(new_list_window)
+
+        -- Update state.window to new window
+        state.window = new_list_window
+
+        -- Push new list view to stack with new window
         state.view_stack = view_stack.push(state.view_stack, {
           type = "list",
           kind = item.value,
           namespace = state.app_state.current_namespace,
           parent_cursor = cursor_row,
+          window = new_list_window,
         })
+
+        -- Hide previous window after new window is shown (to avoid flicker)
+        if prev_window then
+          window.hide(prev_window)
+        end
 
         state.app_state = app.set_kind(state.app_state, item.value)
         M._fetch_and_render(item.value, state.app_state.current_namespace)
@@ -1762,13 +1791,26 @@ function M._handle_help()
   -- Get current resource kind for capability filtering
   local current_kind = state.app_state and state.app_state.current_kind
 
-  -- Save current cursor position before pushing new view
+  -- Save current cursor position and window reference
   local cursor_row = 1
+  local prev_window = state.window
   if state.window then
     cursor_row = window.get_cursor(state.window)
   end
 
-  -- Push help view to stack
+  -- Create new detail view window (no table_header needed for help)
+  local help_window = window.create_detail_view({
+    transparent = state.config.transparent,
+  })
+  window.mount(help_window)
+
+  -- Setup keymaps on new window
+  M._setup_keymaps_for_window(help_window)
+
+  -- Update state.window to new window
+  state.window = help_window
+
+  -- Push help view to stack with window reference
   if not state.view_stack then
     state.view_stack = {}
   end
@@ -1776,7 +1818,13 @@ function M._handle_help()
     type = "help",
     parent_view = current_view,
     parent_cursor = cursor_row,
+    window = help_window,
   })
+
+  -- Hide previous window after new window is shown (to avoid flicker)
+  if prev_window then
+    window.hide(prev_window)
+  end
 
   -- Get keymaps for the current view
   local view_keymaps = help.get_keymaps_for_view(help_view_name)
@@ -1806,10 +1854,23 @@ function M._handle_help()
     table.insert(help_lines, line)
   end
 
-  -- Display help in content area
-  local content_bufnr = window.get_content_bufnr(state.window)
+  -- Render help content directly
+  local content_bufnr = window.get_content_bufnr(help_window)
   if content_bufnr then
     window.set_lines(content_bufnr, help_lines)
+    window.set_cursor(help_window, 1, 0)
+  end
+
+  -- Update header
+  local header_bufnr = window.get_header_bufnr(help_window)
+  if header_bufnr then
+    local buffer = require("k8s.ui.nui.buffer")
+    local header_content = buffer.create_header_content({
+      context = vim.fn.system("kubectl config current-context"):gsub("\n", ""),
+      namespace = state.app_state and state.app_state.current_namespace or "",
+      view = "Help",
+    })
+    window.set_lines(header_bufnr, { header_content })
   end
 
   -- Update footer
@@ -1906,21 +1967,38 @@ function M._handle_port_forward_list()
   local view_stack = require("k8s.app.view_stack")
   local connections = require("k8s.domain.state.connections")
   local port_forward_list = require("k8s.ui.views.port_forward_list")
+  local buffer = require("k8s.ui.nui.buffer")
 
-  -- Save current cursor position before pushing new view
+  -- Save current cursor position and window reference
   local cursor_row = 1
+  local prev_window = state.window
   if state.window then
     cursor_row = window.get_cursor(state.window)
   end
 
-  -- Push port forward list view to stack
+  -- Create new detail view window (no table_header needed for port forward list)
+  local pf_window = window.create_detail_view({
+    transparent = state.config.transparent,
+  })
+  window.mount(pf_window)
+
+  -- Setup keymaps on new window
+  M._setup_keymaps_for_window(pf_window)
+
+  -- Update state.window to new window
+  state.window = pf_window
+
+  -- Push port forward list view to stack with window reference
   state.view_stack = view_stack.push(state.view_stack, {
     type = "port_forward_list",
     parent_cursor = cursor_row,
+    window = pf_window,
   })
 
-  -- Update footer
-  M._render_footer("port_forward_list")
+  -- Hide previous window after new window is shown (to avoid flicker)
+  if prev_window then
+    window.hide(prev_window)
+  end
 
   -- Get active connections
   local active = connections.get_all()
@@ -1928,22 +2006,23 @@ function M._handle_port_forward_list()
   -- Store connections reference for stop action
   state.pf_list_connections = active
 
-  -- Render port forward list
-  local content_bufnr = window.get_content_bufnr(state.window)
+  -- Render port forward list content directly
+  local content_bufnr = window.get_content_bufnr(pf_window)
   if content_bufnr then
     local lines = port_forward_list.create_content(active)
     window.set_lines(content_bufnr, lines)
 
     -- Set cursor to first data row if connections exist
-    if #active > 0 then
-      window.set_cursor(state.window, 2, 0)
+    if active and #active > 0 then
+      window.set_cursor(pf_window, 2, 0) -- After header row
+    else
+      window.set_cursor(pf_window, 1, 0)
     end
   end
 
   -- Update header
-  local header_bufnr = window.get_header_bufnr(state.window)
+  local header_bufnr = window.get_header_bufnr(pf_window)
   if header_bufnr then
-    local buffer = require("k8s.ui.nui.buffer")
     local header_content = buffer.create_header_content({
       context = vim.fn.system("kubectl config current-context"):gsub("\n", ""),
       namespace = "",
@@ -1951,6 +2030,9 @@ function M._handle_port_forward_list()
     })
     window.set_lines(header_bufnr, { header_content })
   end
+
+  -- Update footer
+  M._render_footer("port_forward_list")
 end
 
 ---Handle stop port forward action (D key in port forward list view)
