@@ -104,14 +104,12 @@ end
 ---@param callbacks table { render_filtered_resources: function }
 function M.handle_filter(callbacks)
   local global_state = require("k8s.core.global_state")
-  local filter_actions = require("k8s.handlers.filter_actions")
   local app = require("k8s.core.state")
 
   local app_state = global_state.get_app_state()
-  local prompt = filter_actions.format_filter_prompt()
   local current_filter = app_state and app_state.filter or ""
 
-  vim.ui.input({ prompt = prompt, default = current_filter }, function(input)
+  vim.ui.input({ prompt = "Filter: ", default = current_filter }, function(input)
     if input == nil then
       return -- Cancelled
     end
