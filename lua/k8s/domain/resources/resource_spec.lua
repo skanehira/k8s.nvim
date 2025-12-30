@@ -49,7 +49,7 @@ describe("resource", function()
       assert.is_false(caps.logs)
       assert.is_true(caps.scale)
       assert.is_true(caps.restart)
-      assert.is_false(caps.port_forward)
+      assert.is_true(caps.port_forward)
     end)
 
     it("should return Service capabilities", function()
