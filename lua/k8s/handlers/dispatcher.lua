@@ -32,7 +32,7 @@ local dispatch
 
 ---Create callbacks object for handlers
 ---@param setup_keymaps_fn function
----@return table
+---@return K8sCallbacks
 local function create_callbacks(setup_keymaps_fn)
   return {
     render_footer = function(view_type, kind)
@@ -107,7 +107,7 @@ M.dispatch = dispatch
 ---Create action handlers for keymap setup
 ---@param close_fn function
 ---@param setup_keymaps_fn function
----@return table
+---@return K8sHandlers
 function M.create_handlers(close_fn, setup_keymaps_fn)
   return {
     close = close_fn,
