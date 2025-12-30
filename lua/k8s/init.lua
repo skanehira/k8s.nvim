@@ -50,6 +50,8 @@ function M.create_highlights()
     K8sHeader = { fg = "#8be9fd", bold = true }, -- Cyan
     K8sFooter = { fg = "#6272a4" }, -- Comment gray
     K8sTableHeader = { fg = "#bd93f9", bold = true }, -- Purple
+    K8sNormal = { bg = "NONE" }, -- Transparent background
+    K8sCursorLine = { bg = "#44475a" }, -- Subtle cursor line
   }
 end
 
@@ -85,7 +87,7 @@ local keymap_definitions = {
   logs_previous = { key = "P", action = "logs_previous", desc = "Previous logs" },
   help = { key = "?", action = "help", desc = "Help" },
   quit = { key = "q", action = "quit", desc = "Quit" },
-  back = { key = "<Esc>", action = "back", desc = "Back" },
+  back = { key = "<C-h>", action = "back", desc = "Back" },
   select = { key = "<CR>", action = "select", desc = "Select" },
 }
 
@@ -104,16 +106,16 @@ local footer_keymaps = {
     { key = "l", action = "logs" },
     { key = "e", action = "exec" },
     { key = "D", action = "delete" },
-    { key = "<Esc>", action = "back" },
+    { key = "<C-h>", action = "back" },
     { key = "q", action = "quit" },
   },
   port_forward_list = {
     { key = "D", action = "delete" },
-    { key = "<Esc>", action = "back" },
+    { key = "<C-h>", action = "back" },
     { key = "q", action = "quit" },
   },
   help = {
-    { key = "<Esc>", action = "back" },
+    { key = "<C-h>", action = "back" },
     { key = "q", action = "quit" },
   },
 }
@@ -124,11 +126,128 @@ function M.get_keymap_definitions()
   return keymap_definitions
 end
 
----Get footer keymaps for a specific view
+-- Actions allowed for each view type
+local view_allowed_actions = {
+  list = {
+    describe = true,
+    select = true,
+    delete = true,
+    logs = true,
+    logs_previous = true,
+    exec = true,
+    scale = true,
+    restart = true,
+    port_forward = true,
+    port_forward_list = true,
+    filter = true,
+    refresh = true,
+    resource_menu = true,
+    context_menu = true,
+    namespace_menu = true,
+    toggle_secret = true,
+    help = true,
+    quit = true,
+    back = true,
+  },
+  describe = {
+    back = true,
+    logs = true,
+    exec = true,
+    delete = true,
+    quit = true,
+    help = true,
+  },
+  port_forward_list = {
+    back = true,
+    stop = true, -- D key in port_forward_list stops the connection
+    quit = true,
+    help = true,
+  },
+  help = {
+    back = true,
+    quit = true,
+  },
+}
+
+---Get current view type from view stack
+---@return string|nil
+function M._get_current_view_type()
+  local view_stack = require("k8s.app.view_stack")
+  if not state.view_stack then
+    return nil
+  end
+  local current = view_stack.current(state.view_stack)
+  return current and current.type or nil
+end
+
+---Check if an action is allowed for the current view
+---@param action string
+---@return boolean
+function M._is_action_allowed(action)
+  local view_type = M._get_current_view_type()
+  if not view_type then
+    return false
+  end
+  local allowed = view_allowed_actions[view_type]
+  return allowed and allowed[action] == true
+end
+
+-- Map action names to resource capability names
+local action_to_capability = {
+  logs = "logs",
+  logs_previous = "logs",
+  exec = "exec",
+  scale = "scale",
+  restart = "restart",
+  port_forward = "port_forward",
+}
+
+---Check if current resource supports the given action
+---@param action string
+---@return boolean
+function M._is_resource_capability_allowed(action)
+  local capability = action_to_capability[action]
+  if not capability then
+    -- Action doesn't require capability check
+    return true
+  end
+
+  local resource = M._get_current_resource()
+  if not resource then
+    return false
+  end
+
+  local resource_mod = require("k8s.domain.resources.resource")
+  local caps = resource_mod.capabilities(resource.kind)
+  return caps[capability] == true
+end
+
+---Get footer keymaps for a specific view, filtered by resource capability
 ---@param view_type string
+---@param kind? string Resource kind for capability filtering
 ---@return table[]
-function M.get_footer_keymaps(view_type)
-  return footer_keymaps[view_type] or footer_keymaps.list
+function M.get_footer_keymaps(view_type, kind)
+  local keymaps = footer_keymaps[view_type] or footer_keymaps.list
+
+  -- If no kind specified, return all keymaps
+  if not kind then
+    return keymaps
+  end
+
+  -- Filter keymaps based on resource capabilities
+  local resource_mod = require("k8s.domain.resources.resource")
+  local caps = resource_mod.capabilities(kind)
+
+  local filtered = {}
+  for _, km in ipairs(keymaps) do
+    local capability = action_to_capability[km.action]
+    -- Include keymap if action doesn't require capability OR resource has the capability
+    if not capability or caps[capability] == true then
+      table.insert(filtered, km)
+    end
+  end
+
+  return filtered
 end
 
 ---Parse command arguments
@@ -248,7 +367,9 @@ function M.open(opts)
   local buffer = require("k8s.ui.nui.buffer")
 
   -- Create window
-  state.window = window.create()
+  state.window = window.create({
+    transparent = state.config.transparent,
+  })
 
   -- Create app state
   local kind = opts.kind or state.config.default_kind or "Pod"
@@ -271,7 +392,7 @@ function M.open(opts)
   end
 
   -- Render footer with keymaps
-  M._render_footer("list")
+  M._render_footer("list", kind)
 
   -- Setup keymaps
   M._setup_keymaps()
@@ -438,7 +559,8 @@ end
 
 ---Render footer with keymaps
 ---@param view_type string
-function M._render_footer(view_type)
+---@param kind? string Resource kind for capability filtering
+function M._render_footer(view_type, kind)
   if not state.window then
     return
   end
@@ -448,7 +570,7 @@ function M._render_footer(view_type)
 
   local footer_bufnr = window.get_footer_bufnr(state.window)
   if footer_bufnr then
-    local keymaps = M.get_footer_keymaps(view_type)
+    local keymaps = M.get_footer_keymaps(view_type, kind)
     local footer_content = buffer.create_footer_content(keymaps)
     window.set_lines(footer_bufnr, { footer_content })
   end
@@ -463,99 +585,138 @@ function M._setup_keymaps()
   local window = require("k8s.ui.nui.window")
   local keymaps = M.get_keymap_definitions()
 
-  -- quit
+  -- quit (always allowed)
   window.map_key(state.window, keymaps.quit.key, function()
     M.close()
   end, { desc = keymaps.quit.desc })
 
-  -- back (in list view, same as quit)
+  -- back (always allowed)
   window.map_key(state.window, keymaps.back.key, function()
     M._handle_back()
   end, { desc = keymaps.back.desc })
 
   -- describe
   window.map_key(state.window, keymaps.describe.key, function()
-    M._handle_describe()
+    if M._is_action_allowed("describe") then
+      M._handle_describe()
+    end
   end, { desc = keymaps.describe.desc })
 
   -- select (Enter key)
   window.map_key(state.window, keymaps.select.key, function()
-    M._handle_describe()
+    if M._is_action_allowed("select") then
+      M._handle_describe()
+    end
   end, { desc = keymaps.select.desc })
 
   -- refresh
   window.map_key(state.window, keymaps.refresh.key, function()
-    M._handle_refresh()
+    if M._is_action_allowed("refresh") then
+      M._handle_refresh()
+    end
   end, { desc = keymaps.refresh.desc })
 
   -- filter
   window.map_key(state.window, keymaps.filter.key, function()
-    M._handle_filter()
+    if M._is_action_allowed("filter") then
+      M._handle_filter()
+    end
   end, { desc = keymaps.filter.desc })
 
-  -- delete
+  -- delete (D key) - different behavior per view
   window.map_key(state.window, keymaps.delete.key, function()
-    M._handle_delete()
+    local view_type = M._get_current_view_type()
+    if view_type == "port_forward_list" then
+      if M._is_action_allowed("stop") then
+        M._handle_stop_port_forward()
+      end
+    elseif M._is_action_allowed("delete") then
+      M._handle_delete()
+    end
   end, { desc = keymaps.delete.desc })
 
   -- logs
   window.map_key(state.window, keymaps.logs.key, function()
-    M._handle_logs()
+    if M._is_action_allowed("logs") and M._is_resource_capability_allowed("logs") then
+      M._handle_logs()
+    end
   end, { desc = keymaps.logs.desc })
 
   -- exec
   window.map_key(state.window, keymaps.exec.key, function()
-    M._handle_exec()
+    if M._is_action_allowed("exec") and M._is_resource_capability_allowed("exec") then
+      M._handle_exec()
+    end
   end, { desc = keymaps.exec.desc })
 
   -- scale
   window.map_key(state.window, keymaps.scale.key, function()
-    M._handle_scale()
+    if M._is_action_allowed("scale") and M._is_resource_capability_allowed("scale") then
+      M._handle_scale()
+    end
   end, { desc = keymaps.scale.desc })
 
   -- restart
   window.map_key(state.window, keymaps.restart.key, function()
-    M._handle_restart()
+    if M._is_action_allowed("restart") and M._is_resource_capability_allowed("restart") then
+      M._handle_restart()
+    end
   end, { desc = keymaps.restart.desc })
 
   -- port_forward
   window.map_key(state.window, keymaps.port_forward.key, function()
-    M._handle_port_forward()
+    if M._is_action_allowed("port_forward") and M._is_resource_capability_allowed("port_forward") then
+      M._handle_port_forward()
+    end
   end, { desc = keymaps.port_forward.desc })
 
   -- port_forward_list
   window.map_key(state.window, keymaps.port_forward_list.key, function()
-    M._handle_port_forward_list()
+    if M._is_action_allowed("port_forward_list") then
+      M._handle_port_forward_list()
+    end
   end, { desc = keymaps.port_forward_list.desc })
 
   -- resource_menu
   window.map_key(state.window, keymaps.resource_menu.key, function()
-    M._handle_resource_menu()
+    if M._is_action_allowed("resource_menu") then
+      M._handle_resource_menu()
+    end
   end, { desc = keymaps.resource_menu.desc })
 
   -- context_menu
   window.map_key(state.window, keymaps.context_menu.key, function()
-    M._handle_context_menu()
+    if M._is_action_allowed("context_menu") then
+      M._handle_context_menu()
+    end
   end, { desc = keymaps.context_menu.desc })
 
   -- namespace_menu
   window.map_key(state.window, keymaps.namespace_menu.key, function()
-    M._handle_namespace_menu()
+    if M._is_action_allowed("namespace_menu") then
+      M._handle_namespace_menu()
+    end
   end, { desc = keymaps.namespace_menu.desc })
 
   -- logs_previous
   window.map_key(state.window, keymaps.logs_previous.key, function()
-    M._handle_logs_previous()
+    if M._is_action_allowed("logs_previous") and M._is_resource_capability_allowed("logs_previous") then
+      M._handle_logs_previous()
+    end
   end, { desc = keymaps.logs_previous.desc })
 
   -- toggle_secret
   window.map_key(state.window, keymaps.toggle_secret.key, function()
-    M._handle_toggle_secret()
+    if M._is_action_allowed("toggle_secret") then
+      M._handle_toggle_secret()
+    end
   end, { desc = keymaps.toggle_secret.desc })
 
   -- help
   window.map_key(state.window, keymaps.help.key, function()
-    M._handle_help()
+    if M._is_action_allowed("help") then
+      M._handle_help()
+    end
   end, { desc = keymaps.help.desc })
 end
 
@@ -572,9 +733,11 @@ function M._fetch_and_render(kind, namespace, opts)
   local adapter = require("k8s.infra.kubectl.adapter")
   local table_component = require("k8s.ui.components.table")
 
-  -- Save current cursor position before refresh
+  -- Save current cursor position before refresh, or use restore_cursor if provided
   local saved_cursor_row = nil
-  if opts.preserve_cursor and state.window then
+  if opts.restore_cursor then
+    saved_cursor_row = opts.restore_cursor
+  elseif opts.preserve_cursor and state.window then
     saved_cursor_row = window.get_cursor(state.window)
   end
 
@@ -615,7 +778,8 @@ function M._fetch_and_render(kind, namespace, opts)
       end
 
       if not result.ok then
-        window.set_lines(content_bufnr, { "Error: " .. (result.error or "Unknown error") })
+        local error_lines = vim.split("Error: " .. (result.error or "Unknown error"), "\n")
+        window.set_lines(content_bufnr, error_lines)
         return
       end
 
@@ -625,9 +789,12 @@ function M._fetch_and_render(kind, namespace, opts)
       -- Get columns for this kind
       local cols = columns.get_columns(kind)
 
+      -- Get filtered resources (apply current filter)
+      local filtered_resources = app.get_filtered_resources(state.app_state)
+
       -- Extract row data
       local rows = {}
-      for _, resource in ipairs(result.data) do
+      for _, resource in ipairs(filtered_resources) do
         table.insert(rows, columns.extract_row(resource))
       end
 
@@ -653,6 +820,9 @@ function M._fetch_and_render(kind, namespace, opts)
         end
       end
 
+      -- Update footer with capability-filtered keymaps
+      M._render_footer("list", kind)
+
       -- Restore cursor position or set to first data row
       if saved_cursor_row and #rows > 0 then
         -- Clamp cursor to valid range (row 2 to #rows + 1, accounting for header)
@@ -665,6 +835,82 @@ function M._fetch_and_render(kind, namespace, opts)
       end
     end)
   end)
+end
+
+---Render cached resources (no fetch)
+---@param opts? { preserve_cursor?: boolean }
+function M._render_cached_resources(opts)
+  opts = opts or {}
+  local window = require("k8s.ui.nui.window")
+  local app = require("k8s.app.app")
+  local columns = require("k8s.ui.views.columns")
+  local buffer = require("k8s.ui.nui.buffer")
+  local table_component = require("k8s.ui.components.table")
+
+  if not state.window or not window.is_mounted(state.window) then
+    return
+  end
+
+  if not state.app_state or not state.app_state.resources then
+    return
+  end
+
+  local kind = state.app_state.current_kind
+
+  -- Save current cursor position before refresh
+  local saved_cursor_row = nil
+  if opts.preserve_cursor then
+    saved_cursor_row = window.get_cursor(state.window)
+  end
+
+  -- Skip header update on back - context/namespace hasn't changed and kubectl is slow
+
+  local content_bufnr = window.get_content_bufnr(state.window)
+  if not content_bufnr then
+    return
+  end
+
+  -- Get columns for this kind
+  local cols = columns.get_columns(kind)
+
+  -- Extract row data from filtered resources
+  local filtered = app.get_filtered_resources(state.app_state)
+  local rows = {}
+  for _, resource in ipairs(filtered) do
+    table.insert(rows, columns.extract_row(resource))
+  end
+
+  -- Prepare table content
+  local content = buffer.prepare_table_content(cols, rows)
+
+  -- Set lines
+  window.set_lines(content_bufnr, content.lines)
+
+  -- Add highlights for status column
+  local status_key = columns.get_status_column_key(kind)
+  local status_col_idx = buffer.find_status_column_index(cols, status_key)
+
+  if status_col_idx then
+    local hl_range = buffer.get_highlight_range(content.widths, status_col_idx)
+
+    for i, row in ipairs(rows) do
+      local status = row[status_key]
+      local hl_group = table_component.get_status_highlight(status)
+      if hl_group then
+        window.add_highlight(content_bufnr, hl_group, i, hl_range.start_col, hl_range.end_col)
+      end
+    end
+  end
+
+  -- Restore cursor position or set to first data row
+  if saved_cursor_row and #rows > 0 then
+    local max_row = #rows + 1
+    local target_row = math.min(saved_cursor_row, max_row)
+    target_row = math.max(target_row, 2)
+    window.set_cursor(state.window, target_row, 0)
+  elseif #rows > 0 then
+    window.set_cursor(state.window, 2, 0)
+  end
 end
 
 -- =============================================================================
@@ -697,21 +943,47 @@ end
 ---Handle back action
 function M._handle_back()
   local view_stack = require("k8s.app.view_stack")
+  local window = require("k8s.ui.nui.window")
 
   if not state.view_stack or not view_stack.can_pop(state.view_stack) then
-    M.close()
+    -- Do nothing if there's nothing to go back to
     return
   end
 
   -- pop returns (new_stack, popped_view)
-  local new_stack = view_stack.pop(state.view_stack)
+  local new_stack, popped_view = view_stack.pop(state.view_stack)
   state.view_stack = new_stack
+
+  -- Get cursor position to restore from popped view
+  local restore_cursor = popped_view and popped_view.parent_cursor
 
   local current = view_stack.current(state.view_stack)
 
-  if current and current.type == "list" then
-    M._render_footer("list")
-    M._fetch_and_render(state.app_state.current_kind, state.app_state.current_namespace)
+  if current then
+    if current.type == "list" then
+      local kind = current.kind or state.app_state.current_kind
+      M._render_footer("list", kind)
+
+      -- Restore the kind if different
+      if current.kind and current.kind ~= state.app_state.current_kind then
+        local app = require("k8s.app.app")
+        state.app_state = app.set_kind(state.app_state, current.kind)
+      end
+
+      -- Always fetch fresh resources with cursor restore
+      M._fetch_and_render(kind, state.app_state.current_namespace, {
+        restore_cursor = restore_cursor,
+      })
+    elseif current.type == "describe" then
+      -- Re-render describe view
+      local kind = current.resource and current.resource.kind
+      M._render_footer("describe", kind)
+      -- Describe content should still be in buffer, just update footer
+      -- Restore cursor if available
+      if restore_cursor and state.window then
+        window.set_cursor(state.window, restore_cursor, 0)
+      end
+    end
   end
 end
 
@@ -727,17 +999,24 @@ function M._handle_describe()
   local adapter = require("k8s.infra.kubectl.adapter")
   local view_stack = require("k8s.app.view_stack")
 
-  -- Push describe view to stack
+  -- Save current cursor position before pushing new view
+  local cursor_row = 1
+  if state.window then
+    cursor_row = window.get_cursor(state.window)
+  end
+
+  -- Push describe view to stack with parent cursor
   if not state.view_stack then
     state.view_stack = {}
   end
   state.view_stack = view_stack.push(state.view_stack, {
     type = "describe",
     resource = resource,
+    parent_cursor = cursor_row,
   })
 
   -- Update footer
-  M._render_footer("describe")
+  M._render_footer("describe", resource.kind)
 
   -- Fetch describe output
   adapter.describe(resource.kind, resource.name, resource.namespace, function(result)
@@ -752,7 +1031,8 @@ function M._handle_describe()
       end
 
       if not result.ok then
-        window.set_lines(content_bufnr, { "Error: " .. (result.error or "Unknown error") })
+        local error_lines = vim.split("Error: " .. (result.error or "Unknown error"), "\n")
+        window.set_lines(content_bufnr, error_lines)
         return
       end
 
@@ -1160,55 +1440,108 @@ end
 
 ---Handle port forward action
 function M._handle_port_forward()
+  local resource_mod = require("k8s.domain.resources.resource")
+
   local resource = M._get_current_resource()
   if not resource then
     vim.notify("No resource selected", vim.log.levels.WARN)
     return
   end
 
-  local pod_actions = require("k8s.handlers.pod_actions")
-
-  if not pod_actions.validate_pod_action(resource.kind) then
-    vim.notify("Port forward is only available for Pods", vim.log.levels.WARN)
+  -- Check if port_forward is supported for this resource kind
+  local caps = resource_mod.capabilities(resource.kind)
+  if not caps.port_forward then
+    vim.notify("Port forward is not available for " .. resource.kind, vim.log.levels.WARN)
     return
   end
 
-  -- Get container ports for auto-detection
-  local container_ports = pod_actions.get_container_ports(resource)
+  -- Get resource prefix and ports based on kind
+  local resource_prefix
+  local available_ports = {}
+
+  if resource.kind == "Pod" then
+    resource_prefix = "pod/"
+    local pod_actions = require("k8s.handlers.pod_actions")
+    available_ports = pod_actions.get_container_ports(resource)
+  elseif resource.kind == "Service" then
+    resource_prefix = "svc/"
+    -- Get Service ports from spec
+    if resource.raw and resource.raw.spec and resource.raw.spec.ports then
+      for _, port in ipairs(resource.raw.spec.ports) do
+        table.insert(available_ports, {
+          port = port.port,
+          name = port.name or "",
+          protocol = port.protocol or "TCP",
+          target_port = port.targetPort,
+        })
+      end
+    end
+  elseif resource.kind == "Deployment" then
+    resource_prefix = "deployment/"
+    -- Get Deployment ports from pod template
+    if resource.raw and resource.raw.spec and resource.raw.spec.template then
+      local containers = resource.raw.spec.template.spec and resource.raw.spec.template.spec.containers or {}
+      for _, container in ipairs(containers) do
+        if container.ports then
+          for _, port in ipairs(container.ports) do
+            table.insert(available_ports, {
+              port = port.containerPort,
+              name = port.name or "",
+              protocol = port.protocol or "TCP",
+              container = container.name,
+            })
+          end
+        end
+      end
+    end
+  else
+    resource_prefix = resource.kind:lower() .. "/"
+  end
+
+  local resource_name = resource_prefix .. resource.name
 
   -- Helper function to start port forward
   local function start_port_forward(local_port, remote_port)
     local adapter = require("k8s.infra.kubectl.adapter")
     local connections = require("k8s.domain.state.connections")
 
-    local pod_resource = "pod/" .. resource.name
-    local result = adapter.port_forward(pod_resource, resource.namespace, local_port, remote_port)
+    local result = adapter.port_forward(resource_name, resource.namespace, local_port, remote_port)
 
     if result.ok then
-      -- Add to connections (connections module uses singleton pattern)
       connections.add({
         job_id = result.data.job_id,
-        resource = pod_resource,
+        resource = resource_name,
         namespace = resource.namespace,
         local_port = local_port,
         remote_port = remote_port,
       })
 
       local notify = require("k8s.api.notify")
-      local msg = notify.format_port_forward_message(pod_resource, local_port, remote_port, "start")
+      local msg = notify.format_port_forward_message(resource_name, local_port, remote_port, "start")
       vim.notify(msg, vim.log.levels.INFO)
     else
       vim.notify("Failed to start port forward: " .. (result.error or "Unknown error"), vim.log.levels.ERROR)
     end
   end
 
-  -- If container ports exist, show selection menu
-  if #container_ports > 0 then
+  -- If ports exist, show selection menu
+  if #available_ports > 0 then
     local options = {}
-    for _, port in ipairs(container_ports) do
-      local label = string.format("%d (%s)", port.port, port.container)
-      if port.name and port.name ~= "" then
-        label = string.format("%d/%s (%s)", port.port, port.name, port.container)
+    for _, port in ipairs(available_ports) do
+      local label
+      if resource.kind == "Service" then
+        if port.name and port.name ~= "" then
+          label = string.format("%d/%s (%s)", port.port, port.name, port.protocol)
+        else
+          label = string.format("%d (%s)", port.port, port.protocol)
+        end
+      else
+        -- Pod
+        if port.name and port.name ~= "" then
+          label = string.format("%d/%s (%s)", port.port, port.name, port.container)
+        else
+          label = string.format("%d (%s)", port.port, port.container)
+        end
       end
       table.insert(options, { label = label, port = port.port })
     end
@@ -1246,7 +1579,7 @@ function M._handle_port_forward()
       end
     end)
   else
-    -- No container ports defined, prompt manually
+    -- No ports defined, prompt manually
     M._prompt_custom_port_forward(start_port_forward)
   end
 end
@@ -1284,6 +1617,14 @@ end
 ---Handle resource menu action
 function M._handle_resource_menu()
   local menu_actions = require("k8s.handlers.menu_actions")
+  local view_stack = require("k8s.app.view_stack")
+  local window = require("k8s.ui.nui.window")
+
+  -- Save current cursor position before showing menu
+  local cursor_row = 1
+  if state.window then
+    cursor_row = window.get_cursor(state.window)
+  end
 
   local items = menu_actions.get_resource_menu_items()
   local options = {}
@@ -1301,6 +1642,15 @@ function M._handle_resource_menu()
     for _, item in ipairs(items) do
       if item.text == choice then
         local app = require("k8s.app.app")
+
+        -- Push new list view to stack for back navigation
+        state.view_stack = view_stack.push(state.view_stack, {
+          type = "list",
+          kind = item.value,
+          namespace = state.app_state.current_namespace,
+          parent_cursor = cursor_row,
+        })
+
         state.app_state = app.set_kind(state.app_state, item.value)
         M._fetch_and_render(item.value, state.app_state.current_namespace)
         break
@@ -1383,6 +1733,16 @@ function M._handle_namespace_menu()
   end)
 end
 
+-- Map help action names to capability names
+local help_action_to_capability = {
+  Logs = "logs",
+  PrevLogs = "logs",
+  Exec = "exec",
+  Scale = "scale",
+  Restart = "restart",
+  PortFwd = "port_forward",
+}
+
 ---Handle help action
 function M._handle_help()
   if not state.window then
@@ -1391,27 +1751,69 @@ function M._handle_help()
 
   local window = require("k8s.ui.nui.window")
   local help = require("k8s.ui.views.help")
+  local view_stack = require("k8s.app.view_stack")
+  local resource_mod = require("k8s.domain.resources.resource")
 
-  local keymaps = M.get_keymap_definitions()
-  local help_lines = help.create_help_content(keymaps)
+  -- Get current view type before pushing help
+  local current_view = M._get_current_view_type() or "list"
+  -- Map to help.lua view names
+  local help_view_name = current_view == "list" and "resource_list" or current_view
 
-  local footer_bufnr = window.get_footer_bufnr(state.window)
-  if footer_bufnr then
-    window.set_lines(footer_bufnr, help_lines)
+  -- Get current resource kind for capability filtering
+  local current_kind = state.app_state and state.app_state.current_kind
+
+  -- Save current cursor position before pushing new view
+  local cursor_row = 1
+  if state.window then
+    cursor_row = window.get_cursor(state.window)
   end
 
-  -- Set up keypress to close help
+  -- Push help view to stack
+  if not state.view_stack then
+    state.view_stack = {}
+  end
+  state.view_stack = view_stack.push(state.view_stack, {
+    type = "help",
+    parent_view = current_view,
+    parent_cursor = cursor_row,
+  })
+
+  -- Get keymaps for the current view
+  local view_keymaps = help.get_keymaps_for_view(help_view_name)
+
+  -- Filter keymaps based on resource capabilities
+  local filtered_keymaps = {}
+  if current_kind then
+    local caps = resource_mod.capabilities(current_kind)
+    for _, km in ipairs(view_keymaps) do
+      local capability = help_action_to_capability[km.action]
+      -- Include keymap if action doesn't require capability OR resource has the capability
+      if not capability or caps[capability] == true then
+        table.insert(filtered_keymaps, km)
+      end
+    end
+  else
+    filtered_keymaps = view_keymaps
+  end
+
+  local help_lines = {}
+  table.insert(help_lines, help.get_help_title())
+  table.insert(help_lines, "")
+
+  -- Format keymaps
+  local keymap_lines = help.format_keymap_lines(filtered_keymaps, 4)
+  for _, line in ipairs(keymap_lines) do
+    table.insert(help_lines, line)
+  end
+
+  -- Display help in content area
   local content_bufnr = window.get_content_bufnr(state.window)
   if content_bufnr then
-    vim.api.nvim_buf_set_keymap(content_bufnr, "n", "<Space>", "", {
-      noremap = true,
-      silent = true,
-      callback = function()
-        M._render_footer("list")
-        vim.api.nvim_buf_del_keymap(content_bufnr, "n", "<Space>")
-      end,
-    })
+    window.set_lines(content_bufnr, help_lines)
   end
+
+  -- Update footer
+  M._render_footer("help")
 end
 
 ---Handle logs_previous action (previous container logs with -p)
@@ -1505,9 +1907,16 @@ function M._handle_port_forward_list()
   local connections = require("k8s.domain.state.connections")
   local port_forward_list = require("k8s.ui.views.port_forward_list")
 
+  -- Save current cursor position before pushing new view
+  local cursor_row = 1
+  if state.window then
+    cursor_row = window.get_cursor(state.window)
+  end
+
   -- Push port forward list view to stack
   state.view_stack = view_stack.push(state.view_stack, {
     type = "port_forward_list",
+    parent_cursor = cursor_row,
   })
 
   -- Update footer

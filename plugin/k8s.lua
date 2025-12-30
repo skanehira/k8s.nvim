@@ -7,7 +7,7 @@ vim.g.loaded_k8s = true
 
 -- Create user command
 vim.api.nvim_create_user_command("K8s", function(opts)
-  local k8s = require("k8s.init")
+  local k8s = require("k8s")
   local cmd, args = k8s.parse_command_args(opts.fargs)
 
   if cmd == "toggle" then
@@ -38,13 +38,13 @@ end, {
 
 -- Create Plug mappings
 vim.keymap.set("n", "<Plug>(k8s-toggle)", function()
-  require("k8s.init").toggle()
+  require("k8s").toggle()
 end, { desc = "Toggle k8s.nvim" })
 
 vim.keymap.set("n", "<Plug>(k8s-open)", function()
-  require("k8s.init").open()
+  require("k8s").open()
 end, { desc = "Open k8s.nvim" })
 
 vim.keymap.set("n", "<Plug>(k8s-close)", function()
-  require("k8s.init").close()
+  require("k8s").close()
 end, { desc = "Close k8s.nvim" })
