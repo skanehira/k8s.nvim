@@ -130,5 +130,71 @@ describe("pod_actions", function()
       assert(name:find("exec") or name:find("Exec"))
       assert(name:find("nginx"))
     end)
+
+    it("should format logs-prev tab name", function()
+      local name = pod_actions.format_tab_name("logs-prev", "nginx", "app")
+      assert(name:find("Logs%-Prev"))
+      assert(name:find("nginx"))
+    end)
+  end)
+
+  describe("get_containers", function()
+    it("should return container names", function()
+      local pod = {
+        raw = {
+          spec = {
+            containers = { { name = "app" }, { name = "sidecar" } },
+          },
+        },
+      }
+      local containers = pod_actions.get_containers(pod)
+      assert.equals(2, #containers)
+      assert.equals("app", containers[1])
+      assert.equals("sidecar", containers[2])
+    end)
+
+    it("should return empty for nil containers", function()
+      local pod = { raw = { spec = {} } }
+      local containers = pod_actions.get_containers(pod)
+      assert.equals(0, #containers)
+    end)
+  end)
+
+  describe("get_container_ports", function()
+    it("should return container ports", function()
+      local pod = {
+        raw = {
+          spec = {
+            containers = {
+              {
+                name = "app",
+                ports = {
+                  { containerPort = 8080, name = "http" },
+                  { containerPort = 9090 },
+                },
+              },
+            },
+          },
+        },
+      }
+      local ports = pod_actions.get_container_ports(pod)
+      assert.equals(2, #ports)
+      assert.equals(8080, ports[1].port)
+      assert.equals("http", ports[1].name)
+      assert.equals("app", ports[1].container)
+      assert.equals(9090, ports[2].port)
+    end)
+
+    it("should return empty for no ports", function()
+      local pod = {
+        raw = {
+          spec = {
+            containers = { { name = "app" } },
+          },
+        },
+      }
+      local ports = pod_actions.get_container_ports(pod)
+      assert.equals(0, #ports)
+    end)
   end)
 end)

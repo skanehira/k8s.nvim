@@ -82,13 +82,59 @@ function M.get_default_container(pod)
   return containers[1].name
 end
 
+---Get all container names
+---@param pod table
+---@return string[]
+function M.get_containers(pod)
+  local containers = pod.raw and pod.raw.spec and pod.raw.spec.containers
+  if not containers then
+    return {}
+  end
+
+  local names = {}
+  for _, container in ipairs(containers) do
+    table.insert(names, container.name)
+  end
+  return names
+end
+
+---Get container ports
+---@param pod table
+---@return table[] Array of { name: string, port: number, container: string }
+function M.get_container_ports(pod)
+  local containers = pod.raw and pod.raw.spec and pod.raw.spec.containers
+  if not containers then
+    return {}
+  end
+
+  local ports = {}
+  for _, container in ipairs(containers) do
+    if container.ports then
+      for _, port in ipairs(container.ports) do
+        table.insert(ports, {
+          name = port.name or "",
+          port = port.containerPort,
+          container = container.name,
+          protocol = port.protocol or "TCP",
+        })
+      end
+    end
+  end
+  return ports
+end
+
 ---Format tab name for terminal
----@param action_type "logs"|"exec"
+---@param action_type "logs"|"exec"|"logs-prev"
 ---@param pod_name string
 ---@param container string
 ---@return string
 function M.format_tab_name(action_type, pod_name, container)
-  local prefix = action_type == "logs" and "[Logs]" or "[Exec]"
+  local prefix_map = {
+    logs = "[Logs]",
+    exec = "[Exec]",
+    ["logs-prev"] = "[Logs-Prev]",
+  }
+  local prefix = prefix_map[action_type] or "[Unknown]"
   return string.format("%s %s/%s", prefix, pod_name, container)
 end
 
