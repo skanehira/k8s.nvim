@@ -98,26 +98,58 @@ Neovim内でKubernetesクラスタを管理するLuaプラグイン。k9sライ�
 
 - [x] [RED] confirm.luaのテスト作成（vim.fn.confirm）
 - [x] [GREEN] confirm.lua実装
+
+- [x] [RED] filter.luaのテスト作成（vim.fn.inputコマンドライン入力）
+- [x] [GREEN] filter.lua実装
+
+- [x] [RED] secret_mask.luaのテスト作成（Secretマスク表示/トグル）
+- [x] [GREEN] secret_mask.lua実装
+
 - [x] [REFACTOR] コンポーネント間の整合性確認
 
 ### フェーズ7: UI層（Views）
 
-- [ ] [RED] resource_list.luaのテスト作成
-- [ ] [GREEN] resource_list.lua実装
-- [ ] [RED] キーマップ（d, l, e, D, s, X, r, /, R, C, N, S, p, F, P, ?, q, Esc）テスト
-- [ ] [GREEN] キーマップ実装
-- [ ] [RED] 自動更新（5秒間隔）テスト
-- [ ] [GREEN] 自動更新実装
+#### ロジック層（テスト可能）
+- [x] [RED] resource_list.luaのテスト作成
+- [x] [GREEN] resource_list.lua実装
+- [x] [RED] キーマップ（d, l, e, D, s, X, r, /, R, C, N, S, p, F, P, ?, q, Esc）テスト
+- [x] [GREEN] キーマップ実装
+- [x] [RED] 自動更新（5秒間隔）テスト
+- [x] [GREEN] 自動更新実装
 
-- [ ] [RED] describe.luaのテスト作成
-- [ ] [GREEN] describe.lua実装（filetype=yaml）
+- [x] [RED] describe.luaのテスト作成
+- [x] [GREEN] describe.lua実装（filetype=yaml）
 
-- [ ] [RED] port_forward_list.luaのテスト作成
-- [ ] [GREEN] port_forward_list.lua実装
+- [x] [RED] port_forward_list.luaのテスト作成
+- [x] [GREEN] port_forward_list.lua実装
 
-- [ ] [RED] help.luaのテスト作成
-- [ ] [GREEN] help.lua実装（フッター拡張形式）
-- [ ] [REFACTOR] View間の共通処理抽出
+- [x] [RED] help.luaのテスト作成
+- [x] [GREEN] help.lua実装（フッター拡張形式）
+- [x] [REFACTOR] View間の共通処理抽出（utils.lua）
+
+#### 描画層（nui.nvim依存）
+- [ ] [RED] renderer.luaのテスト作成（モック使用）
+- [ ] [GREEN] renderer.lua実装
+  - [ ] NuiPopupで3ウィンドウ生成（ヘッダー/コンテンツ/フッター）
+  - [ ] NuiLine/NuiTextでテーブル描画
+  - [ ] バッファ再利用
+  - [ ] キーマップ設定
+  - [ ] vim.uvタイマーで自動更新
+
+- [ ] [RED] terminal.luaのテスト作成（ログ/exec別タブ管理）
+- [ ] [GREEN] terminal.lua実装
+  - [ ] 新規タブでターミナルモード起動
+  - [ ] タブ名設定（[logs] pod-name, [exec] pod-name）
+  - [ ] タブ閉じ時にプロセス終了
+  - [ ] exec終了時にタブ自動クローズ
+
+- [ ] [RED] container_select.luaのテスト作成（コンテナ選択メニュー）
+- [ ] [GREEN] container_select.lua実装（複数コンテナ時の選択UI）
+
+- [ ] [RED] port_select.luaのテスト作成（ポート選択メニュー）
+- [ ] [GREEN] port_select.lua実装（リモートポート自動検出・選択）
+
+- [ ] [REFACTOR] 描画層の共通処理抽出
 
 ### フェーズ8: UI層（columns）
 
@@ -129,17 +161,53 @@ Neovim内でKubernetesクラスタを管理するLuaプラグイン。k9sライ�
 
 - [ ] [RED] api.luaのテスト作成（統一API）
 - [ ] [GREEN] api.lua実装（adapterを直接利用）
+
+- [ ] [RED] health.luaのテスト作成（起動時チェック）
+- [ ] [GREEN] health.lua実装
+  - [ ] kubectlの存在チェック（vim.fn.executable）
+  - [ ] エラー時はvim.notifyでメッセージ表示
+
+- [ ] [RED] notify.luaのテスト作成（通知ヘルパー）
+- [ ] [GREEN] notify.lua実装
+  - [ ] エラー/警告/情報の統一インターフェース
+  - [ ] 破壊的操作の通知
+
 - [ ] [REFACTOR] API設計の見直し
 
 ### フェーズ10: エントリポイント
 
 - [ ] [RED] config.luaのテスト作成（設定マージ・検証）
 - [ ] [GREEN] config.lua実装
+  - [ ] デフォルト設定定義
+  - [ ] ユーザー設定マージ
+  - [ ] キーマップカスタマイズ対応
 
 - [ ] [RED] init.luaのテスト作成（setup, toggle, open, close）
 - [ ] [GREEN] init.lua実装
+  - [ ] setup() - 設定初期化
+  - [ ] toggle() - UI表示切り替え
+  - [ ] open() / close() - UI開閉
+  - [ ] open_resource(kind) - 特定リソース表示
 
-- [ ] plugin/k8s.lua実装（遅延読み込み、コマンド定義）
+- [ ] [RED] plugin/k8s.luaのテスト作成
+- [ ] [GREEN] plugin/k8s.lua実装
+  - [ ] 遅延読み込み（初回使用時にrequire）
+  - [ ] ユーザーコマンド定義
+    - [ ] :K8s（トグル）
+    - [ ] :K8s open / :K8s close
+    - [ ] :K8s pods / :K8s deployments / :K8s services / :K8s nodes
+    - [ ] :K8s context [name] / :K8s namespace [name]
+    - [ ] :K8s portforwards
+  - [ ] `<Plug>`マッピング定義
+    - [ ] `<Plug>(k8s-toggle)`
+    - [ ] `<Plug>(k8s-open)`
+    - [ ] `<Plug>(k8s-close)`
+
+- [ ] [RED] autocmd.luaのテスト作成（ライフサイクル管理）
+- [ ] [GREEN] autocmd.lua実装
+  - [ ] Neovim終了時（VimLeavePre）に全ポートフォワード停止
+  - [ ] タブ閉じ時のプロセスクリーンアップ
+
 - [ ] [REFACTOR] 起動時間の最適化
 
 ### フェーズ11: 統合・品質保証
@@ -147,8 +215,24 @@ Neovim内でKubernetesクラスタを管理するLuaプラグイン。k9sライ�
 - [ ] [STRUCTURAL] 全体コード整理（動作変更なし）
 - [ ] 全テスト実行と確認
 - [ ] lint/format/型チェックの確認
-- [ ] ハイライトグループ定義（K8sStatus*）
+
+- [ ] ハイライトグループ定義
+  - [ ] K8sStatusRunning（緑: Running, Completed, Active, Ready）
+  - [ ] K8sStatusPending（黄: Pending, Waiting, ContainerCreating）
+  - [ ] K8sStatusError（赤: Error, Failed, CrashLoopBackOff, Terminating）
+  - [ ] デフォルトカラー設定
+  - [ ] ユーザーカスタマイズ対応
+
+- [ ] パフォーマンス最適化
+  - [ ] 差分更新（変更行のみ再描画）
+  - [ ] 大量リソース時の対応検討（1000件以上）
+
 - [ ] doc/k8s.txt（Vimヘルプ）作成
+  - [ ] インストール方法
+  - [ ] 設定オプション
+  - [ ] キーマップ一覧
+  - [ ] コマンド一覧
+  - [ ] トラブルシューティング
 
 ## 実装ノート
 

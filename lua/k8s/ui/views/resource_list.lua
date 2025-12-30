@@ -1,0 +1,168 @@
+--- resource_list.lua - リソース一覧View
+
+local list = require("k8s.domain.actions.list")
+local resource = require("k8s.domain.resources.resource")
+
+local M = {}
+
+-- Default keymap definitions (key -> action name)
+local default_keymaps = {
+  ["<CR>"] = "select",
+  ["d"] = "describe",
+  ["l"] = "logs",
+  ["P"] = "logs_previous",
+  ["e"] = "exec",
+  ["p"] = "port_forward",
+  ["F"] = "port_forward_list",
+  ["D"] = "delete",
+  ["s"] = "scale",
+  ["X"] = "restart",
+  ["r"] = "refresh",
+  ["/"] = "filter",
+  ["R"] = "resource_menu",
+  ["S"] = "toggle_secret",
+  ["C"] = "context_menu",
+  ["N"] = "namespace_menu",
+  ["?"] = "help",
+  ["q"] = "quit",
+  ["<Esc>"] = "back",
+}
+
+-- Actions that require a resource to be selected
+local resource_required_actions = {
+  select = true,
+  describe = true,
+  logs = true,
+  logs_previous = true,
+  exec = true,
+  port_forward = true,
+  delete = true,
+  scale = true,
+  restart = true,
+}
+
+---Prepare display data by filtering and sorting resources
+---@param resources table[] Raw resources
+---@param filter_text string Filter text
+---@return table[] Filtered and sorted resources
+function M.prepare_display_data(resources, filter_text)
+  local filtered = list.filter(resources, filter_text)
+  return list.sort(filtered)
+end
+
+---Calculate cursor position within bounds
+---@param current_pos number Current cursor position
+---@param item_count number Number of items
+---@return number position Clamped cursor position (1-based)
+function M.calculate_cursor_position(current_pos, item_count)
+  if item_count == 0 then
+    return 1
+  end
+
+  if current_pos < 1 then
+    return 1
+  end
+
+  if current_pos > item_count then
+    return item_count
+  end
+
+  return current_pos
+end
+
+---Check if an action can be performed on a resource kind
+---@param kind string Resource kind
+---@param action string Action name (exec, logs, scale, restart, port_forward)
+---@return boolean
+function M.can_perform_action(kind, action)
+  local caps = resource.capabilities(kind)
+  if caps[action] == nil then
+    return false
+  end
+  return caps[action]
+end
+
+---Get resource at cursor position
+---@param resources table[] Resource list
+---@param cursor_pos number Cursor position (1-based)
+---@return table|nil resource Resource at cursor or nil
+function M.get_resource_at_cursor(resources, cursor_pos)
+  if cursor_pos < 1 or cursor_pos > #resources then
+    return nil
+  end
+  return resources[cursor_pos]
+end
+
+---Get default keymap definitions
+---@return table<string, string> keymaps Key to action mapping
+function M.get_default_keymaps()
+  return default_keymaps
+end
+
+---Get action name for a key
+---@param key string Key press
+---@return string|nil action Action name or nil
+function M.get_action_for_key(key)
+  return default_keymaps[key]
+end
+
+---Check if an action requires a resource to be selected
+---@param action string Action name
+---@return boolean
+function M.requires_resource_selection(action)
+  return resource_required_actions[action] == true
+end
+
+---@class RefreshState
+---@field interval number Refresh interval in milliseconds
+---@field is_loading boolean Whether refresh is in progress
+---@field timer userdata|nil vim.uv timer handle
+---@field last_refresh number|nil Last refresh timestamp (seconds)
+
+---Create initial refresh state
+---@param interval number Refresh interval in milliseconds
+---@return RefreshState
+function M.create_refresh_state(interval)
+  return {
+    interval = interval,
+    is_loading = false,
+    timer = nil,
+    last_refresh = nil,
+  }
+end
+
+---Check if auto refresh should trigger
+---@param state RefreshState
+---@param current_time number Current timestamp (seconds)
+---@return boolean
+function M.should_auto_refresh(state, current_time)
+  -- Don't refresh while loading
+  if state.is_loading then
+    return false
+  end
+
+  -- First refresh or never refreshed
+  if state.last_refresh == nil then
+    return true
+  end
+
+  -- Check if interval has passed (convert ms to seconds)
+  local interval_seconds = state.interval / 1000
+  return (current_time - state.last_refresh) >= interval_seconds
+end
+
+---Mark refresh as started
+---@param state RefreshState
+function M.mark_refresh_start(state)
+  state.is_loading = true
+end
+
+---Mark refresh as complete
+---@param state RefreshState
+---@param current_time number Current timestamp (seconds)
+function M.mark_refresh_complete(state, current_time)
+  state.is_loading = false
+  state.last_refresh = current_time
+end
+
+return M
