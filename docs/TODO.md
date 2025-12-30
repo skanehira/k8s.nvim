@@ -128,28 +128,28 @@ Neovim内でKubernetesクラスタを管理するLuaプラグイン。k9sライ�
 - [x] [REFACTOR] View間の共通処理抽出（utils.lua）
 
 #### 描画層（nui.nvim依存）
-- [ ] [RED] renderer.luaのテスト作成（モック使用）
-- [ ] [GREEN] renderer.lua実装
-  - [ ] NuiPopupで3ウィンドウ生成（ヘッダー/コンテンツ/フッター）
-  - [ ] NuiLine/NuiTextでテーブル描画
-  - [ ] バッファ再利用
-  - [ ] キーマップ設定
-  - [ ] vim.uvタイマーで自動更新
+- [x] [RED] renderer.luaのテスト作成（モック使用）
+- [x] [GREEN] renderer.lua実装
+  - [x] NuiPopupで3ウィンドウ生成（ヘッダー/コンテンツ/フッター）
+  - [x] NuiLine/NuiTextでテーブル描画
+  - [x] バッファ再利用
+  - [x] キーマップ設定
+  - [x] vim.uvタイマーで自動更新
 
-- [ ] [RED] terminal.luaのテスト作成（ログ/exec別タブ管理）
-- [ ] [GREEN] terminal.lua実装
-  - [ ] 新規タブでターミナルモード起動
-  - [ ] タブ名設定（[logs] pod-name, [exec] pod-name）
-  - [ ] タブ閉じ時にプロセス終了
-  - [ ] exec終了時にタブ自動クローズ
+- [x] [RED] terminal.luaのテスト作成（ログ/exec別タブ管理）
+- [x] [GREEN] terminal.lua実装
+  - [x] 新規タブでターミナルモード起動
+  - [x] タブ名設定（[logs] pod-name, [exec] pod-name）
+  - [x] タブ閉じ時にプロセス終了
+  - [x] exec終了時にタブ自動クローズ
 
-- [ ] [RED] container_select.luaのテスト作成（コンテナ選択メニュー）
-- [ ] [GREEN] container_select.lua実装（複数コンテナ時の選択UI）
+- [x] [RED] container_select.luaのテスト作成（コンテナ選択メニュー）
+- [x] [GREEN] container_select.lua実装（複数コンテナ時の選択UI）
 
-- [ ] [RED] port_select.luaのテスト作成（ポート選択メニュー）
-- [ ] [GREEN] port_select.lua実装（リモートポート自動検出・選択）
+- [x] [RED] port_select.luaのテスト作成（ポート選択メニュー）
+- [x] [GREEN] port_select.lua実装（リモートポート自動検出・選択）
 
-- [ ] [REFACTOR] 描画層の共通処理抽出
+- [x] [REFACTOR] 描画層の共通処理抽出
 
 ### フェーズ8: UI層（columns）
 
