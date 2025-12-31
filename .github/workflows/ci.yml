@@ -16,10 +16,10 @@ jobs:
       - uses: actions/checkout@v6
 
       - name: Install Neovim
-        uses: rhysd/action-setup-vim@v1
+        uses: thinca/action-setup-vim@v3
         with:
-          neovim: true
-          version: ${{ matrix.nvim-version }}
+          vim_version: ${{ matrix.nvim-version }}
+          vim_type: neovim
 
       - name: Install dependencies
         run: |
