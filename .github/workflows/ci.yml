@@ -8,18 +8,18 @@ on:
 
 jobs:
   test:
-    runs-on: arc-runner-set
+    runs-on: ubuntu-latest
     strategy:
       matrix:
-        nvim-version: ["stable"]
+        nvim-version: ["v0.10.0", "stable"]
     steps:
       - uses: actions/checkout@v6
 
       - name: Install Neovim
-        uses: thinca/action-setup-vim@v3
+        uses: rhysd/action-setup-vim@v1
         with:
-          vim_version: ${{ matrix.nvim-version }}
-          vim_type: neovim
+          neovim: true
+          version: ${{ matrix.nvim-version }}
 
       - name: Install dependencies
         run: |
@@ -28,8 +28,7 @@ jobs:
           git clone --depth 1 https://github.com/MunifTanjim/nui.nvim ~/.local/share/nvim/lazy/nui.nvim
 
       - name: Run tests
-        run: |
-          nvim --headless -u tests/minimal_init.lua -c "PlenaryBustedDirectory lua/ {sequential = true}"
+        run: make test
 
   lint:
     runs-on: ubuntu-latest
