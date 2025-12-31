@@ -132,8 +132,7 @@ function M.handle_filter(callbacks)
 end
 
 ---Render resources with current filter
----@param callbacks table { }
-function M.render_filtered_resources(callbacks)
+function M.render_filtered_resources()
   local global_state = require("k8s.core.global_state")
   local window = require("k8s.ui.nui.window")
   local app = require("k8s.core.state")

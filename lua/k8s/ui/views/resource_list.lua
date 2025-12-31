@@ -132,37 +132,37 @@ function M.create_refresh_state(interval)
 end
 
 ---Check if auto refresh should trigger
----@param state RefreshState
+---@param refresh_state RefreshState
 ---@param current_time number Current timestamp (seconds)
 ---@return boolean
-function M.should_auto_refresh(state, current_time)
+function M.should_auto_refresh(refresh_state, current_time)
   -- Don't refresh while loading
-  if state.is_loading then
+  if refresh_state.is_loading then
     return false
   end
 
   -- First refresh or never refreshed
-  if state.last_refresh == nil then
+  if refresh_state.last_refresh == nil then
     return true
   end
 
   -- Check if interval has passed (convert ms to seconds)
-  local interval_seconds = state.interval / 1000
-  return (current_time - state.last_refresh) >= interval_seconds
+  local interval_seconds = refresh_state.interval / 1000
+  return (current_time - refresh_state.last_refresh) >= interval_seconds
 end
 
 ---Mark refresh as started
----@param state RefreshState
-function M.mark_refresh_start(state)
-  state.is_loading = true
+---@param refresh_state RefreshState
+function M.mark_refresh_start(refresh_state)
+  refresh_state.is_loading = true
 end
 
 ---Mark refresh as complete
----@param state RefreshState
+---@param refresh_state RefreshState
 ---@param current_time number Current timestamp (seconds)
-function M.mark_refresh_complete(state, current_time)
-  state.is_loading = false
-  state.last_refresh = current_time
+function M.mark_refresh_complete(refresh_state, current_time)
+  refresh_state.is_loading = false
+  refresh_state.last_refresh = current_time
 end
 
 -- =============================================================================

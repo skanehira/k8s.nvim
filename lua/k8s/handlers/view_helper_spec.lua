@@ -209,7 +209,7 @@ describe("view_helper", function()
         end,
       }
       local mock_callbacks = {
-        get_footer_keymaps = function(view_type, kind)
+        get_footer_keymaps = function(_view_type, _kind)
           return { { key = "q", action = "quit" }, { key = "r", action = "refresh" } }
         end,
       }

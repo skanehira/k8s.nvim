@@ -161,7 +161,7 @@ function M.create_mock_adapter(responses)
   local function create_mock_method(method_name)
     return function(...)
       local args = { ... }
-      local call_info = {}
+      local call_info
 
       -- Extract common parameters based on method
       if method_name == "delete" or method_name == "restart" then

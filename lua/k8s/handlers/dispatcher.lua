@@ -42,7 +42,7 @@ local function create_callbacks(setup_keymaps_fn)
       get_renderer().fetch_and_render(kind, namespace, opts)
     end,
     render_filtered_resources = function()
-      get_list_handler().render_filtered_resources({})
+      get_list_handler().render_filtered_resources()
     end,
     handle_refresh = function()
       dispatch("refresh", setup_keymaps_fn)
