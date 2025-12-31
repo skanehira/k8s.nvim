@@ -51,11 +51,13 @@ function M.fetch_and_render(kind, namespace, opts)
   if win and window.is_mounted(win) then
     local header_bufnr = window.get_header_bufnr(win)
     if header_bufnr then
+      local app_state = global_state.get_app_state()
       local header_content = buffer.create_header_content({
         context = vim.fn.system("kubectl config current-context"):gsub("\n", ""),
         namespace = namespace,
         view = kind .. "s",
         loading = true,
+        filter = app_state and app_state.filter,
       })
       window.set_lines(header_bufnr, { header_content })
     end
@@ -71,10 +73,12 @@ function M.fetch_and_render(kind, namespace, opts)
       -- Update header (remove loading)
       local header_bufnr = window.get_header_bufnr(win)
       if header_bufnr then
+        local current_app_state = global_state.get_app_state()
         local header_content = buffer.create_header_content({
           context = vim.fn.system("kubectl config current-context"):gsub("\n", ""),
           namespace = namespace,
           view = kind .. "s",
+          filter = current_app_state and current_app_state.filter,
         })
         window.set_lines(header_bufnr, { header_content })
       end
