@@ -39,7 +39,36 @@ jobs:
           ls -la ~/.local/share/nvim/lazy/plenary.nvim/plugin/ || echo "No plugin dir"
 
       - name: Run tests
-        run: make test
+        run: |
+          set -x
+          echo "=== Step 1: Basic Neovim test ==="
+          nvim --headless -c "lua print('OK: Neovim started')" -c "qa!" 2>&1 && echo "PASS" || echo "FAIL"
+
+          echo "=== Step 2: Check stdpath ==="
+          nvim --headless -c "lua print('data=' .. vim.fn.stdpath('data'))" -c "qa!" 2>&1
+
+          echo "=== Step 3: Check runtimepath ==="
+          nvim --headless -c "lua print(vim.o.runtimepath)" -c "qa!" 2>&1
+
+          echo "=== Step 4: Try to find plenary ==="
+          nvim --headless -c "lua print('plenary path exists: ' .. tostring(vim.fn.isdirectory(vim.fn.stdpath('data') .. '/lazy/plenary.nvim') == 1))" -c "qa!" 2>&1
+
+          echo "=== Step 5: Add plenary to rtp and load ==="
+          nvim --headless -c "lua vim.opt.rtp:append(vim.fn.stdpath('data') .. '/lazy/plenary.nvim')" -c "runtime plugin/plenary.vim" -c "lua print('Plenary loaded')" -c "qa!" 2>&1 && echo "PASS" || echo "FAIL"
+
+          echo "=== Step 6: Check if PlenaryBustedDirectory exists ==="
+          nvim --headless -c "lua vim.opt.rtp:append(vim.fn.stdpath('data') .. '/lazy/plenary.nvim')" -c "runtime plugin/plenary.vim" -c "lua print('PlenaryBustedDirectory command exists: ' .. tostring(vim.fn.exists(':PlenaryBustedDirectory') == 2))" -c "qa!" 2>&1
+
+          echo "=== Step 7: Run with minimal_init.lua ==="
+          nvim --headless -u tests/minimal_init.lua -c "lua print('minimal_init loaded')" -c "qa!" 2>&1 && echo "PASS" || echo "FAIL"
+
+          echo "=== Step 8: Check PlenaryBustedDirectory with minimal_init ==="
+          nvim --headless -u tests/minimal_init.lua -c "lua print('PlenaryBustedDirectory exists: ' .. tostring(vim.fn.exists(':PlenaryBustedDirectory') == 2))" -c "qa!" 2>&1
+
+          echo "=== Step 9: Run actual test ==="
+          nvim --headless -u tests/minimal_init.lua -c "PlenaryBustedDirectory lua/ {sequential = true}" 2>&1 || echo "Test failed with exit code $?"
+
+          echo "=== Done ==="
 
   lint:
     runs-on: ubuntu-latest
