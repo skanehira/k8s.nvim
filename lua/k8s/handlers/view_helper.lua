@@ -183,12 +183,8 @@ function M._write_buffers_before_mount(win, config, buffer_module, callbacks)
   -- Footer
   local footer_bufnr = window.get_footer_bufnr(win)
   if footer_bufnr then
-    local footer_content = M.prepare_footer_content(
-      config.footer_view_type,
-      config.footer_kind,
-      buffer_module,
-      callbacks
-    )
+    local footer_content =
+      M.prepare_footer_content(config.footer_view_type, config.footer_kind, buffer_module, callbacks)
     window.set_lines(footer_bufnr, { footer_content })
   end
 end
