@@ -3,127 +3,8 @@
 local secret_mask = require("k8s.ui.components.secret_mask")
 
 describe("secret_mask", function()
-  describe("create_state", function()
-    it("should create initial state with masked true", function()
-      local state = secret_mask.create_state()
-      assert.is_true(state.masked)
-    end)
-  end)
-
-  describe("toggle", function()
-    it("should toggle masked state from true to false", function()
-      local state = secret_mask.create_state()
-      secret_mask.toggle(state)
-      assert.is_false(state.masked)
-    end)
-
-    it("should toggle masked state from false to true", function()
-      local state = secret_mask.create_state()
-      state.masked = false
-      secret_mask.toggle(state)
-      assert.is_true(state.masked)
-    end)
-  end)
-
-  describe("is_masked", function()
-    it("should return true when masked", function()
-      local state = secret_mask.create_state()
-      assert.is_true(secret_mask.is_masked(state))
-    end)
-
-    it("should return false when not masked", function()
-      local state = secret_mask.create_state()
-      state.masked = false
-      assert.is_false(secret_mask.is_masked(state))
-    end)
-  end)
-
-  describe("mask_value", function()
-    it("should return masked string when masked", function()
-      local state = secret_mask.create_state()
-      local result = secret_mask.mask_value(state, "secret-password-123")
-      assert.equals("********", result)
-    end)
-
-    it("should return original value when not masked", function()
-      local state = secret_mask.create_state()
-      state.masked = false
-      local result = secret_mask.mask_value(state, "secret-password-123")
-      assert.equals("secret-password-123", result)
-    end)
-
-    it("should return empty string for nil value when masked", function()
-      local state = secret_mask.create_state()
-      local result = secret_mask.mask_value(state, nil)
-      assert.equals("", result)
-    end)
-
-    it("should return empty string for nil value when not masked", function()
-      local state = secret_mask.create_state()
-      state.masked = false
-      local result = secret_mask.mask_value(state, nil)
-      assert.equals("", result)
-    end)
-  end)
-
-  describe("mask_secret_data", function()
-    it("should mask all data values when masked", function()
-      local state = secret_mask.create_state()
-      local data = {
-        username = "admin",
-        password = "secret123",
-        token = "abc-xyz-123",
-      }
-
-      local result = secret_mask.mask_secret_data(state, data)
-
-      assert.equals("********", result.username)
-      assert.equals("********", result.password)
-      assert.equals("********", result.token)
-    end)
-
-    it("should return original data when not masked", function()
-      local state = secret_mask.create_state()
-      state.masked = false
-      local data = {
-        username = "admin",
-        password = "secret123",
-      }
-
-      local result = secret_mask.mask_secret_data(state, data)
-
-      assert.equals("admin", result.username)
-      assert.equals("secret123", result.password)
-    end)
-
-    it("should return empty table for nil data", function()
-      local state = secret_mask.create_state()
-      local result = secret_mask.mask_secret_data(state, nil)
-      assert.same({}, result)
-    end)
-
-    it("should handle empty table", function()
-      local state = secret_mask.create_state()
-      local result = secret_mask.mask_secret_data(state, {})
-      assert.same({}, result)
-    end)
-  end)
-
-  describe("get_status_text", function()
-    it("should return 'Hidden' when masked", function()
-      local state = secret_mask.create_state()
-      assert.equals("Hidden", secret_mask.get_status_text(state))
-    end)
-
-    it("should return 'Visible' when not masked", function()
-      local state = secret_mask.create_state()
-      state.masked = false
-      assert.equals("Visible", secret_mask.get_status_text(state))
-    end)
-  end)
-
-  describe("mask_describe_output", function()
-    it("should mask data values in Data section when masked", function()
+  describe("inject_secret_values", function()
+    it("should inject actual values into Data section", function()
       local lines = {
         "Name:         my-secret",
         "Namespace:    default",
@@ -133,30 +14,99 @@ describe("secret_mask", function()
         "password:  10 bytes",
         "Events:  <none>",
       }
+      local secret_data = {
+        username = "admin",
+        password = "secret123",
+      }
 
-      local result = secret_mask.mask_describe_output(true, lines)
+      local result = secret_mask.inject_secret_values(lines, secret_data)
 
       assert.equals("Name:         my-secret", result[1])
       assert.equals("Data", result[3])
-      assert.equals("username:  ********", result[5])
-      assert.equals("password:  ********", result[6])
+      assert.equals("username:  admin", result[5])
+      assert.equals("password:  secret123", result[6])
       assert.equals("Events:  <none>", result[7])
     end)
 
-    it("should return original lines when not masked", function()
+    it("should handle keys with underscores and hyphens preserving alignment", function()
+      local lines = {
+        "Data",
+        "====",
+        "github_app_id:               7 bytes",
+        "github-app-key:              20 bytes",
+      }
+      local secret_data = {
+        github_app_id = "1234567",
+        ["github-app-key"] = "abcdefghij1234567890",
+      }
+
+      local result = secret_mask.inject_secret_values(lines, secret_data)
+
+      -- Preserves original spacing after colon
+      assert.equals("github_app_id:               1234567", result[3])
+      assert.equals("github-app-key:              abcdefghij1234567890", result[4])
+    end)
+
+    it("should return original lines when secret_data is nil", function()
       local lines = {
         "Data",
         "username:  5 bytes",
       }
 
-      local result = secret_mask.mask_describe_output(false, lines)
+      local result = secret_mask.inject_secret_values(lines, nil)
 
       assert.same(lines, result)
     end)
 
-    it("should handle empty lines", function()
-      local result = secret_mask.mask_describe_output(true, {})
-      assert.same({}, result)
+    it("should return original lines when secret_data is empty", function()
+      local lines = {
+        "Data",
+        "username:  5 bytes",
+      }
+
+      local result = secret_mask.inject_secret_values(lines, {})
+
+      assert.same(lines, result)
+    end)
+
+    it("should handle multiline values with YAML block style preserving alignment", function()
+      local lines = {
+        "Data",
+        "====",
+        "private_key:  100 bytes",
+      }
+      local secret_data = {
+        private_key = "line1\nline2\nline3",
+      }
+
+      local result = secret_mask.inject_secret_values(lines, secret_data)
+
+      -- prefix is "private_key:  " (14 chars)
+      assert.equals("private_key:  |", result[3])
+      assert.equals("              line1", result[4])
+      assert.equals("              line2", result[5])
+      assert.equals("              line3", result[6])
+    end)
+
+    it("should preserve order of keys from describe output", function()
+      local lines = {
+        "Data",
+        "====",
+        "key_z:  1 bytes",
+        "key_a:  1 bytes",
+        "key_m:  1 bytes",
+      }
+      local secret_data = {
+        key_z = "Z",
+        key_a = "A",
+        key_m = "M",
+      }
+
+      local result = secret_mask.inject_secret_values(lines, secret_data)
+
+      assert.equals("key_z:  Z", result[3])
+      assert.equals("key_a:  A", result[4])
+      assert.equals("key_m:  M", result[5])
     end)
   end)
 end)

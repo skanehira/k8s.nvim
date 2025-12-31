@@ -124,6 +124,35 @@ function M.describe(kind, name, namespace, callback)
   run_async(cmd, ok, callback)
 end
 
+---Get secret data with base64 decoded values
+---@param name string
+---@param namespace string|nil
+---@param callback fun(result: K8sResult)
+function M.get_secret_data(name, namespace, callback)
+  local cmd = build_cmd_with_ns({ "get", "secret", name, "-o", "json" }, namespace)
+  run_async(cmd, function(output)
+    local success, json = pcall(vim.json.decode, output)
+    if not success then
+      return { ok = false, error = "Failed to parse JSON" }
+    end
+
+    local data = json.data or {}
+    local decoded = {}
+
+    for key, value in pairs(data) do
+      -- Base64 decode using Neovim's built-in function
+      local decode_success, decoded_value = pcall(vim.base64.decode, value)
+      if decode_success then
+        decoded[key] = decoded_value
+      else
+        decoded[key] = value
+      end
+    end
+
+    return ok(decoded)
+  end, callback)
+end
+
 ---Helper for void operations (returns nil on success)
 ---@param _ string
 ---@return K8sResult

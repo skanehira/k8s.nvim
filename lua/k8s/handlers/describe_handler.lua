@@ -2,12 +2,13 @@
 
 local M = {}
 
----Re-render describe content with current mask state
----@param resource table Resource being described
-local function re_render_describe_content(resource)
+---Render describe content with secret handling
+---@param describe_output string Describe output text
+---@param secret_data? table Decoded secret data (only for secrets when unmasked)
+local function render_describe_with_secrets(describe_output, secret_data)
   local global_state = require("k8s.core.global_state")
-  local adapter = require("k8s.infra.kubectl.adapter")
   local window = require("k8s.ui.nui.window")
+  local secret_mask = require("k8s.ui.components.secret_mask")
 
   local current_win = global_state.get_window()
   if not current_win or not window.is_mounted(current_win) then
@@ -19,35 +20,43 @@ local function re_render_describe_content(resource)
     return
   end
 
-  -- Re-fetch describe output
-  adapter.describe(resource.kind, resource.name, resource.namespace, function(result)
-    vim.schedule(function()
-      current_win = global_state.get_window()
-      if not current_win or not window.is_mounted(current_win) then
-        return
-      end
+  local lines = vim.split(describe_output, "\n")
 
-      bufnr = window.get_content_bufnr(current_win)
-      if not bufnr then
-        return
-      end
+  -- Inject actual decoded values if secret_data is provided
+  if secret_data then
+    lines = secret_mask.inject_secret_values(lines, secret_data)
+  end
 
-      if not result.ok then
-        return
-      end
+  window.set_lines(bufnr, lines)
+end
 
-      local lines = vim.split(result.data, "\n")
+---Re-render describe content with current mask state using cached data
+---@param current_view table Current view from view_stack
+local function re_render_describe_content(current_view)
+  local global_state = require("k8s.core.global_state")
+  local adapter = require("k8s.infra.kubectl.adapter")
 
-      -- Apply secret mask if viewing a Secret
-      local app_state = global_state.get_app_state()
-      if resource.kind == "Secret" and app_state and app_state.mask_secrets then
-        local secret_mask = require("k8s.ui.components.secret_mask")
-        lines = secret_mask.mask_describe_output(true, lines)
-      end
+  local resource = current_view.resource
+  local cached_describe = current_view.describe_output
 
-      window.set_lines(bufnr, lines)
+  if not cached_describe then
+    return
+  end
+
+  local app_state = global_state.get_app_state()
+  local needs_secret_data = resource.kind == "Secret" and app_state and not app_state.mask_secrets
+
+  if needs_secret_data then
+    -- Fetch secret data for actual values
+    adapter.get_secret_data(resource.name, resource.namespace, function(secret_result)
+      vim.schedule(function()
+        local secret_data = secret_result.ok and secret_result.data or nil
+        render_describe_with_secrets(cached_describe, secret_data)
+      end)
     end)
-  end)
+  else
+    render_describe_with_secrets(cached_describe, nil)
+  end
 end
 
 ---Refresh describe view content (for toggle_secret)
@@ -70,7 +79,7 @@ function M.refresh_describe_content()
     return
   end
 
-  re_render_describe_content(resource)
+  re_render_describe_content(current_view)
 end
 
 ---Handle describe action
@@ -106,9 +115,51 @@ function M.handle_describe(callbacks)
     initial_content = { "Loading..." },
     pre_render = true,
     on_mounted = function()
+      local secret_mask = require("k8s.ui.components.secret_mask")
+
+      local function render_content(describe_data, secret_data)
+        local current_win = global_state.get_window()
+        if not current_win or not window.is_mounted(current_win) then
+          return
+        end
+
+        local bufnr = window.get_content_bufnr(current_win)
+        if not bufnr then
+          return
+        end
+
+        local lines = vim.split(describe_data, "\n")
+
+        -- Inject actual decoded values if secret_data is provided
+        if secret_data then
+          lines = secret_mask.inject_secret_values(lines, secret_data)
+        end
+
+        window.set_lines(bufnr, lines)
+
+        -- Set filetype for syntax highlighting
+        vim.api.nvim_buf_set_option(bufnr, "filetype", "yaml")
+
+        -- Update header (remove loading)
+        local hdr_bufnr = window.get_header_bufnr(current_win)
+        if hdr_bufnr then
+          local header_content = buffer.create_header_content({
+            context = vim.fn.system("kubectl config current-context"):gsub("\n", ""),
+            namespace = resource.namespace,
+            view = resource.kind .. ": " .. resource.name,
+          })
+          window.set_lines(hdr_bufnr, { header_content })
+        end
+
+        -- Set cursor to top
+        window.set_cursor(current_win, 1, 0)
+      end
+
       -- Fetch describe output asynchronously
       adapter.describe(resource.kind, resource.name, resource.namespace, function(result)
         vim.schedule(function()
+          local view_stack_mod = require("k8s.core.view_stack")
+
           local current_win = global_state.get_window()
           if not current_win or not window.is_mounted(current_win) then
             return
@@ -125,34 +176,26 @@ function M.handle_describe(callbacks)
             return
           end
 
-          -- Render content
-          local lines = vim.split(result.data, "\n")
+          -- Cache describe output in view_stack entry for toggle_secret
+          local view_stack = global_state.get_view_stack()
+          local current_view = view_stack_mod.current(view_stack)
+          if current_view then
+            current_view.describe_output = result.data
+          end
 
-          -- Apply secret mask if viewing a Secret
           local app_state = global_state.get_app_state()
-          if resource.kind == "Secret" and app_state and app_state.mask_secrets then
-            local secret_mask = require("k8s.ui.components.secret_mask")
-            lines = secret_mask.mask_describe_output(true, lines)
+          local needs_secret_data = resource.kind == "Secret" and app_state and not app_state.mask_secrets
+
+          if needs_secret_data then
+            adapter.get_secret_data(resource.name, resource.namespace, function(secret_result)
+              vim.schedule(function()
+                local secret_data = secret_result.ok and secret_result.data or nil
+                render_content(result.data, secret_data)
+              end)
+            end)
+          else
+            render_content(result.data, nil)
           end
-
-          window.set_lines(bufnr, lines)
-
-          -- Set filetype for syntax highlighting
-          vim.api.nvim_buf_set_option(bufnr, "filetype", "yaml")
-
-          -- Update header (remove loading)
-          local hdr_bufnr = window.get_header_bufnr(current_win)
-          if hdr_bufnr then
-            local header_content = buffer.create_header_content({
-              context = vim.fn.system("kubectl config current-context"):gsub("\n", ""),
-              namespace = resource.namespace,
-              view = resource.kind .. ": " .. resource.name,
-            })
-            window.set_lines(hdr_bufnr, { header_content })
-          end
-
-          -- Set cursor to top
-          window.set_cursor(current_win, 1, 0)
         end)
       end)
     end,
