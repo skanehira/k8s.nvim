@@ -82,6 +82,7 @@ local view_allowed_actions = {
     logs = true,
     exec = true,
     delete = true,
+    toggle_secret = true,
     quit = true,
     help = true,
   },

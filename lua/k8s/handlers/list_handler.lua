@@ -307,6 +307,7 @@ end
 function M.handle_toggle_secret(callbacks)
   local global_state = require("k8s.core.global_state")
   local app = require("k8s.core.state")
+  local view_stack_mod = require("k8s.core.view_stack")
 
   local app_state = global_state.get_app_state()
   if not app_state then
@@ -321,8 +322,16 @@ function M.handle_toggle_secret(callbacks)
   local status = app_state.mask_secrets and "masked" or "visible"
   vim.notify("Secrets are now " .. status, vim.log.levels.INFO)
 
-  -- Re-render if viewing secrets
-  if app_state.current_kind == "Secret" then
+  -- Check current view type
+  local view_stack = global_state.get_view_stack()
+  local current_view = view_stack and view_stack_mod.current(view_stack)
+
+  if current_view and current_view.type == "describe" then
+    -- Re-render describe view if viewing a Secret
+    local describe_handler = require("k8s.handlers.describe_handler")
+    describe_handler.refresh_describe_content()
+  elseif app_state.current_kind == "Secret" then
+    -- Re-render list if viewing secrets
     callbacks.render_filtered_resources()
   end
 end
