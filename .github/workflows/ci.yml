@@ -27,6 +27,17 @@ jobs:
           git clone --depth 1 https://github.com/nvim-lua/plenary.nvim ~/.local/share/nvim/lazy/plenary.nvim
           git clone --depth 1 https://github.com/MunifTanjim/nui.nvim ~/.local/share/nvim/lazy/nui.nvim
 
+      - name: Debug info
+        run: |
+          echo "=== Neovim version ==="
+          nvim --version
+          echo "=== Neovim path ==="
+          which nvim
+          echo "=== Check plenary ==="
+          ls -la ~/.local/share/nvim/lazy/
+          echo "=== Check plenary plugin ==="
+          ls -la ~/.local/share/nvim/lazy/plenary.nvim/plugin/ || echo "No plugin dir"
+
       - name: Run tests
         run: make test
 
