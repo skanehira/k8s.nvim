@@ -1,0 +1,224 @@
+*k8s.txt*  Kubernetes resource manager for Neovim
+
+Author:  skanehira
+License: MIT
+
+==============================================================================
+CONTENTS                                                        *k8s-contents*
+
+  1. Introduction ............................ |k8s-introduction|
+  2. Requirements ............................ |k8s-requirements|
+  3. Installation ............................ |k8s-installation|
+  4. Configuration ........................... |k8s-configuration|
+  5. Commands ................................ |k8s-commands|
+  6. Keymaps ................................. |k8s-keymaps|
+  7. Resources ............................... |k8s-resources|
+
+==============================================================================
+1. INTRODUCTION                                              *k8s-introduction*
+
+k8s.nvim is a Neovim plugin for managing Kubernetes resources directly from
+your editor. It provides an interactive interface to browse, inspect, and
+manage Kubernetes resources using kubectl.
+
+Features:
+  - Browse Kubernetes resources (Pod, Deployment, Service, etc.)
+  - View resource details with kubectl describe
+  - Execute commands in pods
+  - View pod logs
+  - Port forwarding with connection management
+  - Scale and restart deployments
+  - Delete resources
+  - Filter resources by name/namespace
+  - Switch between contexts and namespaces
+  - Auto-refresh resource list
+  - Secret value masking
+
+==============================================================================
+2. REQUIREMENTS                                              *k8s-requirements*
+
+  - Neovim >= 0.10.0
+  - kubectl configured with cluster access
+  - plenary.nvim (https://github.com/nvim-lua/plenary.nvim)
+  - nui.nvim (https://github.com/MunifTanjim/nui.nvim)
+
+==============================================================================
+3. INSTALLATION                                              *k8s-installation*
+
+Using lazy.nvim: >lua
+
+  {
+    "skanehira/k8s.nvim",
+    dependencies = {
+      "nvim-lua/plenary.nvim",
+      "MunifTanjim/nui.nvim",
+    },
+    config = function()
+      require("k8s").setup()
+    end,
+  }
+<
+
+==============================================================================
+4. CONFIGURATION                                            *k8s-configuration*
+
+Call `require("k8s").setup()` with optional configuration: >lua
+
+  require("k8s").setup({
+    -- Auto-refresh interval in milliseconds (default: 5000)
+    refresh_interval = 5000,
+
+    -- kubectl command timeout in milliseconds (default: 30000)
+    timeout = 30000,
+
+    -- Default namespace (default: "default")
+    default_namespace = "default",
+
+    -- Default resource kind (default: "Pod")
+    default_kind = "Pod",
+
+    -- Transparent window background (default: false)
+    transparent = false,
+
+    -- Custom keymaps
+    keymaps = {
+      describe = "d",
+      delete = "D",
+      logs = "l",
+      exec = "e",
+      scale = "s",
+      restart = "X",
+      port_forward = "p",
+      port_forward_list = "F",
+      filter = "/",
+      refresh = "r",
+      context_menu = "C",
+      namespace_menu = "N",
+      resource_menu = "R",
+      toggle_secret = "S",
+      help = "?",
+      quit = "q",
+      back = "<C-h>",
+      select = "<CR>",
+    },
+  })
+<
+
+                                                         *k8s-config-keymaps*
+keymaps~
+  Table of action-to-key mappings. Override individual keys without
+  replacing the entire keymap table.
+
+                                                *k8s-config-refresh_interval*
+refresh_interval~
+  Interval in milliseconds for auto-refreshing the resource list.
+  Minimum value: 500. Default: 5000.
+
+                                                        *k8s-config-timeout*
+timeout~
+  Timeout in milliseconds for kubectl commands.
+  Minimum value: 1000. Default: 30000.
+
+                                              *k8s-config-default_namespace*
+default_namespace~
+  Default namespace to use when opening k8s.nvim. Default: "default".
+
+                                                   *k8s-config-default_kind*
+default_kind~
+  Default resource kind to display. Default: "Pod".
+
+                                                    *k8s-config-transparent*
+transparent~
+  Enable transparent window background. Default: false.
+
+==============================================================================
+5. COMMANDS                                                      *k8s-commands*
+
+                                                                         *:K8s*
+:K8s [kind]
+  Open k8s.nvim window. Optionally specify resource kind.
+
+  Examples: >
+    :K8s              " Open with default kind (Pod)
+    :K8s Deployment   " Open with Deployment view
+    :K8s Service      " Open with Service view
+<
+
+                                                                    *:K8sClose*
+:K8sClose
+  Close k8s.nvim window.
+
+                                                                  *:K8sContext*
+:K8sContext {name}
+  Switch to specified kubectl context.
+
+  Example: >
+    :K8sContext minikube
+<
+
+                                                                *:K8sNamespace*
+:K8sNamespace {name}
+  Switch to specified namespace.
+
+  Example: >
+    :K8sNamespace kube-system
+<
+
+==============================================================================
+6. KEYMAPS                                                        *k8s-keymaps*
+
+RESOURCE LIST VIEW                                        *k8s-keymaps-list*
+
+  Key       Action            Description~
+  <CR>      select            Select resource (describe)
+  d         describe          Show resource details
+  l         logs              View pod logs
+  P         logs_previous     View previous pod logs
+  e         exec              Execute shell in pod
+  p         port_forward      Start port forwarding
+  F         port_forward_list Show active port forwards
+  D         delete            Delete resource
+  s         scale             Scale deployment
+  X         restart           Restart deployment
+  r         refresh           Refresh resource list
+  /         filter            Filter resources
+  R         resource_menu     Switch resource kind
+  S         toggle_secret     Toggle secret visibility
+  C         context_menu      Switch context
+  N         namespace_menu    Switch namespace
+  ?         help              Show help
+  q         quit              Close window
+  <C-h>     back              Go back
+
+DESCRIBE VIEW                                          *k8s-keymaps-describe*
+
+  Key       Action            Description~
+  l         logs              View pod logs (Pod only)
+  e         exec              Execute shell (Pod only)
+  D         delete            Delete resource
+  <C-h>     back              Go back to list
+  q         quit              Close window
+
+PORT FORWARD LIST VIEW                            *k8s-keymaps-port-forward*
+
+  Key       Action            Description~
+  D         stop              Stop port forward
+  <C-h>     back              Go back
+  q         quit              Close window
+
+==============================================================================
+7. RESOURCES                                                    *k8s-resources*
+
+Supported Kubernetes resources and their available actions:
+
+  Resource    exec  logs  scale  restart  port_forward~
+  Pod          x     x      -       -         x
+  Deployment   -     -      x       x         x
+  Service      -     -      -       -         x
+  ConfigMap    -     -      -       -         -
+  Secret       -     -      -       -         -
+  Node         -     -      -       -         -
+  Namespace    -     -      -       -         -
+
+==============================================================================
+vim:tw=78:ts=8:ft=help:norl:
