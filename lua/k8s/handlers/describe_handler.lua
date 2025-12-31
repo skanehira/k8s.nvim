@@ -2,6 +2,77 @@
 
 local M = {}
 
+---Re-render describe content with current mask state
+---@param resource table Resource being described
+local function re_render_describe_content(resource)
+  local global_state = require("k8s.core.global_state")
+  local adapter = require("k8s.infra.kubectl.adapter")
+  local window = require("k8s.ui.nui.window")
+
+  local current_win = global_state.get_window()
+  if not current_win or not window.is_mounted(current_win) then
+    return
+  end
+
+  local bufnr = window.get_content_bufnr(current_win)
+  if not bufnr then
+    return
+  end
+
+  -- Re-fetch describe output
+  adapter.describe(resource.kind, resource.name, resource.namespace, function(result)
+    vim.schedule(function()
+      current_win = global_state.get_window()
+      if not current_win or not window.is_mounted(current_win) then
+        return
+      end
+
+      bufnr = window.get_content_bufnr(current_win)
+      if not bufnr then
+        return
+      end
+
+      if not result.ok then
+        return
+      end
+
+      local lines = vim.split(result.data, "\n")
+
+      -- Apply secret mask if viewing a Secret
+      local app_state = global_state.get_app_state()
+      if resource.kind == "Secret" and app_state and app_state.mask_secrets then
+        local secret_mask = require("k8s.ui.components.secret_mask")
+        lines = secret_mask.mask_describe_output(true, lines)
+      end
+
+      window.set_lines(bufnr, lines)
+    end)
+  end)
+end
+
+---Refresh describe view content (for toggle_secret)
+function M.refresh_describe_content()
+  local global_state = require("k8s.core.global_state")
+  local view_stack_mod = require("k8s.core.view_stack")
+
+  local view_stack = global_state.get_view_stack()
+  if not view_stack then
+    return
+  end
+
+  local current_view = view_stack_mod.current(view_stack)
+  if not current_view or current_view.type ~= "describe" then
+    return
+  end
+
+  local resource = current_view.resource
+  if not resource or resource.kind ~= "Secret" then
+    return
+  end
+
+  re_render_describe_content(resource)
+end
+
 ---Handle describe action
 ---@param callbacks table { setup_keymaps_for_window: function, get_footer_keymaps: function }
 function M.handle_describe(callbacks)
