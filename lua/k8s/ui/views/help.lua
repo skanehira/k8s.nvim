@@ -29,6 +29,7 @@ local view_keymaps = {
     { key = "l", action = "Logs" },
     { key = "e", action = "Exec" },
     { key = "D", action = "Delete" },
+    { key = "S", action = "Secret" },
     { key = "?", action = "Help" },
     { key = "q", action = "Quit" },
     { key = "<C-h>", action = "Back" },

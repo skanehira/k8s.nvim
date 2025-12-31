@@ -40,6 +40,7 @@ local footer_keymaps = {
     { key = "l", action = "logs" },
     { key = "e", action = "exec" },
     { key = "D", action = "delete" },
+    { key = "S", action = "toggle_secret" },
     { key = "<C-h>", action = "back" },
     { key = "q", action = "quit" },
   },
