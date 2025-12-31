@@ -28,7 +28,8 @@ jobs:
           git clone --depth 1 https://github.com/MunifTanjim/nui.nvim ~/.local/share/nvim/lazy/nui.nvim
 
       - name: Run tests
-        run: make test
+        run: |
+          nvim --headless -u tests/minimal_init.lua -c "PlenaryBustedDirectory lua/ {sequential = true}"
 
   lint:
     runs-on: ubuntu-latest
