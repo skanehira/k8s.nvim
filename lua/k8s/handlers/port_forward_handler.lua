@@ -227,13 +227,13 @@ function M.handle_port_forward_list(callbacks)
 end
 
 ---Handle stop port forward action (D key in port forward list view)
----@param callbacks table { handle_port_forward_list: function }
-function M.handle_stop_port_forward(callbacks)
+function M.handle_stop_port_forward()
   local global_state = require("k8s.core.global_state")
   local view_stack_mod = require("k8s.core.view_stack")
   local window = require("k8s.ui.nui.window")
   local connections = require("k8s.core.connections")
   local notify = require("k8s.core.notify")
+  local port_forward_list = require("k8s.ui.views.port_forward_list")
 
   local view_stack = global_state.get_view_stack()
   local current = view_stack_mod.current(view_stack)
@@ -278,8 +278,23 @@ function M.handle_stop_port_forward(callbacks)
   local msg = notify.format_port_forward_message(conn.resource, conn.local_port, conn.remote_port, "stop")
   vim.notify(msg, vim.log.levels.INFO)
 
-  -- Refresh the port forward list view
-  callbacks.handle_port_forward_list()
+  -- Update the content without creating a new view
+  local active = connections.get_all()
+  global_state.set_pf_list_connections(active)
+
+  local lines = port_forward_list.create_content(active)
+  local content_bufnr = window.get_content_bufnr(win)
+  if content_bufnr then
+    window.set_lines(content_bufnr, lines)
+  end
+
+  -- Adjust cursor if needed
+  if #active > 0 then
+    local new_row = port_forward_list.calculate_cursor_position(row, #active + 1)
+    window.set_cursor(win, new_row, 0)
+  else
+    window.set_cursor(win, 1, 0)
+  end
 end
 
 return M

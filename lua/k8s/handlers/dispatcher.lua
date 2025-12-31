@@ -90,7 +90,7 @@ function dispatch(action, setup_keymaps_fn)
   elseif action == "port_forward_list" then
     get_port_forward_handler().handle_port_forward_list(callbacks)
   elseif action == "stop_port_forward" then
-    get_port_forward_handler().handle_stop_port_forward(callbacks)
+    get_port_forward_handler().handle_stop_port_forward()
   elseif action == "resource_menu" then
     get_menu_handler().handle_resource_menu(callbacks)
   elseif action == "context_menu" then
