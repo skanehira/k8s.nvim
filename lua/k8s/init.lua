@@ -387,32 +387,4 @@ function M.show_port_forwards()
   end
 end
 
--- =============================================================================
--- Backward Compatibility
--- =============================================================================
-
-function M._get_current_view_type()
-  return require("k8s.handlers.keymap").get_current_view_type()
-end
-
-function M._is_action_allowed(action)
-  return require("k8s.handlers.keymap").is_action_allowed(action)
-end
-
-function M._is_resource_capability_allowed(action)
-  return require("k8s.handlers.keymap").is_resource_capability_allowed(action)
-end
-
-function M._get_current_resource()
-  return require("k8s.handlers.list_handler").get_current_resource()
-end
-
-function M._render_footer(view_type, kind)
-  require("k8s.handlers.renderer").render_footer(view_type, kind)
-end
-
-function M._fetch_and_render(kind, namespace, opts)
-  require("k8s.handlers.renderer").fetch_and_render(kind, namespace, opts)
-end
-
 return M

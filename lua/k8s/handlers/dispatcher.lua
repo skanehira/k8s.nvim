@@ -104,70 +104,46 @@ end
 
 M.dispatch = dispatch
 
+-- All dispatchable actions
+local action_names = {
+  "back",
+  "describe",
+  "refresh",
+  "filter",
+  "delete",
+  "logs",
+  "logs_previous",
+  "exec",
+  "scale",
+  "restart",
+  "port_forward",
+  "port_forward_list",
+  "stop_port_forward",
+  "resource_menu",
+  "context_menu",
+  "namespace_menu",
+  "toggle_secret",
+  "help",
+}
+
 ---Create action handlers for keymap setup
 ---@param hide_fn function
 ---@param setup_keymaps_fn function
 ---@param close_fn? function
 ---@return K8sHandlers
 function M.create_handlers(hide_fn, setup_keymaps_fn, close_fn)
-  return {
+  local handlers = {
     hide = hide_fn,
     close = close_fn or hide_fn,
-    handle_back = function()
-      dispatch("back", setup_keymaps_fn)
-    end,
-    handle_describe = function()
-      dispatch("describe", setup_keymaps_fn)
-    end,
-    handle_refresh = function()
-      dispatch("refresh", setup_keymaps_fn)
-    end,
-    handle_filter = function()
-      dispatch("filter", setup_keymaps_fn)
-    end,
-    handle_delete = function()
-      dispatch("delete", setup_keymaps_fn)
-    end,
-    handle_logs = function()
-      dispatch("logs", setup_keymaps_fn)
-    end,
-    handle_logs_previous = function()
-      dispatch("logs_previous", setup_keymaps_fn)
-    end,
-    handle_exec = function()
-      dispatch("exec", setup_keymaps_fn)
-    end,
-    handle_scale = function()
-      dispatch("scale", setup_keymaps_fn)
-    end,
-    handle_restart = function()
-      dispatch("restart", setup_keymaps_fn)
-    end,
-    handle_port_forward = function()
-      dispatch("port_forward", setup_keymaps_fn)
-    end,
-    handle_port_forward_list = function()
-      dispatch("port_forward_list", setup_keymaps_fn)
-    end,
-    handle_stop_port_forward = function()
-      dispatch("stop_port_forward", setup_keymaps_fn)
-    end,
-    handle_resource_menu = function()
-      dispatch("resource_menu", setup_keymaps_fn)
-    end,
-    handle_context_menu = function()
-      dispatch("context_menu", setup_keymaps_fn)
-    end,
-    handle_namespace_menu = function()
-      dispatch("namespace_menu", setup_keymaps_fn)
-    end,
-    handle_toggle_secret = function()
-      dispatch("toggle_secret", setup_keymaps_fn)
-    end,
-    handle_help = function()
-      dispatch("help", setup_keymaps_fn)
-    end,
   }
+
+  for _, action in ipairs(action_names) do
+    handlers["handle_" .. action] = function()
+      dispatch(action, setup_keymaps_fn)
+    end
+  end
+
+  return handlers
 end
 
 return M

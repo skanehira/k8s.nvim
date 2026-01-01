@@ -1,93 +1,32 @@
---- plugin_spec.lua - プラグインコマンド定義のテスト
+--- plugin_spec.lua - プラグインコマンド補完のテスト
 
 local plugin = require("k8s.plugin")
 
 describe("plugin", function()
-  describe("get_commands", function()
-    it("should return command definitions", function()
-      local commands = plugin.get_commands()
+  describe("complete", function()
+    it("should return matching subcommands", function()
+      local results = plugin.complete("po")
 
-      assert.is_table(commands)
-      assert(#commands > 0)
+      assert.is_table(results)
+      assert(vim.tbl_contains(results, "pods"))
+      assert(vim.tbl_contains(results, "portforwards"))
     end)
 
-    it("should include K8s command", function()
-      local commands = plugin.get_commands()
+    it("should return all subcommands for empty input", function()
+      local results = plugin.complete("")
 
-      local has_k8s = false
-      for _, cmd in ipairs(commands) do
-        if cmd.name == "K8s" then
-          has_k8s = true
-          break
-        end
-      end
-
-      assert.is_true(has_k8s)
-    end)
-  end)
-
-  describe("get_plug_mappings", function()
-    it("should return plug mappings", function()
-      local mappings = plugin.get_plug_mappings()
-
-      assert.is_table(mappings)
-      assert(#mappings > 0)
+      assert.is_table(results)
+      assert(#results > 0)
+      assert(vim.tbl_contains(results, "open"))
+      assert(vim.tbl_contains(results, "close"))
+      assert(vim.tbl_contains(results, "pods"))
     end)
 
-    it("should include toggle mapping", function()
-      local mappings = plugin.get_plug_mappings()
+    it("should return empty for non-matching input", function()
+      local results = plugin.complete("xyz")
 
-      local has_toggle = false
-      for _, m in ipairs(mappings) do
-        if m.name:find("toggle") then
-          has_toggle = true
-          break
-        end
-      end
-
-      assert.is_true(has_toggle)
-    end)
-  end)
-
-  describe("get_command_completions", function()
-    it("should return completions for K8s command", function()
-      local completions = plugin.get_command_completions()
-
-      assert.is_table(completions)
-      assert(vim.tbl_contains(completions, "open"))
-      assert(vim.tbl_contains(completions, "close"))
-      assert(vim.tbl_contains(completions, "pods"))
-    end)
-  end)
-
-  describe("parse_command", function()
-    it("should parse K8s command", function()
-      local action, args = plugin.parse_command("pods")
-
-      assert.equals("open_resource", action)
-      assert.equals("Pod", args.kind)
-    end)
-
-    it("should parse K8s open command", function()
-      local action = plugin.parse_command("open")
-
-      assert.equals("open", action)
-    end)
-
-    it("should default to toggle", function()
-      local action = plugin.parse_command("")
-
-      assert.equals("toggle", action)
-    end)
-  end)
-
-  describe("get_subcommand_list", function()
-    it("should return list of subcommands", function()
-      local subcommands = plugin.get_subcommand_list()
-
-      assert.is_table(subcommands)
-      assert(vim.tbl_contains(subcommands, "pods"))
-      assert(vim.tbl_contains(subcommands, "deployments"))
+      assert.is_table(results)
+      assert.equals(0, #results)
     end)
   end)
 end)

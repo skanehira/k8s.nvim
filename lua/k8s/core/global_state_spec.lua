@@ -9,22 +9,11 @@ describe("global_state", function()
     global_state.reset()
   end)
 
-  describe("get/set", function()
-    it("should get and set values by key", function()
-      global_state.set("config", { default_kind = "Pod" })
-      assert.same({ default_kind = "Pod" }, global_state.get("config"))
-    end)
-
-    it("should return nil for unset keys", function()
-      assert.is_nil(global_state.get("nonexistent"))
-    end)
-  end)
-
   describe("reset", function()
     it("should reset all state to initial values", function()
-      global_state.set("setup_done", true)
-      global_state.set("config", { test = true })
-      global_state.set("window", { bufnr = 1 })
+      global_state.set_setup_done()
+      global_state.set_config({ test = true })
+      global_state.set_window({ bufnr = 1 })
 
       global_state.reset()
 

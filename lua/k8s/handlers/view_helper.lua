@@ -13,81 +13,6 @@ local M = {}
 ---@field on_mounted? fun(win: K8sWindow)
 ---@field pre_render? boolean
 
----Create view config with defaults
----@param opts table
----@return ViewConfig
-function M.create_view_config(opts)
-  return {
-    view_type = opts.view_type,
-    transparent = opts.transparent or false,
-    header = opts.header,
-    footer_view_type = opts.footer_view_type,
-    footer_kind = opts.footer_kind,
-    view_stack_entry = opts.view_stack_entry,
-    initial_content = opts.initial_content,
-    on_mounted = opts.on_mounted,
-    pre_render = opts.pre_render or false,
-  }
-end
-
----Validate view config
----@param config ViewConfig
----@return boolean valid
----@return string|nil error
-function M.validate_config(config)
-  if not config.view_type then
-    return false, "view_type is required"
-  end
-
-  if config.view_type ~= "list" and config.view_type ~= "detail" then
-    return false, "view_type must be 'list' or 'detail'"
-  end
-
-  if not config.header then
-    return false, "header is required"
-  end
-
-  if not config.footer_view_type then
-    return false, "footer_view_type is required"
-  end
-
-  if not config.view_stack_entry then
-    return false, "view_stack_entry is required"
-  end
-
-  return true, nil
-end
-
----Get current cursor position from window
----@param win K8sWindow|nil
----@param window_module table
----@return number
-function M.get_current_cursor(win, window_module)
-  if not win then
-    return 1
-  end
-  return window_module.get_cursor(win)
-end
-
----Prepare header content
----@param header { context: string, namespace: string, view: string, loading?: boolean }
----@param buffer_module table
----@return string
-function M.prepare_header_content(header, buffer_module)
-  return buffer_module.create_header_content(header)
-end
-
----Prepare footer content
----@param view_type string
----@param kind string|nil
----@param buffer_module table
----@param callbacks table
----@return string
-function M.prepare_footer_content(view_type, kind, buffer_module, callbacks)
-  local keymaps = callbacks.get_footer_keymaps(view_type, kind)
-  return buffer_module.create_footer_content(keymaps)
-end
-
 ---Create and mount a new view window
 ---@param config ViewConfig
 ---@param callbacks table
@@ -100,7 +25,7 @@ function M.create_view(config, callbacks)
 
   -- Get current window and cursor position
   local prev_window = global_state.get_window()
-  local cursor_row = M.get_current_cursor(prev_window, window)
+  local cursor_row = prev_window and window.get_cursor(prev_window) or 1
 
   -- Create new window
   local new_window
@@ -161,7 +86,7 @@ function M._write_buffers_before_mount(win, config, buffer_module, callbacks)
   -- Header
   local header_bufnr = window.get_header_bufnr(win)
   if header_bufnr then
-    local header_content = M.prepare_header_content(config.header, buffer_module)
+    local header_content = buffer_module.create_header_content(config.header)
     window.set_lines(header_bufnr, { header_content })
   end
 
@@ -183,8 +108,8 @@ function M._write_buffers_before_mount(win, config, buffer_module, callbacks)
   -- Footer
   local footer_bufnr = window.get_footer_bufnr(win)
   if footer_bufnr then
-    local footer_content =
-      M.prepare_footer_content(config.footer_view_type, config.footer_kind, buffer_module, callbacks)
+    local keymaps = callbacks.get_footer_keymaps(config.footer_view_type, config.footer_kind)
+    local footer_content = buffer_module.create_footer_content(keymaps)
     window.set_lines(footer_bufnr, { footer_content })
   end
 end
@@ -208,7 +133,7 @@ function M._write_buffers_after_mount(win, config, buffer_module, callbacks)
   -- Header
   local header_bufnr = window.get_header_bufnr(win)
   if header_bufnr then
-    local header_content = M.prepare_header_content(config.header, buffer_module)
+    local header_content = buffer_module.create_header_content(config.header)
     window.set_lines(header_bufnr, { header_content })
   end
 

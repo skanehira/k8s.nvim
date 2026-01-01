@@ -161,24 +161,4 @@ describe("app", function()
     end)
   end)
 
-  describe("is_running", function()
-    it("should return running state", function()
-      local state = app.create_state()
-
-      assert.is_false(app.is_running(state))
-
-      state = app.set_running(state, true)
-
-      assert.is_true(app.is_running(state))
-    end)
-  end)
-
-  describe("create_initial_view", function()
-    it("should create list view for kind", function()
-      local view = app.create_initial_view("Pod")
-
-      assert.equals("list", view.type)
-      assert.equals("Pod", view.kind)
-    end)
-  end)
 end)

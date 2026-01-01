@@ -13,24 +13,6 @@ local state = {
   pf_list_connections = nil,
 }
 
--- =============================================================================
--- Generic accessors
--- =============================================================================
-
----Get state value by key
----@param key string
----@return any
-function M.get(key)
-  return state[key]
-end
-
----Set state value by key
----@param key string
----@param value any
-function M.set(key, value)
-  state[key] = value
-end
-
 ---Reset all state to initial values
 function M.reset()
   state.setup_done = false

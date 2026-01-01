@@ -76,50 +76,6 @@ restorers.port_forward_list = function(view, callbacks, restore_cursor, deps)
   end
 end
 
----Get restorer function for a view type
----@param view_type string
----@return function|nil
-function M.get_restorer(view_type)
-  return restorers[view_type]
-end
-
----Get footer parameters for a view
----@param view table
----@param app_state table|nil
----@return string view_type
----@return string|nil kind
-function M.get_footer_params(view, app_state)
-  if view.type == "list" then
-    local kind = view.kind or (app_state and app_state.current_kind)
-    return "list", kind
-  elseif view.type == "describe" then
-    local kind = view.resource and view.resource.kind
-    return "describe", kind
-  elseif view.type == "help" then
-    return "help", nil
-  elseif view.type == "port_forward_list" then
-    return "port_forward_list", nil
-  end
-
-  return view.type, nil
-end
-
----Check if view needs refetch when restoring
----@param view table
----@param app_state table|nil
----@return boolean
-function M.needs_refetch(view, app_state)
-  if view.type ~= "list" then
-    return false
-  end
-
-  if not view.kind or not app_state then
-    return false
-  end
-
-  return view.kind ~= app_state.current_kind
-end
-
 ---Restore a view (main entry point for polymorphic dispatch)
 ---@param view table
 ---@param callbacks K8sCallbacks
@@ -128,7 +84,7 @@ end
 function M.restore(view, callbacks, restore_cursor, deps)
   deps = deps or {}
 
-  local restorer = M.get_restorer(view.type)
+  local restorer = restorers[view.type]
   if restorer then
     restorer(view, callbacks, restore_cursor, deps)
   end

@@ -138,21 +138,4 @@ describe("connections", function()
     end)
   end)
 
-  describe("exists", function()
-    it("should return true when connection exists", function()
-      connections.add({
-        job_id = 123,
-        resource = "service/nginx",
-        namespace = "default",
-        local_port = 8080,
-        remote_port = 80,
-      })
-
-      assert.is_true(connections.exists(123))
-    end)
-
-    it("should return false when connection does not exist", function()
-      assert.is_false(connections.exists(999))
-    end)
-  end)
 end)

@@ -124,23 +124,6 @@ function M.get_current_resource(state)
   return filtered[cursor]
 end
 
----Check if app is running
----@param state table
----@return boolean
-function M.is_running(state)
-  return state.running == true
-end
-
----Create initial view
----@param kind string
----@return table view
-function M.create_initial_view(kind)
-  return {
-    type = "list",
-    kind = kind,
-  }
-end
-
 ---Set mask_secrets (immutable)
 ---@param state table
 ---@param mask boolean

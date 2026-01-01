@@ -84,26 +84,4 @@ function M.validate(cfg)
   return true, nil
 end
 
----Get keymap for action
----@param cfg table
----@param action string
----@return string|nil
-function M.get_keymap(cfg, action)
-  return cfg.keymaps and cfg.keymaps[action]
-end
-
----Get all keymaps as list
----@param cfg table
----@return table[]
-function M.get_all_keymaps(cfg)
-  local keymaps = {}
-  for action, key in pairs(cfg.keymaps or {}) do
-    table.insert(keymaps, {
-      action = action,
-      key = key,
-    })
-  end
-  return keymaps
-end
-
 return M

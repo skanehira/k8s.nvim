@@ -69,11 +69,4 @@ function M.clear()
   connections = {}
 end
 
----Check if a connection exists
----@param job_id number
----@return boolean
-function M.exists(job_id)
-  return M.get(job_id) ~= nil
-end
-
 return M

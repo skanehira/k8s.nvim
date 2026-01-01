@@ -85,39 +85,4 @@ describe("config", function()
     end)
   end)
 
-  describe("get_keymap", function()
-    it("should return keymap for action", function()
-      local cfg = config.get_defaults()
-      local key = config.get_keymap(cfg, "describe")
-
-      assert.is_string(key)
-    end)
-
-    it("should return nil for unknown action", function()
-      local cfg = config.get_defaults()
-      local key = config.get_keymap(cfg, "unknown_action")
-
-      assert.is_nil(key)
-    end)
-  end)
-
-  describe("get_all_keymaps", function()
-    it("should return all keymaps", function()
-      local cfg = config.get_defaults()
-      local keymaps = config.get_all_keymaps(cfg)
-
-      assert.is_table(keymaps)
-      assert(#keymaps > 0)
-    end)
-
-    it("should return keymaps with key and action", function()
-      local cfg = config.get_defaults()
-      local keymaps = config.get_all_keymaps(cfg)
-
-      for _, km in ipairs(keymaps) do
-        assert.is_string(km.key)
-        assert.is_string(km.action)
-      end
-    end)
-  end)
 end)
