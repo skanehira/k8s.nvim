@@ -160,5 +160,4 @@ describe("app", function()
       assert.is_nil(resource)
     end)
   end)
-
 end)

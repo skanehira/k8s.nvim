@@ -137,5 +137,4 @@ describe("connections", function()
       assert.same({}, connections.get_all())
     end)
   end)
-
 end)

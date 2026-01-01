@@ -84,5 +84,4 @@ describe("config", function()
       assert(err:find("timeout"))
     end)
   end)
-
 end)
