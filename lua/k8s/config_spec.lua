@@ -36,15 +36,17 @@ describe("config", function()
     it("should deep merge keymaps", function()
       local user_config = {
         keymaps = {
-          describe = "D",
+          describe = { key = "D", desc = "Custom describe" },
         },
       }
 
       local merged = config.merge(user_config)
 
-      assert.equals("D", merged.keymaps.describe)
+      assert.equals("D", merged.keymaps.describe.key)
+      assert.equals("Custom describe", merged.keymaps.describe.desc)
       -- Other keymaps should still exist from defaults
-      assert.is_string(merged.keymaps.quit)
+      assert.is_table(merged.keymaps.quit)
+      assert.equals("q", merged.keymaps.quit.key)
     end)
 
     it("should return defaults when user config is nil", function()
