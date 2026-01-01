@@ -2,28 +2,21 @@
 
 local M = {}
 
--- Keymap definitions
-local keymap_definitions = {
-  describe = { key = "d", action = "describe", desc = "Describe resource" },
-  delete = { key = "D", action = "delete", desc = "Delete resource" },
-  logs = { key = "l", action = "logs", desc = "View logs" },
-  exec = { key = "e", action = "exec", desc = "Execute shell" },
-  scale = { key = "s", action = "scale", desc = "Scale resource" },
-  restart = { key = "X", action = "restart", desc = "Restart resource" },
-  port_forward = { key = "p", action = "port_forward", desc = "Port forward" },
-  port_forward_list = { key = "F", action = "port_forward_list", desc = "Port forwards list" },
-  filter = { key = "/", action = "filter", desc = "Filter" },
-  refresh = { key = "r", action = "refresh", desc = "Refresh" },
-  resource_menu = { key = "R", action = "resource_menu", desc = "Resources" },
-  context_menu = { key = "C", action = "context_menu", desc = "Context" },
-  namespace_menu = { key = "N", action = "namespace_menu", desc = "Namespace" },
-  toggle_secret = { key = "S", action = "toggle_secret", desc = "Toggle secret" },
-  logs_previous = { key = "P", action = "logs_previous", desc = "Previous logs" },
-  help = { key = "?", action = "help", desc = "Help" },
-  quit = { key = "q", action = "quit", desc = "Quit" },
-  back = { key = "<C-h>", action = "back", desc = "Back" },
-  select = { key = "<CR>", action = "select", desc = "Select" },
-}
+---Build keymap definitions from config
+---@return table
+local function build_keymap_definitions()
+  local global_state = require("k8s.core.global_state")
+  local config = global_state.get_config()
+  local keymaps = config and config.keymaps or require("k8s.config").get_defaults().keymaps
+
+  local definitions = {}
+  for action, def in pairs(keymaps) do
+    if type(def) == "table" and def.key then
+      definitions[action] = { key = def.key, action = action, desc = def.desc or action }
+    end
+  end
+  return definitions
+end
 
 -- Footer keymaps for each view type
 local footer_keymaps = {
@@ -76,6 +69,7 @@ local view_allowed_actions = {
     toggle_secret = true,
     help = true,
     quit = true,
+    close = true,
     back = true,
   },
   describe = {
@@ -85,17 +79,20 @@ local view_allowed_actions = {
     delete = true,
     toggle_secret = true,
     quit = true,
+    close = true,
     help = true,
   },
   port_forward_list = {
     back = true,
     stop = true, -- D key in port_forward_list stops the connection
     quit = true,
+    close = true,
     help = true,
   },
   help = {
     back = true,
     quit = true,
+    close = true,
   },
 }
 
@@ -112,7 +109,7 @@ local action_to_capability = {
 ---Get keymap definitions
 ---@return table
 function M.get_keymap_definitions()
-  return keymap_definitions
+  return build_keymap_definitions()
 end
 
 ---Get current view type from view stack
@@ -226,10 +223,15 @@ function M.setup_keymaps_for_window(win, handlers)
   local window = require("k8s.ui.nui.window")
   local keymaps = M.get_keymap_definitions()
 
-  -- quit (always allowed)
+  -- quit/hide (always allowed)
   window.map_key(win, keymaps.quit.key, function()
-    handlers.close()
+    handlers.hide()
   end, { desc = keymaps.quit.desc })
+
+  -- close (always allowed)
+  window.map_key(win, keymaps.close.key, function()
+    handlers.close()
+  end, { desc = keymaps.close.desc })
 
   -- back (always allowed)
   window.map_key(win, keymaps.back.key, function()

@@ -77,24 +77,26 @@ require("k8s").setup({
 
   -- Custom keymaps (optional)
   keymaps = {
-    describe = "d",
-    delete = "D",
-    logs = "l",
-    exec = "e",
-    scale = "s",
-    restart = "X",
-    port_forward = "p",
-    port_forward_list = "F",
-    filter = "/",
-    refresh = "r",
-    context_menu = "C",
-    namespace_menu = "N",
-    resource_menu = "R",
-    toggle_secret = "S",
-    help = "?",
-    quit = "q",
-    back = "<C-h>",
-    select = "<CR>",
+    describe = { key = "d", desc = "Describe resource" },
+    delete = { key = "D", desc = "Delete resource" },
+    logs = { key = "l", desc = "View logs" },
+    logs_previous = { key = "P", desc = "Previous logs" },
+    exec = { key = "e", desc = "Execute shell" },
+    scale = { key = "s", desc = "Scale resource" },
+    restart = { key = "X", desc = "Restart resource" },
+    port_forward = { key = "p", desc = "Port forward" },
+    port_forward_list = { key = "F", desc = "Port forwards list" },
+    filter = { key = "/", desc = "Filter" },
+    refresh = { key = "r", desc = "Refresh" },
+    resource_menu = { key = "R", desc = "Resources" },
+    context_menu = { key = "C", desc = "Context" },
+    namespace_menu = { key = "N", desc = "Namespace" },
+    toggle_secret = { key = "S", desc = "Toggle secret" },
+    help = { key = "?", desc = "Help" },
+    quit = { key = "q", desc = "Hide" },
+    close = { key = "<C-c>", desc = "Close" },
+    back = { key = "<C-h>", desc = "Back" },
+    select = { key = "<CR>", desc = "Select" },
   },
 })
 ```
@@ -105,11 +107,13 @@ require("k8s").setup({
 
 | Command | Description |
 |---------|-------------|
-| `:K8s` | Open k8s.nvim with default resource kind |
-| `:K8s <kind>` | Open with specific resource kind (e.g., `:K8s Pod`) |
-| `:K8sClose` | Close k8s.nvim window |
-| `:K8sContext <name>` | Switch to specified context |
-| `:K8sNamespace <name>` | Switch to specified namespace |
+| `:K8s` | Toggle k8s.nvim window |
+| `:K8s open` | Open k8s.nvim with default resource kind |
+| `:K8s <kind>` | Open with specific resource kind (e.g., `:K8s pods`) |
+| `:K8s close` | Close k8s.nvim window |
+| `:K8s context <name>` | Switch to specified context |
+| `:K8s namespace <name>` | Switch to specified namespace |
+| `:K8s portforwards` | Show port forwards list |
 
 ### Keymaps
 
@@ -134,7 +138,8 @@ require("k8s").setup({
 | `C` | context_menu | Switch context |
 | `N` | namespace_menu | Switch namespace |
 | `?` | help | Show help |
-| `q` | quit | Close window |
+| `q` | quit | Hide window |
+| `<C-c>` | close | Close window |
 | `<C-h>` | back | Go back to previous view |
 
 #### Describe View
@@ -144,16 +149,21 @@ require("k8s").setup({
 | `l` | logs | View pod logs (Pod only) |
 | `e` | exec | Execute shell in pod (Pod only) |
 | `D` | delete | Delete resource |
+| `S` | toggle_secret | Toggle secret value visibility |
+| `?` | help | Show help |
+| `q` | quit | Hide window |
+| `<C-c>` | close | Close window |
 | `<C-h>` | back | Go back to list view |
-| `q` | quit | Close window |
 
 #### Port Forward List View
 
 | Key | Action | Description |
 |-----|--------|-------------|
 | `D` | stop | Stop selected port forward |
+| `?` | help | Show help |
+| `q` | quit | Hide window |
+| `<C-c>` | close | Close window |
 | `<C-h>` | back | Go back to previous view |
-| `q` | quit | Close window |
 
 ## Supported Resources
 

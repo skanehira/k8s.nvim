@@ -22,7 +22,8 @@ local view_keymaps = {
     { key = "F", action = "PortFwdList" },
     { key = "P", action = "PrevLogs" },
     { key = "?", action = "Help" },
-    { key = "q", action = "Quit" },
+    { key = "q", action = "Hide" },
+    { key = "<C-c>", action = "Close" },
     { key = "<C-h>", action = "Back" },
   },
   describe = {
@@ -31,13 +32,15 @@ local view_keymaps = {
     { key = "D", action = "Delete" },
     { key = "S", action = "Secret" },
     { key = "?", action = "Help" },
-    { key = "q", action = "Quit" },
+    { key = "q", action = "Hide" },
+    { key = "<C-c>", action = "Close" },
     { key = "<C-h>", action = "Back" },
   },
   port_forward_list = {
     { key = "D", action = "Stop" },
     { key = "?", action = "Help" },
-    { key = "q", action = "Quit" },
+    { key = "q", action = "Hide" },
+    { key = "<C-c>", action = "Close" },
     { key = "<C-h>", action = "Back" },
   },
 }

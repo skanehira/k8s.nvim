@@ -105,12 +105,14 @@ end
 M.dispatch = dispatch
 
 ---Create action handlers for keymap setup
----@param close_fn function
+---@param hide_fn function
 ---@param setup_keymaps_fn function
+---@param close_fn? function
 ---@return K8sHandlers
-function M.create_handlers(close_fn, setup_keymaps_fn)
+function M.create_handlers(hide_fn, setup_keymaps_fn, close_fn)
   return {
-    close = close_fn,
+    hide = hide_fn,
+    close = close_fn or hide_fn,
     handle_back = function()
       dispatch("back", setup_keymaps_fn)
     end,

@@ -415,6 +415,20 @@ function M.is_mounted(win)
   return win.mounted == true
 end
 
+---Check if window is visible (mounted and winid is valid)
+---@param win K8sWindow
+---@return boolean
+function M.is_visible(win)
+  if not win.mounted then
+    return false
+  end
+  -- Check if content window is valid and visible
+  if win.content and win.content.winid then
+    return vim.api.nvim_win_is_valid(win.content.winid)
+  end
+  return false
+end
+
 ---Get content buffer number
 ---@param win K8sWindow
 ---@return number|nil

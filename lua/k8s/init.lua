@@ -164,7 +164,7 @@ end
 function M._setup_keymaps_for_window(win)
   local keymap = require("k8s.handlers.keymap")
   local dispatcher = require("k8s.handlers.dispatcher")
-  local handlers = dispatcher.create_handlers(M.close, M._setup_keymaps_for_window)
+  local handlers = dispatcher.create_handlers(M.hide, M._setup_keymaps_for_window, M.close)
   keymap.setup_keymaps_for_window(win, handlers)
 end
 
@@ -241,7 +241,36 @@ function M.open(opts)
   end)
 end
 
----Close k8s.nvim UI
+---Hide k8s.nvim UI (keeps state for restoration)
+function M.hide()
+  local global_state = require("k8s.core.global_state")
+  local window = require("k8s.ui.nui.window")
+  local timer = require("k8s.core.timer")
+
+  timer.stop_auto_refresh()
+
+  local win = global_state.get_window()
+  if win and window.is_visible(win) then
+    window.hide(win)
+  end
+end
+
+---Show k8s.nvim UI (restores hidden window)
+function M.show()
+  local global_state = require("k8s.core.global_state")
+  local window = require("k8s.ui.nui.window")
+  local timer = require("k8s.core.timer")
+
+  local win = global_state.get_window()
+  if win and window.is_mounted(win) then
+    window.show(win)
+    timer.start_auto_refresh(function()
+      require("k8s.handlers.dispatcher").dispatch("refresh", M._setup_keymaps_for_window)
+    end)
+  end
+end
+
+---Close k8s.nvim UI (complete cleanup)
 function M.close()
   local global_state = require("k8s.core.global_state")
   local window = require("k8s.ui.nui.window")
@@ -263,17 +292,19 @@ function M.close()
   global_state.set_view_stack(nil)
 end
 
----Toggle k8s.nvim UI
+---Toggle k8s.nvim UI (hide if visible, show if hidden, open if not exists)
 function M.toggle()
   local global_state = require("k8s.core.global_state")
+  local window = require("k8s.ui.nui.window")
   local win = global_state.get_window()
 
-  if win then
-    local window = require("k8s.ui.nui.window")
-    if window.is_mounted(win) then
-      M.close()
-      return
+  if win and window.is_mounted(win) then
+    if window.is_visible(win) then
+      M.hide()
+    else
+      M.show()
     end
+    return
   end
   M.open()
 end

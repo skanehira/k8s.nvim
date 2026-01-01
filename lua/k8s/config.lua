@@ -2,25 +2,28 @@
 
 local M = {}
 
--- Default keymaps
+-- Default keymaps (action -> { key, desc })
 local default_keymaps = {
-  describe = "d",
-  delete = "D",
-  logs = "l",
-  exec = "e",
-  scale = "s",
-  restart = "X",
-  port_forward = "F",
-  filter = "/",
-  refresh = "R",
-  context_menu = "C",
-  namespace_menu = "N",
-  resource_menu = "S",
-  port_forward_list = "P",
-  help = "?",
-  quit = "q",
-  back = "<C-h>",
-  select = "<CR>",
+  describe = { key = "d", desc = "Describe resource" },
+  delete = { key = "D", desc = "Delete resource" },
+  logs = { key = "l", desc = "View logs" },
+  logs_previous = { key = "P", desc = "Previous logs" },
+  exec = { key = "e", desc = "Execute shell" },
+  scale = { key = "s", desc = "Scale resource" },
+  restart = { key = "X", desc = "Restart resource" },
+  port_forward = { key = "p", desc = "Port forward" },
+  port_forward_list = { key = "F", desc = "Port forwards list" },
+  filter = { key = "/", desc = "Filter" },
+  refresh = { key = "r", desc = "Refresh" },
+  resource_menu = { key = "R", desc = "Resources" },
+  context_menu = { key = "C", desc = "Context" },
+  namespace_menu = { key = "N", desc = "Namespace" },
+  toggle_secret = { key = "S", desc = "Toggle secret" },
+  help = { key = "?", desc = "Help" },
+  quit = { key = "q", desc = "Hide" },
+  close = { key = "<C-c>", desc = "Close" },
+  back = { key = "<C-h>", desc = "Back" },
+  select = { key = "<CR>", desc = "Select" },
 }
 
 -- Default configuration
