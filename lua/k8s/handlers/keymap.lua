@@ -193,7 +193,16 @@ end
 ---@param kind? string Resource kind for capability filtering
 ---@return table[]
 function M.get_footer_keymaps(view_type, kind)
-  local keymaps = footer_keymaps[view_type] or footer_keymaps.list
+  local base_keymaps = footer_keymaps[view_type] or footer_keymaps.list
+  local definitions = build_keymap_definitions()
+
+  -- Build keymaps with descriptions from config
+  local keymaps = {}
+  for _, km in ipairs(base_keymaps) do
+    local def = definitions[km.action]
+    local desc = def and def.desc or km.action
+    table.insert(keymaps, { key = km.key, action = desc })
+  end
 
   -- If no kind specified, return all keymaps
   if not kind then
@@ -205,8 +214,9 @@ function M.get_footer_keymaps(view_type, kind)
   local caps = resource_mod.capabilities(kind)
 
   local filtered = {}
-  for _, km in ipairs(keymaps) do
-    local capability = action_to_capability[km.action]
+  for i, km in ipairs(keymaps) do
+    local original = base_keymaps[i]
+    local capability = action_to_capability[original.action]
     -- Include keymap if action doesn't require capability OR resource has the capability
     if not capability or caps[capability] == true then
       table.insert(filtered, km)

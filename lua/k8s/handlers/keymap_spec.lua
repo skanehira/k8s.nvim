@@ -132,10 +132,10 @@ describe("keymap", function()
       assert.is.Not.Nil(keymaps)
       assert.truthy(#keymaps > 0)
 
-      -- Check that describe is included
+      -- Check that describe is included (action now contains description)
       local has_describe = false
       for _, km in ipairs(keymaps) do
-        if km.action == "describe" then
+        if km.action == "Describe resource" then
           has_describe = true
           break
         end
@@ -147,10 +147,10 @@ describe("keymap", function()
       local keymaps = keymap.get_footer_keymaps("describe")
       assert.is.Not.Nil(keymaps)
 
-      -- Check that back is included
+      -- Check that back is included (action now contains description)
       local has_back = false
       for _, km in ipairs(keymaps) do
-        if km.action == "back" then
+        if km.action == "Back" then
           has_back = true
           break
         end
@@ -163,7 +163,7 @@ describe("keymap", function()
       local pod_keymaps = keymap.get_footer_keymaps("list", "Pod")
       local has_logs = false
       for _, km in ipairs(pod_keymaps) do
-        if km.action == "logs" then
+        if km.action == "View logs" then
           has_logs = true
           break
         end
@@ -174,7 +174,7 @@ describe("keymap", function()
       local cm_keymaps = keymap.get_footer_keymaps("list", "ConfigMap")
       has_logs = false
       for _, km in ipairs(cm_keymaps) do
-        if km.action == "logs" then
+        if km.action == "View logs" then
           has_logs = true
           break
         end
