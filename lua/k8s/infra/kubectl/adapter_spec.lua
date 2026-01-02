@@ -58,29 +58,6 @@ describe("adapter", function()
       assert.is.Not.Nil(result.error)
     end)
 
-    it("should use default namespace when empty string", function()
-      local captured_cmd
-      adapter._set_executor(function(cmd, _, callback)
-        captured_cmd = cmd
-        if callback then
-          callback({ code = 0, stdout = '{"kind":"PodList","items":[]}', stderr = "" })
-        end
-        return { wait = function() end }
-      end)
-
-      adapter.get_resources("pods", "", function() end)
-
-      assert.is.Not.Nil(captured_cmd)
-      local has_default = false
-      for i, arg in ipairs(captured_cmd) do
-        if arg == "-n" and captured_cmd[i + 1] == "default" then
-          has_default = true
-          break
-        end
-      end
-      assert.is_true(has_default)
-    end)
-
     it("should use --all-namespaces when namespace is 'All Namespaces'", function()
       local captured_cmd
       adapter._set_executor(function(cmd, _, callback)

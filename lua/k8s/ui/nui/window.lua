@@ -34,9 +34,6 @@ function M.validate_section(section)
   return section == "header" or section == "table_header" or section == "content" or section == "footer"
 end
 
----Create popup config for a specific section
----@param section SectionType
----@param opts { width: number, height: number }
 -- Border characters for single style: top-left, top, top-right, right, bottom-right, bottom, bottom-left, left
 local border_chars = {
   -- Header: top + sides + bottom separator
@@ -52,6 +49,9 @@ local border_chars = {
 -- Border rows: header top (1) + header bottom sep (1) + content bottom sep (1) + footer bottom (1) = 4
 local BORDER_ROWS = 4
 
+---Create popup config for a specific section
+---@param section SectionType
+---@param opts { width: number, height: number }
 ---@return table config NuiPopup configuration
 function M.create_popup_config(section, opts)
   local width = opts.width
@@ -152,6 +152,7 @@ end
 
 ---Get window options
 ---@param section? SectionType
+---@param opts? { transparent?: boolean }
 ---@return table
 function M.get_window_options(section, opts)
   opts = opts or {}

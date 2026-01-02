@@ -181,6 +181,7 @@ function M.open(opts)
   end
 
   local config = global_state.get_config()
+  assert(config, "config is nil")
 
   -- Check kubectl availability
   if not require("k8s.core.health").check_kubectl() then
@@ -368,6 +369,7 @@ function M.switch_namespace(namespace_name)
     global_state.set_app_state(app.set_namespace(app_state, namespace))
     vim.notify(require("k8s.core.notify").format_namespace_switch_message(namespace_name), vim.log.levels.INFO)
     app_state = global_state.get_app_state()
+    assert(app_state, "app_state is nil")
     require("k8s.handlers.renderer").fetch_and_render(app_state.current_kind, namespace)
   else
     vim.notify("Namespace set to: " .. namespace_name, vim.log.levels.INFO)

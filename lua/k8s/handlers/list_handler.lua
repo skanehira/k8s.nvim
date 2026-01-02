@@ -319,6 +319,7 @@ function M.handle_toggle_secret(callbacks)
   global_state.set_app_state(app.set_mask_secrets(app_state, not current_mask))
 
   app_state = global_state.get_app_state()
+  assert(app_state, "app_state is nil")
   local status = app_state.mask_secrets and "masked" or "visible"
   vim.notify("Secrets are now " .. status, vim.log.levels.INFO)
 

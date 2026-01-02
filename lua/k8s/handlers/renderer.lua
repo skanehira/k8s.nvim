@@ -96,10 +96,14 @@ function M.fetch_and_render(kind, namespace, opts)
 
       -- Update app state
       local app_state = global_state.get_app_state()
+      if not app_state then
+        return
+      end
       global_state.set_app_state(app.set_resources(app_state, result.data))
 
       -- Get filtered resources (apply current filter)
       app_state = global_state.get_app_state()
+      assert(app_state, "app_state is nil")
       local filtered_resources = app.get_filtered_resources(app_state)
 
       -- Render table view

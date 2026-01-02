@@ -107,7 +107,7 @@ end
 
 ---Get resources from kubectl
 ---@param kind string
----@param namespace string|nil
+---@param namespace string
 ---@param callback fun(result: K8sResult)
 function M.get_resources(kind, namespace, callback)
   local cmd = build_cmd_with_ns({ "get", kind, "-o", "json" }, namespace)
@@ -117,7 +117,7 @@ end
 ---Describe a resource
 ---@param kind string
 ---@param name string
----@param namespace string|nil
+---@param namespace string
 ---@param callback fun(result: K8sResult)
 function M.describe(kind, name, namespace, callback)
   local cmd = build_cmd_with_ns({ "describe", kind, name }, namespace)
@@ -126,7 +126,7 @@ end
 
 ---Get secret data with base64 decoded values
 ---@param name string
----@param namespace string|nil
+---@param namespace string
 ---@param callback fun(result: K8sResult)
 function M.get_secret_data(name, namespace, callback)
   local cmd = build_cmd_with_ns({ "get", "secret", name, "-o", "json" }, namespace)
@@ -163,7 +163,7 @@ end
 ---Delete a resource
 ---@param kind string
 ---@param name string
----@param namespace string|nil
+---@param namespace string
 ---@param callback fun(result: K8sResult)
 function M.delete(kind, name, namespace, callback)
   local cmd = build_cmd_with_ns({ "delete", kind, name }, namespace)
@@ -173,7 +173,7 @@ end
 ---Scale a resource
 ---@param kind string
 ---@param name string
----@param namespace string|nil
+---@param namespace string
 ---@param replicas number
 ---@param callback fun(result: K8sResult)
 function M.scale(kind, name, namespace, replicas, callback)
@@ -184,7 +184,7 @@ end
 ---Restart a resource (rolling restart)
 ---@param kind string
 ---@param name string
----@param namespace string|nil
+---@param namespace string
 ---@param callback fun(result: K8sResult)
 function M.restart(kind, name, namespace, callback)
   local cmd = build_cmd_with_ns({ "rollout", "restart", kind, name }, namespace)

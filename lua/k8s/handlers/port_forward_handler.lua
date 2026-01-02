@@ -236,6 +236,9 @@ function M.handle_stop_port_forward()
   local port_forward_list = require("k8s.ui.views.port_forward_list")
 
   local view_stack = global_state.get_view_stack()
+  if not view_stack then
+    return
+  end
   local current = view_stack_mod.current(view_stack)
 
   -- Only allow in port_forward_list view

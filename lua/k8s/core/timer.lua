@@ -37,6 +37,9 @@ function M.start_auto_refresh(on_refresh)
 
       local view_stack_mod = require("k8s.core.view_stack")
       local vs = global_state.get_view_stack()
+      if not vs then
+        return
+      end
       local current = view_stack_mod.current(vs)
 
       -- Only auto-refresh in list view and ensure window matches

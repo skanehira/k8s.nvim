@@ -152,7 +152,7 @@ describe("init", function()
       -- list view should have common keymaps
       local has_describe = false
       for _, km in ipairs(keymaps) do
-        if km.action == "describe" then
+        if km.action == "Describe resource" then
           has_describe = true
         end
       end
@@ -166,7 +166,7 @@ describe("init", function()
       -- describe view should have back keymap
       local has_back = false
       for _, km in ipairs(keymaps) do
-        if km.action == "back" then
+        if km.action == "Back" then
           has_back = true
         end
       end

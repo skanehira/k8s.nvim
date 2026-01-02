@@ -178,6 +178,9 @@ function M.handle_describe(callbacks)
 
           -- Cache describe output in view_stack entry for toggle_secret
           local view_stack = global_state.get_view_stack()
+          if not view_stack then
+            return
+          end
           local current_view = view_stack_mod.current(view_stack)
           if current_view then
             current_view.describe_output = result.data
