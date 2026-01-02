@@ -47,13 +47,15 @@ function M.handle_resource_menu(callbacks)
     for _, item in ipairs(items) do
       if item.text == choice then
         app_state = global_state.get_app_state()
+        assert(app_state, "app_state is nil")
 
+        local current_namespace = app_state.current_namespace
         view_helper.create_view({
           view_type = "list",
           transparent = config and config.transparent,
           header = {
             context = vim.fn.system("kubectl config current-context"):gsub("\n", ""),
-            namespace = app_state.current_namespace,
+            namespace = current_namespace,
             view = item.value .. "s",
             loading = true,
           },
@@ -62,14 +64,16 @@ function M.handle_resource_menu(callbacks)
           view_stack_entry = {
             type = "list",
             kind = item.value,
-            namespace = app_state.current_namespace,
+            namespace = current_namespace,
             parent_cursor = cursor_row,
           },
           initial_content = { "Loading..." },
           pre_render = true,
           on_mounted = function()
-            global_state.set_app_state(app.set_kind(app_state, item.value))
-            callbacks.fetch_and_render(item.value, app_state.current_namespace)
+            local current_app_state = global_state.get_app_state()
+            assert(current_app_state, "app_state is nil")
+            global_state.set_app_state(app.set_kind(current_app_state, item.value))
+            callbacks.fetch_and_render(item.value, current_namespace)
           end,
         }, callbacks)
         break
@@ -144,13 +148,15 @@ function M.handle_namespace_menu(callbacks)
         end
 
         local app_state = global_state.get_app_state()
-        local namespace = choice == "All Namespaces" and "" or choice
-        global_state.set_app_state(app.set_namespace(app_state, namespace))
+        assert(app_state, "app_state is nil")
+
+        global_state.set_app_state(app.set_namespace(app_state, choice))
 
         vim.notify(notify.format_namespace_switch_message(choice), vim.log.levels.INFO)
 
         app_state = global_state.get_app_state()
-        callbacks.fetch_and_render(app_state.current_kind, namespace)
+        assert(app_state, "app_state is nil")
+        callbacks.fetch_and_render(app_state.current_kind, choice)
       end)
     end)
   end)
@@ -173,6 +179,7 @@ function M.handle_help(callbacks)
 
   local config = global_state.get_config()
   local app_state = global_state.get_app_state()
+  assert(app_state, "app_state is nil")
 
   -- Get current view type before pushing help
   local current_view = keymap_mod.get_current_view_type() or "list"
@@ -180,7 +187,7 @@ function M.handle_help(callbacks)
   local help_view_name = current_view == "list" and "resource_list" or current_view
 
   -- Get current resource kind for capability filtering
-  local current_kind = app_state and app_state.current_kind
+  local current_kind = app_state.current_kind
 
   -- Get keymaps for the current view
   local view_keymaps = help.get_keymaps_for_view(help_view_name)
@@ -215,7 +222,7 @@ function M.handle_help(callbacks)
     transparent = config and config.transparent,
     header = {
       context = vim.fn.system("kubectl config current-context"):gsub("\n", ""),
-      namespace = app_state and app_state.current_namespace or "",
+      namespace = app_state.current_namespace,
       view = "Help",
     },
     footer_view_type = "help",

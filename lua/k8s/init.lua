@@ -359,7 +359,8 @@ function M.switch_namespace(namespace_name)
   end
 
   local app = require("k8s.core.state")
-  local namespace = namespace_name == "all" and "" or namespace_name
+  -- Convert CLI "all" to internal "All Namespaces"
+  local namespace = namespace_name == "all" and "All Namespaces" or namespace_name
 
   local app_state = global_state.get_app_state()
   if app_state then

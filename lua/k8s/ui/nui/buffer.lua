@@ -9,7 +9,8 @@ function M.create_header_content(opts)
   local parts = {}
 
   table.insert(parts, string.format("Context: %s", opts.context))
-  table.insert(parts, string.format("Namespace: %s", opts.namespace))
+  local ns = opts.namespace == "All Namespaces" and "All" or opts.namespace
+  table.insert(parts, string.format("Namespace: %s", ns))
   table.insert(parts, string.format("View: %s", opts.view))
 
   if opts.filter and opts.filter ~= "" then

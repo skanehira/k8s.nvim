@@ -12,10 +12,10 @@ describe("header", function()
       assert.equals("[Context: minikube] [Namespace: default] [Pods]", text)
     end)
 
-    it("should show 'All Namespaces' when namespace is nil", function()
+    it("should show 'All' when namespace is 'All Namespaces'", function()
       local text = header.format({
         context = "minikube",
-        namespace = nil,
+        namespace = "All Namespaces",
         view = "Pods",
       })
 

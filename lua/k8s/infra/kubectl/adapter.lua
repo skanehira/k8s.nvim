@@ -73,7 +73,7 @@ end
 
 ---Build kubectl command arguments with namespace
 ---@param args string[]
----@param namespace string|nil nil for all namespaces, "" for default
+---@param namespace string "All Namespaces" for all namespaces, otherwise specific namespace
 ---@return string[]
 local function build_cmd_with_ns(args, namespace)
   local cmd = { "kubectl" }
@@ -81,11 +81,11 @@ local function build_cmd_with_ns(args, namespace)
     table.insert(cmd, arg)
   end
 
-  if namespace == nil then
+  if namespace == "All Namespaces" then
     table.insert(cmd, "--all-namespaces")
   else
     table.insert(cmd, "-n")
-    table.insert(cmd, namespace == "" and "default" or namespace)
+    table.insert(cmd, namespace)
   end
 
   return cmd

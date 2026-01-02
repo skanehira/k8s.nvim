@@ -81,7 +81,7 @@ describe("adapter", function()
       assert.is_true(has_default)
     end)
 
-    it("should handle nil namespace (all namespaces)", function()
+    it("should use --all-namespaces when namespace is 'All Namespaces'", function()
       local captured_cmd
       adapter._set_executor(function(cmd, _, callback)
         captured_cmd = cmd
@@ -91,12 +91,12 @@ describe("adapter", function()
         return { wait = function() end }
       end)
 
-      adapter.get_resources("pods", nil, function() end)
+      adapter.get_resources("pods", "All Namespaces", function() end)
 
       assert.is.Not.Nil(captured_cmd)
       local has_all_namespaces = false
       for _, arg in ipairs(captured_cmd) do
-        if arg == "--all-namespaces" or arg == "-A" then
+        if arg == "--all-namespaces" then
           has_all_namespaces = true
           break
         end

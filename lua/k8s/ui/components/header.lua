@@ -12,7 +12,7 @@ function M.format(opts)
   table.insert(parts, "[Context: " .. opts.context .. "]")
 
   -- Namespace
-  local ns = opts.namespace or "All"
+  local ns = opts.namespace == "All Namespaces" and "All" or opts.namespace
   table.insert(parts, "[Namespace: " .. ns .. "]")
 
   -- View
