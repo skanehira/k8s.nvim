@@ -74,6 +74,7 @@ local view_allowed_actions = {
     quit = true,
     close = true,
     help = true,
+    toggle_secret = true,
   },
   port_forward_list = {
     back = true,
