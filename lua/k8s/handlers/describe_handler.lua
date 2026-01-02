@@ -138,7 +138,7 @@ function M.handle_describe(callbacks)
         window.set_lines(bufnr, lines)
 
         -- Set filetype for syntax highlighting
-        vim.api.nvim_buf_set_option(bufnr, "filetype", "yaml")
+        vim.api.nvim_set_option_value("filetype", "yaml", { buf = bufnr })
 
         -- Update header (remove loading)
         local hdr_bufnr = window.get_header_bufnr(current_win)

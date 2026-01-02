@@ -2,6 +2,9 @@
 
 local M = {}
 
+-- Highlight namespace
+local hl_ns = vim.api.nvim_create_namespace("k8s")
+
 -- Layout constants
 local HEADER_HEIGHT = 1
 local TABLE_HEADER_HEIGHT = 1
@@ -500,9 +503,9 @@ function M.set_lines(bufnr, lines)
     return
   end
 
-  vim.api.nvim_buf_set_option(bufnr, "modifiable", true)
+  vim.api.nvim_set_option_value("modifiable", true, { buf = bufnr })
   vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, lines)
-  vim.api.nvim_buf_set_option(bufnr, "modifiable", false)
+  vim.api.nvim_set_option_value("modifiable", false, { buf = bufnr })
 end
 
 ---Add highlight to buffer
@@ -516,7 +519,7 @@ function M.add_highlight(bufnr, hl_group, line, col_start, col_end)
     return
   end
 
-  vim.api.nvim_buf_add_highlight(bufnr, -1, hl_group, line, col_start, col_end)
+  vim.hl.range(bufnr, hl_ns, hl_group, { line, col_start }, { line, col_end })
 end
 
 ---Map a key in the content buffer
