@@ -44,7 +44,11 @@ function M.create_view(config, callbacks)
   window.mount(new_window)
 
   -- Setup keymaps for this view type
-  callbacks.setup_keymaps_for_window(new_window, config.view_stack_entry.type)
+  local keymap_opts = {}
+  if config.view_stack_entry.resource then
+    keymap_opts.resource_kind = config.view_stack_entry.resource.kind
+  end
+  callbacks.setup_keymaps_for_window(new_window, config.view_stack_entry.type, keymap_opts)
 
   -- Update global window reference
   global_state.set_window(new_window)

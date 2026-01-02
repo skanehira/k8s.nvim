@@ -3,7 +3,7 @@
 ---@class K8sCallbacks
 ---@field render_footer fun(view_type: string, kind?: string)
 ---@field fetch_and_render fun(kind: string, namespace: string, opts?: table)
----@field setup_keymaps_for_window fun(win: K8sWindow, view_type: string)
+---@field setup_keymaps_for_window fun(win: K8sWindow, view_type: string, opts?: { resource_kind?: string })
 ---@field get_footer_keymaps fun(view_type: string, kind?: string): table[]
 ---@field handle_refresh? fun()
 

@@ -63,7 +63,6 @@ local view_allowed_actions = {
     resource_menu = true,
     context_menu = true,
     namespace_menu = true,
-    toggle_secret = true,
     help = true,
     quit = true,
     close = true,
@@ -233,7 +232,9 @@ end
 ---@param win K8sWindow
 ---@param handlers table Action handler functions
 ---@param view_type string View type (list, describe, help, port_forward_list)
-function M.setup_keymaps_for_window(win, handlers, view_type)
+---@param opts? { resource_kind?: string }
+function M.setup_keymaps_for_window(win, handlers, view_type, opts)
+  opts = opts or {}
   local window = require("k8s.ui.nui.window")
   local keymaps = M.get_keymap_definitions()
 
@@ -378,8 +379,8 @@ function M.setup_keymaps_for_window(win, handlers, view_type)
     end, { desc = keymaps.logs_previous.desc })
   end
 
-  -- toggle_secret
-  if is_allowed(view_type, "toggle_secret") then
+  -- toggle_secret (only for Secret resources in describe view)
+  if is_allowed(view_type, "toggle_secret") and opts.resource_kind == "Secret" then
     window.map_key(win, keymaps.toggle_secret.key, function()
       handlers.handle_toggle_secret()
     end, { desc = keymaps.toggle_secret.desc })
