@@ -7,11 +7,14 @@ describe("view_restorer", function()
     it("should call callbacks.render_footer for list view", function()
       local view = { type = "list", kind = "Pod" }
       local footer_called = false
+      local watcher_called = false
       local callbacks = {
         render_footer = function()
           footer_called = true
         end,
-        fetch_and_render = function() end,
+        start_watcher = function()
+          watcher_called = true
+        end,
       }
       local mock_global_state = {
         get_app_state = function()
@@ -23,6 +26,7 @@ describe("view_restorer", function()
       view_restorer.restore(view, callbacks, nil, { global_state = mock_global_state })
 
       assert.is_true(footer_called)
+      assert.is_true(watcher_called)
     end)
 
     it("should call callbacks.render_footer for describe view", function()

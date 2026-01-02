@@ -160,4 +160,109 @@ describe("app", function()
       assert.is_nil(resource)
     end)
   end)
+
+  -- Differential update tests
+  describe("add_resource", function()
+    it("should add resource to state", function()
+      local state = app.create_state()
+      state.resources = {
+        { name = "pod1", namespace = "default" },
+      }
+
+      local new_state = app.add_resource(state, { name = "pod2", namespace = "default" })
+
+      assert.equals(2, #new_state.resources)
+      assert.equals("pod2", new_state.resources[2].name)
+    end)
+
+    it("should not modify original state", function()
+      local state = app.create_state()
+      state.resources = {
+        { name = "pod1", namespace = "default" },
+      }
+
+      app.add_resource(state, { name = "pod2", namespace = "default" })
+
+      assert.equals(1, #state.resources)
+    end)
+
+    it("should update existing resource instead of adding duplicate", function()
+      local state = app.create_state()
+      state.resources = {
+        { name = "pod1", namespace = "default", status = "Pending" },
+      }
+
+      local new_state = app.add_resource(state, { name = "pod1", namespace = "default", status = "Running" })
+
+      assert.equals(1, #new_state.resources)
+      assert.equals("Running", new_state.resources[1].status)
+    end)
+  end)
+
+  describe("update_resource", function()
+    it("should update existing resource", function()
+      local state = app.create_state()
+      state.resources = {
+        { name = "pod1", namespace = "default", status = "Pending" },
+        { name = "pod2", namespace = "default", status = "Pending" },
+      }
+
+      local new_state = app.update_resource(state, { name = "pod1", namespace = "default", status = "Running" })
+
+      assert.equals(2, #new_state.resources)
+      assert.equals("Running", new_state.resources[1].status)
+    end)
+
+    it("should not modify if resource not found", function()
+      local state = app.create_state()
+      state.resources = {
+        { name = "pod1", namespace = "default" },
+      }
+
+      local new_state = app.update_resource(state, { name = "pod-nonexistent", namespace = "default" })
+
+      assert.equals(1, #new_state.resources)
+      assert.equals("pod1", new_state.resources[1].name)
+    end)
+  end)
+
+  describe("remove_resource", function()
+    it("should remove resource from state", function()
+      local state = app.create_state()
+      state.resources = {
+        { name = "pod1", namespace = "default" },
+        { name = "pod2", namespace = "default" },
+      }
+
+      local new_state = app.remove_resource(state, "pod1", "default")
+
+      assert.equals(1, #new_state.resources)
+      assert.equals("pod2", new_state.resources[1].name)
+    end)
+
+    it("should not modify if resource not found", function()
+      local state = app.create_state()
+      state.resources = {
+        { name = "pod1", namespace = "default" },
+      }
+
+      local new_state = app.remove_resource(state, "pod-nonexistent", "default")
+
+      assert.equals(1, #new_state.resources)
+    end)
+  end)
+
+  describe("clear_resources", function()
+    it("should clear all resources", function()
+      local state = app.create_state()
+      state.resources = {
+        { name = "pod1", namespace = "default" },
+        { name = "pod2", namespace = "default" },
+      }
+
+      local new_state = app.clear_resources(state)
+
+      assert.equals(0, #new_state.resources)
+    end)
+  end)
 end)

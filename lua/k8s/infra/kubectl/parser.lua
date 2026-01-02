@@ -173,4 +173,21 @@ function M.parse_namespaces(json)
   return ok(namespaces)
 end
 
+---Parse a single resource from watch event
+---@param item table Raw k8s resource object
+---@return ParsedResource
+function M.parse_single_resource(item)
+  local metadata = item.metadata or {}
+  local kind = item.kind or ""
+
+  return {
+    kind = kind,
+    name = metadata.name or "",
+    namespace = metadata.namespace or "",
+    status = get_status(item, kind),
+    age = calculate_age(metadata.creationTimestamp or ""),
+    raw = item,
+  }
+end
+
 return M

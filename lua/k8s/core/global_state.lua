@@ -8,7 +8,6 @@ local state = {
   config = nil,
   window = nil,
   app_state = nil,
-  timer = nil,
   view_stack = nil,
   pf_list_connections = nil,
 }
@@ -19,7 +18,6 @@ function M.reset()
   state.config = nil
   state.window = nil
   state.app_state = nil
-  state.timer = nil
   state.view_stack = nil
   state.pf_list_connections = nil
 end
@@ -73,18 +71,6 @@ end
 ---@param app_state table|nil
 function M.set_app_state(app_state)
   state.app_state = app_state
-end
-
----Get timer
----@return userdata|nil
-function M.get_timer()
-  return state.timer
-end
-
----Set timer
----@param timer userdata|nil
-function M.set_timer(timer)
-  state.timer = timer
 end
 
 ---Get view stack

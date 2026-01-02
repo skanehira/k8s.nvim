@@ -170,6 +170,109 @@ function M._setup_keymaps_for_window(win, view_type, opts)
   keymap.setup_keymaps_for_window(win, handlers, view_type, opts)
 end
 
+-- Debounce timer for UI updates
+local render_timer = nil
+local DEBOUNCE_MS = 100
+
+---Debounced render function
+local function debounced_render()
+  if render_timer then
+    render_timer:stop()
+  end
+
+  render_timer = vim.uv.new_timer()
+  if not render_timer then
+    return
+  end
+
+  render_timer:start(DEBOUNCE_MS, 0, vim.schedule_wrap(function()
+    render_timer:stop()
+    render_timer:close()
+    render_timer = nil
+
+    local global_state = require("k8s.core.global_state")
+    local window = require("k8s.ui.nui.window")
+    local app = require("k8s.core.state")
+    local buffer = require("k8s.ui.nui.buffer")
+    local resource_list_view = require("k8s.ui.views.resource_list")
+
+    local win = global_state.get_window()
+    local app_state = global_state.get_app_state()
+    if not win or not app_state or not window.is_mounted(win) then
+      return
+    end
+
+    -- Update header
+    local header_bufnr = window.get_header_bufnr(win)
+    if header_bufnr then
+      local header_content = buffer.create_header_content({
+        context = vim.fn.system("kubectl config current-context"):gsub("\n", ""),
+        namespace = app_state.current_namespace,
+        view = app_state.current_kind .. "s",
+        filter = app_state.filter,
+      })
+      window.set_lines(header_bufnr, { header_content })
+    end
+
+    -- Get current cursor position before re-rendering
+    local current_cursor = window.get_cursor(win)
+
+    -- Render resources
+    local filtered_resources = app.get_filtered_resources(app_state)
+    resource_list_view.render(win, {
+      resources = filtered_resources,
+      kind = app_state.current_kind,
+      restore_cursor = current_cursor,
+    })
+  end))
+end
+
+---Start watcher for resource updates
+---@param kind string
+---@param namespace string
+function M._start_watcher(kind, namespace)
+  local watcher = require("k8s.core.watcher")
+  local global_state = require("k8s.core.global_state")
+  local app = require("k8s.core.state")
+
+  watcher.start(kind, namespace, {
+    on_event = function(event_type, resource)
+      local app_state = global_state.get_app_state()
+      if not app_state then
+        return
+      end
+
+      -- Ignore events for different resource kinds (stale events from previous watcher)
+      if resource.kind ~= app_state.current_kind then
+        return
+      end
+
+      if event_type == "ADDED" then
+        global_state.set_app_state(app.add_resource(app_state, resource))
+      elseif event_type == "MODIFIED" then
+        global_state.set_app_state(app.update_resource(app_state, resource))
+      elseif event_type == "DELETED" then
+        global_state.set_app_state(app.remove_resource(app_state, resource.name, resource.namespace))
+      end
+
+      debounced_render()
+    end,
+    on_error = function(error)
+      vim.notify("k8s.nvim watch error: " .. error, vim.log.levels.ERROR)
+    end,
+    on_started = function()
+      -- Render immediately when watcher starts (handles empty resource case)
+      debounced_render()
+    end,
+  })
+end
+
+---Stop watcher
+function M._stop_watcher()
+  local watcher = require("k8s.core.watcher")
+  watcher.stop()
+end
+
 ---Open k8s.nvim UI
 ---@param opts? { kind?: string }
 function M.open(opts)
@@ -204,7 +307,6 @@ function M.open(opts)
   local buffer = require("k8s.ui.nui.buffer")
   local view_stack = require("k8s.core.view_stack")
   local renderer = require("k8s.handlers.renderer")
-  local timer = require("k8s.core.timer")
 
   local list_window = window.create_list_view({ transparent = config.transparent })
   global_state.set_window(list_window)
@@ -237,20 +339,16 @@ function M.open(opts)
     window = list_window,
   }))
 
-  renderer.fetch_and_render(kind, namespace)
-
-  timer.start_auto_refresh(function()
-    require("k8s.handlers.dispatcher").dispatch("refresh", M._setup_keymaps_for_window)
-  end)
+  -- Start watcher for resource updates
+  M._start_watcher(kind, namespace)
 end
 
 ---Hide k8s.nvim UI (keeps state for restoration)
 function M.hide()
   local global_state = require("k8s.core.global_state")
   local window = require("k8s.ui.nui.window")
-  local timer = require("k8s.core.timer")
 
-  timer.stop_auto_refresh()
+  M._stop_watcher()
 
   local win = global_state.get_window()
   if win and window.is_visible(win) then
@@ -262,14 +360,16 @@ end
 function M.show()
   local global_state = require("k8s.core.global_state")
   local window = require("k8s.ui.nui.window")
-  local timer = require("k8s.core.timer")
 
   local win = global_state.get_window()
   if win and window.is_mounted(win) then
     window.show(win)
-    timer.start_auto_refresh(function()
-      require("k8s.handlers.dispatcher").dispatch("refresh", M._setup_keymaps_for_window)
-    end)
+
+    -- Restart watcher
+    local app_state = global_state.get_app_state()
+    if app_state then
+      M._start_watcher(app_state.current_kind, app_state.current_namespace)
+    end
   end
 end
 
@@ -277,9 +377,8 @@ end
 function M.close()
   local global_state = require("k8s.core.global_state")
   local window = require("k8s.ui.nui.window")
-  local timer = require("k8s.core.timer")
 
-  timer.stop_auto_refresh()
+  M._stop_watcher()
 
   local vs = global_state.get_view_stack()
   if vs then
@@ -367,11 +466,14 @@ function M.switch_namespace(namespace_name)
 
   local app_state = global_state.get_app_state()
   if app_state then
+    -- Clear resources and update namespace
     global_state.set_app_state(app.set_namespace(app_state, namespace))
     vim.notify(require("k8s.core.notify").format_namespace_switch_message(namespace_name), vim.log.levels.INFO)
+
+    -- Restart watcher with new namespace
     app_state = global_state.get_app_state()
     assert(app_state, "app_state is nil")
-    require("k8s.handlers.renderer").fetch_and_render(app_state.current_kind, namespace)
+    M._start_watcher(app_state.current_kind, namespace)
   else
     vim.notify("Namespace set to: " .. namespace_name, vim.log.levels.INFO)
   end

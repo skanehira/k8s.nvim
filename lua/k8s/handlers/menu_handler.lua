@@ -73,7 +73,7 @@ function M.handle_resource_menu(callbacks)
             local current_app_state = global_state.get_app_state()
             assert(current_app_state, "app_state is nil")
             global_state.set_app_state(app.set_kind(current_app_state, item.value))
-            callbacks.fetch_and_render(item.value, current_namespace)
+            callbacks.start_watcher(item.value, current_namespace)
           end,
         }, callbacks)
         break
@@ -156,7 +156,7 @@ function M.handle_namespace_menu(callbacks)
 
         app_state = global_state.get_app_state()
         assert(app_state, "app_state is nil")
-        callbacks.fetch_and_render(app_state.current_kind, choice)
+        callbacks.start_watcher(app_state.current_kind, choice)
       end)
     end)
   end)

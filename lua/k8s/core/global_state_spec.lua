@@ -64,14 +64,6 @@ describe("global_state", function()
     end)
   end)
 
-  describe("timer", function()
-    it("should get and set timer", function()
-      local timer = { mock = "timer" }
-      global_state.set_timer(timer)
-      assert.same(timer, global_state.get_timer())
-    end)
-  end)
-
   describe("view_stack", function()
     it("should get and set view_stack", function()
       local view_stack = { { type = "list", kind = "Pod" } }

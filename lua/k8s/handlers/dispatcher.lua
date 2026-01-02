@@ -3,6 +3,7 @@
 ---@class K8sCallbacks
 ---@field render_footer fun(view_type: string, kind?: string)
 ---@field fetch_and_render fun(kind: string, namespace: string, opts?: table)
+---@field start_watcher fun(kind: string, namespace: string)
 ---@field setup_keymaps_for_window fun(win: K8sWindow, view_type: string, opts?: { resource_kind?: string })
 ---@field get_footer_keymaps fun(view_type: string, kind?: string): table[]
 ---@field handle_refresh? fun()
@@ -47,6 +48,9 @@ local function create_callbacks(setup_keymaps_fn)
     end,
     fetch_and_render = function(kind, namespace, opts)
       get_renderer().fetch_and_render(kind, namespace, opts)
+    end,
+    start_watcher = function(kind, namespace)
+      require("k8s")._start_watcher(kind, namespace)
     end,
     render_filtered_resources = function()
       get_list_handler().render_filtered_resources()

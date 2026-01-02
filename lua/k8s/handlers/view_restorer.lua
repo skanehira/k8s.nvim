@@ -23,10 +23,16 @@ restorers.list = function(view, callbacks, restore_cursor, deps)
   -- Restore the kind if different
   if view.kind and app_state and view.kind ~= app_state.current_kind then
     global_state.set_app_state(app.set_kind(app_state, view.kind))
-    -- Re-fetch and render for the previous kind
-    callbacks.fetch_and_render(view.kind, app_state.current_namespace, { restore_cursor = restore_cursor })
-  elseif restore_cursor and view.window then
-    window.set_cursor(view.window, restore_cursor, 0)
+    -- Restart watcher for the previous kind
+    callbacks.start_watcher(view.kind, app_state.current_namespace)
+  else
+    -- Restart watcher for current kind
+    if app_state then
+      callbacks.start_watcher(app_state.current_kind, app_state.current_namespace)
+    end
+    if restore_cursor and view.window then
+      window.set_cursor(view.window, restore_cursor, 0)
+    end
   end
 end
 

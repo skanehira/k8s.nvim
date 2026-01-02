@@ -88,16 +88,19 @@ function M.handle_back(callbacks)
 end
 
 ---Handle refresh action
----@param callbacks table { fetch_and_render: function }
+---@param callbacks table { start_watcher: function }
 function M.handle_refresh(callbacks)
   local global_state = require("k8s.core.global_state")
+  local app = require("k8s.core.state")
 
   local app_state = global_state.get_app_state()
   if not app_state then
     return
   end
 
-  callbacks.fetch_and_render(app_state.current_kind, app_state.current_namespace, { preserve_cursor = true })
+  -- Clear resources and restart watcher
+  global_state.set_app_state(app.clear_resources(app_state))
+  callbacks.start_watcher(app_state.current_kind, app_state.current_namespace)
 end
 
 ---Handle filter action

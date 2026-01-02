@@ -193,4 +193,93 @@ function M.sort_resources(resources)
   return sorted
 end
 
+-- =============================================================================
+-- Differential update operations (for watch)
+-- =============================================================================
+
+---Find resource index by name and namespace
+---@param resources table[]
+---@param name string
+---@param namespace string
+---@return number|nil
+local function find_resource_index(resources, name, namespace)
+  for i, r in ipairs(resources) do
+    if r.name == name and r.namespace == namespace then
+      return i
+    end
+  end
+  return nil
+end
+
+---Add resource (immutable, updates if already exists)
+---@param state table
+---@param resource table
+---@return table new_state
+function M.add_resource(state, resource)
+  local new_state = M._copy_state(state)
+  local new_resources = {}
+  for i, r in ipairs(state.resources) do
+    new_resources[i] = r
+  end
+
+  -- Check if resource already exists (upsert)
+  local index = find_resource_index(new_resources, resource.name, resource.namespace)
+  if index then
+    new_resources[index] = resource
+  else
+    table.insert(new_resources, resource)
+  end
+
+  new_state.resources = new_resources
+  return new_state
+end
+
+---Update resource (immutable)
+---@param state table
+---@param resource table
+---@return table new_state
+function M.update_resource(state, resource)
+  local new_state = M._copy_state(state)
+  local new_resources = {}
+  for i, r in ipairs(state.resources) do
+    new_resources[i] = r
+  end
+
+  local index = find_resource_index(new_resources, resource.name, resource.namespace)
+  if index then
+    new_resources[index] = resource
+  end
+
+  new_state.resources = new_resources
+  return new_state
+end
+
+---Remove resource (immutable)
+---@param state table
+---@param name string
+---@param namespace string
+---@return table new_state
+function M.remove_resource(state, name, namespace)
+  local new_state = M._copy_state(state)
+  local new_resources = {}
+
+  for _, r in ipairs(state.resources) do
+    if not (r.name == name and r.namespace == namespace) then
+      table.insert(new_resources, r)
+    end
+  end
+
+  new_state.resources = new_resources
+  return new_state
+end
+
+---Clear all resources (immutable)
+---@param state table
+---@return table new_state
+function M.clear_resources(state)
+  local new_state = M._copy_state(state)
+  new_state.resources = {}
+  return new_state
+end
+
 return M
