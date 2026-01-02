@@ -30,11 +30,8 @@ local footer_keymaps = {
     { key = "q", action = "quit" },
   },
   describe = {
-    { key = "l", action = "logs" },
-    { key = "e", action = "exec" },
-    { key = "D", action = "delete" },
-    { key = "S", action = "toggle_secret" },
     { key = "<C-h>", action = "back" },
+    { key = "?", action = "help" },
     { key = "q", action = "quit" },
   },
   port_forward_list = {
@@ -74,10 +71,6 @@ local view_allowed_actions = {
   },
   describe = {
     back = true,
-    logs = true,
-    exec = true,
-    delete = true,
-    toggle_secret = true,
     quit = true,
     close = true,
     help = true,
@@ -226,10 +219,20 @@ function M.get_footer_keymaps(view_type, kind)
   return filtered
 end
 
+---Check if action is allowed for the given view type
+---@param view_type string
+---@param action string
+---@return boolean
+local function is_allowed(view_type, action)
+  local allowed = view_allowed_actions[view_type]
+  return allowed and allowed[action] == true
+end
+
 ---Setup keymaps for a specific window
 ---@param win K8sWindow
 ---@param handlers table Action handler functions
-function M.setup_keymaps_for_window(win, handlers)
+---@param view_type string View type (list, describe, help, port_forward_list)
+function M.setup_keymaps_for_window(win, handlers, view_type)
   local window = require("k8s.ui.nui.window")
   local keymaps = M.get_keymap_definitions()
 
@@ -244,133 +247,149 @@ function M.setup_keymaps_for_window(win, handlers)
   end, { desc = keymaps.close.desc })
 
   -- back (always allowed)
-  window.map_key(win, keymaps.back.key, function()
-    handlers.handle_back()
-  end, { desc = keymaps.back.desc })
+  if is_allowed(view_type, "back") then
+    window.map_key(win, keymaps.back.key, function()
+      handlers.handle_back()
+    end, { desc = keymaps.back.desc })
+  end
 
   -- describe
-  window.map_key(win, keymaps.describe.key, function()
-    if M.is_action_allowed("describe") then
+  if is_allowed(view_type, "describe") then
+    window.map_key(win, keymaps.describe.key, function()
       handlers.handle_describe()
-    end
-  end, { desc = keymaps.describe.desc })
+    end, { desc = keymaps.describe.desc })
+  end
 
   -- select (Enter key)
-  window.map_key(win, keymaps.select.key, function()
-    if M.is_action_allowed("select") then
+  if is_allowed(view_type, "select") then
+    window.map_key(win, keymaps.select.key, function()
       handlers.handle_describe()
-    end
-  end, { desc = keymaps.select.desc })
+    end, { desc = keymaps.select.desc })
+  end
 
   -- refresh
-  window.map_key(win, keymaps.refresh.key, function()
-    if M.is_action_allowed("refresh") then
+  if is_allowed(view_type, "refresh") then
+    window.map_key(win, keymaps.refresh.key, function()
       handlers.handle_refresh()
-    end
-  end, { desc = keymaps.refresh.desc })
+    end, { desc = keymaps.refresh.desc })
+  end
 
   -- filter
-  window.map_key(win, keymaps.filter.key, function()
-    if M.is_action_allowed("filter") then
+  if is_allowed(view_type, "filter") then
+    window.map_key(win, keymaps.filter.key, function()
       handlers.handle_filter()
-    end
-  end, { desc = keymaps.filter.desc })
+    end, { desc = keymaps.filter.desc })
+  end
 
-  -- delete (D key) - different behavior per view
-  window.map_key(win, keymaps.delete.key, function()
-    local view_type = M.get_current_view_type()
-    if view_type == "port_forward_list" then
-      if M.is_action_allowed("stop") then
-        handlers.handle_stop_port_forward()
-      end
-    elseif M.is_action_allowed("delete") then
+  -- delete
+  if is_allowed(view_type, "delete") then
+    window.map_key(win, keymaps.delete.key, function()
       handlers.handle_delete()
-    end
-  end, { desc = keymaps.delete.desc })
+    end, { desc = keymaps.delete.desc })
+  end
+
+  -- stop (port_forward_list uses D key for stop)
+  if is_allowed(view_type, "stop") then
+    window.map_key(win, keymaps.delete.key, function()
+      handlers.handle_stop_port_forward()
+    end, { desc = "Stop port forward" })
+  end
 
   -- logs
-  window.map_key(win, keymaps.logs.key, function()
-    if M.is_action_allowed("logs") and M.is_resource_capability_allowed("logs") then
-      handlers.handle_logs()
-    end
-  end, { desc = keymaps.logs.desc })
+  if is_allowed(view_type, "logs") then
+    window.map_key(win, keymaps.logs.key, function()
+      if M.is_resource_capability_allowed("logs") then
+        handlers.handle_logs()
+      end
+    end, { desc = keymaps.logs.desc })
+  end
 
   -- exec
-  window.map_key(win, keymaps.exec.key, function()
-    if M.is_action_allowed("exec") and M.is_resource_capability_allowed("exec") then
-      handlers.handle_exec()
-    end
-  end, { desc = keymaps.exec.desc })
+  if is_allowed(view_type, "exec") then
+    window.map_key(win, keymaps.exec.key, function()
+      if M.is_resource_capability_allowed("exec") then
+        handlers.handle_exec()
+      end
+    end, { desc = keymaps.exec.desc })
+  end
 
   -- scale
-  window.map_key(win, keymaps.scale.key, function()
-    if M.is_action_allowed("scale") and M.is_resource_capability_allowed("scale") then
-      handlers.handle_scale()
-    end
-  end, { desc = keymaps.scale.desc })
+  if is_allowed(view_type, "scale") then
+    window.map_key(win, keymaps.scale.key, function()
+      if M.is_resource_capability_allowed("scale") then
+        handlers.handle_scale()
+      end
+    end, { desc = keymaps.scale.desc })
+  end
 
   -- restart
-  window.map_key(win, keymaps.restart.key, function()
-    if M.is_action_allowed("restart") and M.is_resource_capability_allowed("restart") then
-      handlers.handle_restart()
-    end
-  end, { desc = keymaps.restart.desc })
+  if is_allowed(view_type, "restart") then
+    window.map_key(win, keymaps.restart.key, function()
+      if M.is_resource_capability_allowed("restart") then
+        handlers.handle_restart()
+      end
+    end, { desc = keymaps.restart.desc })
+  end
 
   -- port_forward
-  window.map_key(win, keymaps.port_forward.key, function()
-    if M.is_action_allowed("port_forward") and M.is_resource_capability_allowed("port_forward") then
-      handlers.handle_port_forward()
-    end
-  end, { desc = keymaps.port_forward.desc })
+  if is_allowed(view_type, "port_forward") then
+    window.map_key(win, keymaps.port_forward.key, function()
+      if M.is_resource_capability_allowed("port_forward") then
+        handlers.handle_port_forward()
+      end
+    end, { desc = keymaps.port_forward.desc })
+  end
 
   -- port_forward_list
-  window.map_key(win, keymaps.port_forward_list.key, function()
-    if M.is_action_allowed("port_forward_list") then
+  if is_allowed(view_type, "port_forward_list") then
+    window.map_key(win, keymaps.port_forward_list.key, function()
       handlers.handle_port_forward_list()
-    end
-  end, { desc = keymaps.port_forward_list.desc })
+    end, { desc = keymaps.port_forward_list.desc })
+  end
 
   -- resource_menu
-  window.map_key(win, keymaps.resource_menu.key, function()
-    if M.is_action_allowed("resource_menu") then
+  if is_allowed(view_type, "resource_menu") then
+    window.map_key(win, keymaps.resource_menu.key, function()
       handlers.handle_resource_menu()
-    end
-  end, { desc = keymaps.resource_menu.desc })
+    end, { desc = keymaps.resource_menu.desc })
+  end
 
   -- context_menu
-  window.map_key(win, keymaps.context_menu.key, function()
-    if M.is_action_allowed("context_menu") then
+  if is_allowed(view_type, "context_menu") then
+    window.map_key(win, keymaps.context_menu.key, function()
       handlers.handle_context_menu()
-    end
-  end, { desc = keymaps.context_menu.desc })
+    end, { desc = keymaps.context_menu.desc })
+  end
 
   -- namespace_menu
-  window.map_key(win, keymaps.namespace_menu.key, function()
-    if M.is_action_allowed("namespace_menu") then
+  if is_allowed(view_type, "namespace_menu") then
+    window.map_key(win, keymaps.namespace_menu.key, function()
       handlers.handle_namespace_menu()
-    end
-  end, { desc = keymaps.namespace_menu.desc })
+    end, { desc = keymaps.namespace_menu.desc })
+  end
 
   -- logs_previous
-  window.map_key(win, keymaps.logs_previous.key, function()
-    if M.is_action_allowed("logs_previous") and M.is_resource_capability_allowed("logs_previous") then
-      handlers.handle_logs_previous()
-    end
-  end, { desc = keymaps.logs_previous.desc })
+  if is_allowed(view_type, "logs_previous") then
+    window.map_key(win, keymaps.logs_previous.key, function()
+      if M.is_resource_capability_allowed("logs_previous") then
+        handlers.handle_logs_previous()
+      end
+    end, { desc = keymaps.logs_previous.desc })
+  end
 
   -- toggle_secret
-  window.map_key(win, keymaps.toggle_secret.key, function()
-    if M.is_action_allowed("toggle_secret") then
+  if is_allowed(view_type, "toggle_secret") then
+    window.map_key(win, keymaps.toggle_secret.key, function()
       handlers.handle_toggle_secret()
-    end
-  end, { desc = keymaps.toggle_secret.desc })
+    end, { desc = keymaps.toggle_secret.desc })
+  end
 
   -- help
-  window.map_key(win, keymaps.help.key, function()
-    if M.is_action_allowed("help") then
+  if is_allowed(view_type, "help") then
+    window.map_key(win, keymaps.help.key, function()
       handlers.handle_help()
-    end
-  end, { desc = keymaps.help.desc })
+    end, { desc = keymaps.help.desc })
+  end
 end
 
 return M

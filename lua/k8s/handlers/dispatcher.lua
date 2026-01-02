@@ -130,7 +130,7 @@ local action_names = {
 ---@param hide_fn function
 ---@param setup_keymaps_fn function
 ---@param close_fn? function
----@return K8sHandlers
+---@return table
 function M.create_handlers(hide_fn, setup_keymaps_fn, close_fn)
   local handlers = {
     hide = hide_fn,

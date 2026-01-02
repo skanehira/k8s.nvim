@@ -43,8 +43,8 @@ function M.create_view(config, callbacks)
   -- Mount window
   window.mount(new_window)
 
-  -- Setup keymaps
-  callbacks.setup_keymaps_for_window(new_window)
+  -- Setup keymaps for this view type
+  callbacks.setup_keymaps_for_window(new_window, config.view_stack_entry.type)
 
   -- Update global window reference
   global_state.set_window(new_window)

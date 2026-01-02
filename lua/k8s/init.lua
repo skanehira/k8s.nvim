@@ -161,11 +161,12 @@ end
 
 ---Setup keymaps for a specific window
 ---@param win K8sWindow
-function M._setup_keymaps_for_window(win)
+---@param view_type string
+function M._setup_keymaps_for_window(win, view_type)
   local keymap = require("k8s.handlers.keymap")
   local dispatcher = require("k8s.handlers.dispatcher")
   local handlers = dispatcher.create_handlers(M.hide, M._setup_keymaps_for_window, M.close)
-  keymap.setup_keymaps_for_window(win, handlers)
+  keymap.setup_keymaps_for_window(win, handlers, view_type)
 end
 
 ---Open k8s.nvim UI
@@ -226,7 +227,7 @@ function M.open(opts)
   end
 
   renderer.render_footer("list", kind)
-  M._setup_keymaps_for_window(list_window)
+  M._setup_keymaps_for_window(list_window, "list")
 
   global_state.set_view_stack(view_stack.push({}, {
     type = "list",
