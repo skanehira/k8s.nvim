@@ -21,7 +21,6 @@ A Neovim plugin for managing Kubernetes resources.
 
 - Neovim >= 0.10.0
 - [kubectl](https://kubernetes.io/docs/tasks/tools/) configured with cluster access
-- [plenary.nvim](https://github.com/nvim-lua/plenary.nvim)
 - [nui.nvim](https://github.com/MunifTanjim/nui.nvim)
 
 ## Installation
@@ -32,7 +31,6 @@ A Neovim plugin for managing Kubernetes resources.
 {
   "skanehira/k8s.nvim",
   dependencies = {
-    "nvim-lua/plenary.nvim",
     "MunifTanjim/nui.nvim",
   },
   config = function()
@@ -47,7 +45,6 @@ A Neovim plugin for managing Kubernetes resources.
 use {
   "skanehira/k8s.nvim",
   requires = {
-    "nvim-lua/plenary.nvim",
     "MunifTanjim/nui.nvim",
   },
   config = function()
@@ -60,9 +57,6 @@ use {
 
 ```lua
 require("k8s").setup({
-  -- Auto-refresh interval in milliseconds (default: 5000)
-  refresh_interval = 5000,
-
   -- kubectl command timeout in milliseconds (default: 30000)
   timeout = 30000,
 
@@ -75,28 +69,41 @@ require("k8s").setup({
   -- Transparent window background (default: false)
   transparent = false,
 
-  -- Custom keymaps (optional)
+  -- Custom keymaps (optional, organized by view)
   keymaps = {
-    describe = { key = "d", desc = "Describe resource" },
-    delete = { key = "D", desc = "Delete resource" },
-    logs = { key = "l", desc = "View logs" },
-    logs_previous = { key = "P", desc = "Previous logs" },
-    exec = { key = "e", desc = "Execute shell" },
-    scale = { key = "s", desc = "Scale resource" },
-    restart = { key = "X", desc = "Restart resource" },
-    port_forward = { key = "p", desc = "Port forward" },
-    port_forward_list = { key = "F", desc = "Port forwards list" },
-    filter = { key = "/", desc = "Filter" },
-    refresh = { key = "r", desc = "Refresh" },
-    resource_menu = { key = "R", desc = "Resources" },
-    context_menu = { key = "C", desc = "Context" },
-    namespace_menu = { key = "N", desc = "Namespace" },
-    toggle_secret = { key = "S", desc = "Toggle secret" },
-    help = { key = "?", desc = "Help" },
-    quit = { key = "q", desc = "Hide" },
-    close = { key = "<C-c>", desc = "Close" },
-    back = { key = "<C-h>", desc = "Back" },
-    select = { key = "<CR>", desc = "Select" },
+    -- Global keymaps (shared across all views)
+    global = {
+      quit = { key = "q", desc = "Hide" },
+      close = { key = "<C-c>", desc = "Close" },
+      back = { key = "<C-h>", desc = "Back" },
+      help = { key = "?", desc = "Help" },
+    },
+    -- List view keymaps
+    list = {
+      select = { key = "<CR>", desc = "Select" },
+      describe = { key = "d", desc = "Describe" },
+      delete = { key = "D", desc = "Delete" },
+      logs = { key = "l", desc = "Logs" },
+      logs_previous = { key = "P", desc = "PrevLogs" },
+      exec = { key = "e", desc = "Exec" },
+      scale = { key = "s", desc = "Scale" },
+      restart = { key = "X", desc = "Restart" },
+      port_forward = { key = "p", desc = "PortFwd" },
+      port_forward_list = { key = "F", desc = "PortFwdList" },
+      filter = { key = "/", desc = "Filter" },
+      refresh = { key = "r", desc = "Refresh" },
+      resource_menu = { key = "R", desc = "Resources" },
+      context_menu = { key = "C", desc = "Context" },
+      namespace_menu = { key = "N", desc = "Namespace" },
+    },
+    -- Describe view keymaps
+    describe = {
+      toggle_secret = { key = "S", desc = "ToggleSecret" },
+    },
+    -- Port forward list keymaps
+    port_forward_list = {
+      stop = { key = "D", desc = "Stop" },
+    },
   },
 })
 ```
@@ -119,22 +126,23 @@ require("k8s").setup({
 
 #### Resource List View
 
+All keymaps below are available, but resource-specific actions (logs, exec, scale, restart, port_forward) are only shown for resource kinds that support them. See [Supported Resources](#supported-resources) for details.
+
 | Key | Action | Description |
 |-----|--------|-------------|
 | `<CR>` | select | Select resource (same as describe) |
 | `d` | describe | Show resource details |
-| `l` | logs | View pod logs |
-| `P` | logs_previous | View previous pod logs |
-| `e` | exec | Execute shell in pod |
+| `l` | logs | View pod logs (Pod only) |
+| `P` | logs_previous | View previous pod logs (Pod only) |
+| `e` | exec | Execute shell in pod (Pod only) |
 | `p` | port_forward | Start port forwarding |
 | `F` | port_forward_list | Show active port forwards |
 | `D` | delete | Delete resource |
-| `s` | scale | Scale deployment |
-| `X` | restart | Restart deployment |
+| `s` | scale | Scale deployment (Deployment only) |
+| `X` | restart | Restart deployment (Deployment only) |
 | `r` | refresh | Refresh resource list |
 | `/` | filter | Filter resources |
 | `R` | resource_menu | Switch resource kind |
-| `S` | toggle_secret | Toggle secret value visibility |
 | `C` | context_menu | Switch context |
 | `N` | namespace_menu | Switch namespace |
 | `?` | help | Show help |
@@ -146,10 +154,7 @@ require("k8s").setup({
 
 | Key | Action | Description |
 |-----|--------|-------------|
-| `l` | logs | View pod logs (Pod only) |
-| `e` | exec | Execute shell in pod (Pod only) |
-| `D` | delete | Delete resource |
-| `S` | toggle_secret | Toggle secret value visibility |
+| `S` | toggle_secret | Toggle secret value visibility (Secret only) |
 | `?` | help | Show help |
 | `q` | quit | Hide window |
 | `<C-c>` | close | Close window |
@@ -161,6 +166,14 @@ require("k8s").setup({
 |-----|--------|-------------|
 | `D` | stop | Stop selected port forward |
 | `?` | help | Show help |
+| `q` | quit | Hide window |
+| `<C-c>` | close | Close window |
+| `<C-h>` | back | Go back to previous view |
+
+#### Help View
+
+| Key | Action | Description |
+|-----|--------|-------------|
 | `q` | quit | Hide window |
 | `<C-c>` | close | Close window |
 | `<C-h>` | back | Go back to previous view |
