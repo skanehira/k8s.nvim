@@ -3,8 +3,6 @@
 
 local M = {}
 
----@alias SetupKeymapsCallback fun(win: K8sWindow)
-
 ---Show help view
 ---@param setup_keymaps SetupKeymapsCallback
 function M.show_help(setup_keymaps)
@@ -32,6 +30,7 @@ function M.show_resource_menu(setup_keymaps)
   local window = require("k8s.ui.nui.window")
   local list_view = require("k8s.views.list")
   local lifecycle = require("k8s.handlers.lifecycle")
+  local render = require("k8s.handlers.render")
 
   local items = actions.get_resource_menu_items()
   local options = {}
@@ -57,10 +56,6 @@ function M.show_resource_menu(setup_keymaps)
           return
         end
 
-        -- Suppress intermediate redraws to prevent flickering
-        local lazyredraw_was = vim.o.lazyredraw
-        vim.o.lazyredraw = true
-
         -- Create new list view window
         local config = state.get_config() or {}
         local new_win = window.create_list_view({ transparent = config.transparent })
@@ -74,14 +69,8 @@ function M.show_resource_menu(setup_keymaps)
         -- Use lifecycle-aware push
         lifecycle.push_view(view_state, setup_keymaps)
 
-        -- Immediately render to avoid empty buffer flash
-        if view_state.render then
-          view_state.render(view_state, new_win)
-        end
-
-        -- Restore lazyredraw and force a single redraw
-        vim.o.lazyredraw = lazyredraw_was
-        vim.cmd("redraw")
+        -- Render immediately
+        render.render()
         break
       end
     end

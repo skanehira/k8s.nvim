@@ -88,11 +88,7 @@ function M._render(_view, win)
 
     for _, conn in ipairs(all_connections) do
       local ports = string.format("%d:%d", conn.local_port or 0, conn.remote_port or 0)
-      table.insert(lines, string.format("%-30s %-15s %-20s",
-        conn.resource or "",
-        conn.namespace or "",
-        ports
-      ))
+      table.insert(lines, string.format("%-30s %-15s %-20s", conn.resource or "", conn.namespace or "", ports))
     end
 
     window.set_lines(content_bufnr, lines)

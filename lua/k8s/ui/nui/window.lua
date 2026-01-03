@@ -16,7 +16,7 @@ local DEFAULT_HEIGHT_PCT = 0.8
 
 ---@alias SectionType "header"|"table_header"|"content"|"footer"
 
----@alias ViewType "list"|"detail"
+---@alias WindowLayoutType "list"|"detail"
 
 ---@class K8sWindow
 ---@field header any NuiPopup instance
@@ -25,7 +25,7 @@ local DEFAULT_HEIGHT_PCT = 0.8
 ---@field footer any NuiPopup instance
 ---@field mounted boolean
 ---@field size { width: number, height: number }
----@field view_type ViewType
+---@field view_type WindowLayoutType
 
 ---Validate section name
 ---@param section any

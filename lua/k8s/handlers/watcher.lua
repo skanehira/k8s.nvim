@@ -40,7 +40,14 @@ function M.start(kind, namespace, callbacks)
 
       -- Check if this event is for the current view's kind
       local view_kind = state.get_kind_from_view_type(current_view.type)
-      debug_log("View type: " .. current_view.type .. ", view_kind: " .. tostring(view_kind) .. ", resource.kind: " .. tostring(raw_resource.kind))
+      debug_log(
+        "View type: "
+          .. current_view.type
+          .. ", view_kind: "
+          .. tostring(view_kind)
+          .. ", resource.kind: "
+          .. tostring(raw_resource.kind)
+      )
       if raw_resource.kind ~= view_kind then
         debug_log("Kind mismatch, ignoring event")
         return

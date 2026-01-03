@@ -3,8 +3,6 @@
 
 local M = {}
 
----@alias SetupKeymapsCallback fun(win: K8sWindow)
-
 ---Toggle secret masking in describe view
 function M.toggle_secret()
   local state = require("k8s.state")

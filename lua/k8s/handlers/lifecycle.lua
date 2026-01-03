@@ -58,14 +58,11 @@ end
 function M.pop_view(setup_keymaps)
   local state = require("k8s.state")
   local window = require("k8s.ui.nui.window")
+  local render = require("k8s.handlers.render")
 
   if not state.can_pop_view() then
     return
   end
-
-  -- Suppress intermediate redraws to prevent flickering
-  local lazyredraw_was = vim.o.lazyredraw
-  vim.o.lazyredraw = true
 
   -- Get current view and call on_unmounted
   local current_view = state.get_current_view()
@@ -85,7 +82,6 @@ function M.pop_view(setup_keymaps)
   -- Get previous view (now current) and restore
   local prev_view = state.get_current_view()
   if not prev_view then
-    vim.o.lazyredraw = lazyredraw_was
     return
   end
 
@@ -95,9 +91,7 @@ function M.pop_view(setup_keymaps)
 
   if prev_win and window.is_mounted(prev_win) and window.has_valid_buffers(prev_win) then
     -- Render before show to prevent stale content flash
-    if prev_view.render then
-      prev_view.render(prev_view, prev_win)
-    end
+    render.render()
     window.show(prev_win)
   else
     -- Recreate window based on view type
@@ -114,9 +108,7 @@ function M.pop_view(setup_keymaps)
     end)
 
     -- Render after mount
-    if prev_view.render then
-      prev_view.render(prev_view, prev_win)
-    end
+    render.render()
   end
 
   state.set_window(prev_win)
@@ -131,10 +123,6 @@ function M.pop_view(setup_keymaps)
 
   -- Call on_mounted for previous view
   M.call_on_mounted(prev_view)
-
-  -- Restore lazyredraw and force a single redraw
-  vim.o.lazyredraw = lazyredraw_was
-  vim.cmd("redraw")
 end
 
 ---Push a detail view with a new window using lifecycle management
@@ -143,11 +131,8 @@ end
 function M.push_detail_view(view_state, setup_keymaps)
   local state = require("k8s.state")
   local window = require("k8s.ui.nui.window")
+  local render = require("k8s.handlers.render")
   local config = state.get_config() or {}
-
-  -- Suppress intermediate redraws to prevent flickering
-  local lazyredraw_was = vim.o.lazyredraw
-  vim.o.lazyredraw = true
 
   -- Create new detail view window
   local new_win = window.create_detail_view({ transparent = config.transparent })
@@ -159,14 +144,8 @@ function M.push_detail_view(view_state, setup_keymaps)
   -- Use lifecycle-aware push
   M.push_view(view_state, setup_keymaps)
 
-  -- Immediately render to avoid empty buffer flash (bypass debounce)
-  if view_state.render then
-    view_state.render(view_state, new_win)
-  end
-
-  -- Restore lazyredraw and force a single redraw
-  vim.o.lazyredraw = lazyredraw_was
-  vim.cmd("redraw")
+  -- Render immediately
+  render.render()
 end
 
 return M

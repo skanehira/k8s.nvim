@@ -241,8 +241,9 @@ function M.open(opts)
   end
 
   -- Subscribe to state changes for rendering
+  local render = require("k8s.handlers.render")
   state.subscribe(function()
-    M._render()
+    render.render({ mode = "debounced" })
   end)
 
   -- Call on_mounted to start watcher
@@ -464,70 +465,6 @@ function M._handle_back()
 end
 
 -- =============================================================================
--- Rendering (internal)
--- =============================================================================
-
--- Debounce timer for UI updates
-local render_timer = nil
-local DEBOUNCE_MS = 100
-
----Debounced render function (called by state listener)
----Delegates rendering to view's render function if available
-function M._render()
-  if render_timer then
-    render_timer:stop()
-  end
-
-  ---@diagnostic disable-next-line: undefined-field
-  render_timer = vim.uv.new_timer()
-  if not render_timer then
-    return
-  end
-
-  render_timer:start(DEBOUNCE_MS, 0, vim.schedule_wrap(function()
-    render_timer:stop()
-    render_timer:close()
-    render_timer = nil
-
-    local state = require("k8s.state")
-    local window = require("k8s.ui.nui.window")
-
-    local win = state.get_window()
-    local current_view = state.get_current_view()
-    if not win or not current_view or not window.is_mounted(win) then
-      return
-    end
-
-    -- Delegate to view's render function if available
-    if current_view.render then
-      current_view.render(current_view, win)
-    else
-      -- Fallback for views without render function (legacy support)
-      M._render_fallback(win, current_view)
-    end
-  end))
-end
-
----Fallback render for views without render function
----@param win K8sWindow
----@param current_view table
-function M._render_fallback(win, current_view)
-  local window = require("k8s.ui.nui.window")
-  local buffer = require("k8s.ui.nui.buffer")
-  local keymaps = require("k8s.views.keymaps")
-
-  local view_type = current_view.type
-
-  -- Update footer for all views
-  local footer_bufnr = window.get_footer_bufnr(win)
-  if footer_bufnr then
-    local footer_keymaps = keymaps.get_footer_keymaps(view_type)
-    local footer_content = buffer.create_footer_content(footer_keymaps)
-    window.set_lines(footer_bufnr, { footer_content })
-  end
-end
-
--- =============================================================================
 -- Public Commands
 -- =============================================================================
 
@@ -551,13 +488,10 @@ function M.show_port_forwards()
   local window = require("k8s.ui.nui.window")
   local port_forward_view = require("k8s.views.port_forward")
   local lifecycle = require("k8s.handlers.lifecycle")
+  local render = require("k8s.handlers.render")
   local config = state.get_config() or {}
 
   local push_port_forward_view = function()
-    -- Suppress intermediate redraws to prevent flickering
-    local lazyredraw_was = vim.o.lazyredraw
-    vim.o.lazyredraw = true
-
     -- Create new list view window
     local new_win = window.create_list_view({ transparent = config.transparent })
     window.mount(new_win)
@@ -570,14 +504,8 @@ function M.show_port_forwards()
     -- Use lifecycle-aware push
     lifecycle.push_view(view_state, M._setup_keymaps)
 
-    -- Immediately render to avoid empty buffer flash
-    if view_state.render then
-      view_state.render(view_state, new_win)
-    end
-
-    -- Restore lazyredraw and force a single redraw
-    vim.o.lazyredraw = lazyredraw_was
-    vim.cmd("redraw")
+    -- Render immediately
+    render.render()
   end
 
   if not state.get_window() then

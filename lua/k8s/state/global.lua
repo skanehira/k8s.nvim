@@ -31,7 +31,7 @@ function M.get()
     current_namespace = state.current_namespace,
     setup_done = state.setup_done,
     config = state.config and vim.deepcopy(state.config) or nil,
-    view_stack = state.view_stack,  -- Keep reference to original stack
+    view_stack = state.view_stack, -- Keep reference to original stack
     window = state.window,
   }
 end

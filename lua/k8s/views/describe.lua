@@ -94,6 +94,9 @@ function M._render(view, win, kind)
     end
 
     window.set_lines(content_bufnr, lines)
+
+    -- Apply YAML syntax highlighting
+    vim.bo[content_bufnr].filetype = "yaml"
   end
 
   -- Update footer

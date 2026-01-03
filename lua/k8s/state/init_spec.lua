@@ -4,10 +4,10 @@ describe("state", function()
   local state
 
   before_each(function()
-    package.loaded["k8s.state.init"] = nil
+    package.loaded["k8s.state"] = nil
     package.loaded["k8s.state.global"] = nil
     package.loaded["k8s.state.view"] = nil
-    state = require("k8s.state.init")
+    state = require("k8s.state")
     state.reset()
   end)
 
