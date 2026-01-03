@@ -15,6 +15,7 @@ local M = {}
 ---| "node_list"
 ---| "namespace_list"
 ---| "application_list"
+---| "statefulset_list"
 ---| "port_forward_list"
 ---| "pod_describe"
 ---| "deployment_describe"
@@ -24,6 +25,7 @@ local M = {}
 ---| "node_describe"
 ---| "namespace_describe"
 ---| "application_describe"
+---| "statefulset_describe"
 ---| "help"
 
 -- Mapping from view type to kind
@@ -36,6 +38,7 @@ local type_to_kind = {
   node_list = "Node",
   namespace_list = "Namespace",
   application_list = "Application",
+  statefulset_list = "StatefulSet",
   pod_describe = "Pod",
   deployment_describe = "Deployment",
   service_describe = "Service",
@@ -44,6 +47,7 @@ local type_to_kind = {
   node_describe = "Node",
   namespace_describe = "Namespace",
   application_describe = "Application",
+  statefulset_describe = "StatefulSet",
 }
 
 -- List view types
@@ -56,6 +60,7 @@ local list_types = {
   node_list = true,
   namespace_list = true,
   application_list = true,
+  statefulset_list = true,
   port_forward_list = true,
 }
 
@@ -69,6 +74,7 @@ local describe_types = {
   node_describe = true,
   namespace_describe = true,
   application_describe = true,
+  statefulset_describe = true,
 }
 
 -- =============================================================================

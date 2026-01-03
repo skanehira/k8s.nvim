@@ -131,6 +131,7 @@ function M.get_kind_from_view_type(view_type)
     node = "Node",
     namespace = "Namespace",
     application = "Application",
+    statefulset = "StatefulSet",
   }
 
   -- Extract prefix (e.g., "pod" from "pod_list")

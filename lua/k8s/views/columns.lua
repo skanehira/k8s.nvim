@@ -65,6 +65,12 @@ local column_definitions = {
     { key = "health_status", header = "HEALTH" },
     { key = "age", header = "AGE" },
   },
+  StatefulSet = {
+    { key = "name", header = "NAME" },
+    { key = "namespace", header = "NAMESPACE" },
+    { key = "ready", header = "READY" },
+    { key = "age", header = "AGE" },
+  },
   PortForward = {
     { key = "local_port", header = "LOCAL" },
     { key = "remote_port", header = "REMOTE" },
@@ -253,6 +259,12 @@ function M.extract_row(resource)
     local status = raw.status or {}
     row.sync_status = status.sync and status.sync.status or "Unknown"
     row.health_status = status.health and status.health.status or "Unknown"
+  elseif kind == "StatefulSet" then
+    local status = raw.status or {}
+    local spec = raw.spec or {}
+    local ready = status.readyReplicas or 0
+    local desired = spec.replicas or 0
+    row.ready = string.format("%d/%d", ready, desired)
   end
 
   return row
@@ -268,6 +280,7 @@ local status_column_keys = {
   Node = "status",
   Namespace = "status",
   Application = "sync_status",
+  StatefulSet = "ready",
   PortForward = "status",
 }
 

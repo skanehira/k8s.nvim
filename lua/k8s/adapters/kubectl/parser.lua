@@ -98,6 +98,10 @@ local function get_status(item, kind)
   elseif kind == "Application" then
     local sync = item.status and item.status.sync and item.status.sync.status or "Unknown"
     return sync
+  elseif kind == "StatefulSet" then
+    local ready = item.status and item.status.readyReplicas or 0
+    local desired = item.spec and item.spec.replicas or 0
+    return string.format("%d/%d", ready, desired)
   else
     return "Active"
   end

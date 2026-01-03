@@ -138,8 +138,8 @@ default_namespace~
                                                    *k8s-config-default_kind*
 default_kind~
   Default resource kind to display. Default: "Pod".
-  Available values: "Pod", "Deployment", "Service", "ConfigMap", "Secret",
-  "Node", "Namespace", "Application".
+  Available values: "Pod", "Deployment", "StatefulSet", "Service", "ConfigMap",
+  "Secret", "Node", "Namespace", "Application".
 
                                                     *k8s-config-transparent*
 transparent~
@@ -244,14 +244,15 @@ HELP VIEW                                                *k8s-keymaps-help*
 
 Supported Kubernetes resources and their available actions:
 
-  Resource    exec  logs  scale  restart  port_forward  delete~
-  Pod          x     x      -       -         x           x
-  Deployment   -     -      x       x         x           x
-  Service      -     -      -       -         x           x
-  ConfigMap    -     -      -       -         -           x
-  Secret       -     -      -       -         -           x
-  Node         -     -      -       -         -           -
-  Namespace    -     -      -       -         -           -
+  Resource     exec  logs  scale  restart  port_forward  delete~
+  Pod           x     x      -       -         x           x
+  Deployment    -     -      x       x         x           x
+  StatefulSet   -     -      x       x         x           x
+  Service       -     -      -       -         x           x
+  ConfigMap     -     -      -       -         -           x
+  Secret        -     -      -       -         -           x
+  Node          -     -      -       -         -           -
+  Namespace     -     -      -       -         -           -
 
 ==============================================================================
 vim:tw=78:ts=8:ft=help:norl:

@@ -187,6 +187,7 @@ end
 local resource_types = {
   { text = "Pods", value = "Pod" },
   { text = "Deployments", value = "Deployment" },
+  { text = "StatefulSets", value = "StatefulSet" },
   { text = "Services", value = "Service" },
   { text = "ConfigMaps", value = "ConfigMap" },
   { text = "Secrets", value = "Secret" },
