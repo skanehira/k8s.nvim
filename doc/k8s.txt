@@ -139,7 +139,7 @@ default_namespace~
 default_kind~
   Default resource kind to display. Default: "Pod".
   Available values: "Pod", "Deployment", "Service", "ConfigMap", "Secret",
-  "Node", "Namespace".
+  "Node", "Namespace", "Application".
 
                                                     *k8s-config-transparent*
 transparent~

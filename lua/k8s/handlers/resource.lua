@@ -1,6 +1,6 @@
 --- resource.lua - リソースの機能定義
 
----@alias K8sResourceKind "Pod"|"Deployment"|"Service"|"ConfigMap"|"Secret"|"Node"|"Namespace"
+---@alias K8sResourceKind "Pod"|"Deployment"|"Service"|"ConfigMap"|"Secret"|"Node"|"Namespace"|"Application"
 
 ---@class ResourceCapabilities
 ---@field exec boolean
@@ -9,6 +9,8 @@
 ---@field restart boolean
 ---@field port_forward boolean
 ---@field delete boolean
+---@field filter boolean
+---@field refresh boolean
 
 local M = {}
 
@@ -21,6 +23,8 @@ local capabilities_map = {
     restart = false,
     port_forward = true,
     delete = true,
+    filter = true,
+    refresh = true,
   },
   Deployment = {
     exec = false,
@@ -29,6 +33,8 @@ local capabilities_map = {
     restart = true,
     port_forward = true,
     delete = true,
+    filter = true,
+    refresh = true,
   },
   Service = {
     exec = false,
@@ -37,6 +43,8 @@ local capabilities_map = {
     restart = false,
     port_forward = true,
     delete = true,
+    filter = true,
+    refresh = true,
   },
   ConfigMap = {
     exec = false,
@@ -45,6 +53,8 @@ local capabilities_map = {
     restart = false,
     port_forward = false,
     delete = true,
+    filter = true,
+    refresh = true,
   },
   Secret = {
     exec = false,
@@ -53,6 +63,8 @@ local capabilities_map = {
     restart = false,
     port_forward = false,
     delete = true,
+    filter = true,
+    refresh = true,
   },
   Node = {
     exec = false,
@@ -61,6 +73,8 @@ local capabilities_map = {
     restart = false,
     port_forward = false,
     delete = false,
+    filter = true,
+    refresh = true,
   },
   Namespace = {
     exec = false,
@@ -69,6 +83,18 @@ local capabilities_map = {
     restart = false,
     port_forward = false,
     delete = true,
+    filter = true,
+    refresh = true,
+  },
+  Application = {
+    exec = false,
+    logs = false,
+    scale = false,
+    restart = false,
+    port_forward = false,
+    delete = false,
+    filter = true,
+    refresh = false,
   },
 }
 
@@ -79,6 +105,8 @@ local default_capabilities = {
   restart = false,
   port_forward = false,
   delete = false,
+  filter = true,
+  refresh = true,
 }
 
 ---Get capabilities for a resource kind

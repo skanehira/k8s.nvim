@@ -9,15 +9,22 @@ local status_highlights = {
   Completed = "K8sStatusRunning",
   Active = "K8sStatusRunning",
   Ready = "K8sStatusRunning",
+  Synced = "K8sStatusRunning",
+  Healthy = "K8sStatusRunning",
   -- 黄（待機中）
   Pending = "K8sStatusPending",
   Waiting = "K8sStatusPending",
   ContainerCreating = "K8sStatusPending",
+  OutOfSync = "K8sStatusPending",
+  Progressing = "K8sStatusPending",
+  Suspended = "K8sStatusPending",
   -- 赤（エラー）
   Error = "K8sStatusError",
   Failed = "K8sStatusError",
   CrashLoopBackOff = "K8sStatusError",
   Terminating = "K8sStatusError",
+  Degraded = "K8sStatusError",
+  Missing = "K8sStatusError",
 }
 
 ---Calculate column widths based on header and data

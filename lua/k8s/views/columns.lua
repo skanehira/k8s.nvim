@@ -58,6 +58,13 @@ local column_definitions = {
     { key = "status", header = "STATUS" },
     { key = "age", header = "AGE" },
   },
+  Application = {
+    { key = "name", header = "NAME" },
+    { key = "namespace", header = "NAMESPACE" },
+    { key = "sync_status", header = "SYNC" },
+    { key = "health_status", header = "HEALTH" },
+    { key = "age", header = "AGE" },
+  },
   PortForward = {
     { key = "local_port", header = "LOCAL" },
     { key = "remote_port", header = "REMOTE" },
@@ -242,6 +249,10 @@ function M.extract_row(resource)
   elseif kind == "Namespace" then
     local status = raw.status or {}
     row.status = status.phase or resource.status
+  elseif kind == "Application" then
+    local status = raw.status or {}
+    row.sync_status = status.sync and status.sync.status or "Unknown"
+    row.health_status = status.health and status.health.status or "Unknown"
   end
 
   return row
@@ -256,6 +267,7 @@ local status_column_keys = {
   Secret = "status",
   Node = "status",
   Namespace = "status",
+  Application = "sync_status",
   PortForward = "status",
 }
 

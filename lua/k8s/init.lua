@@ -12,6 +12,7 @@ local command_to_kind = {
   secrets = "Secret",
   nodes = "Node",
   namespaces = "Namespace",
+  applications = "Application",
   portforwards = "PortForward",
 }
 

@@ -19,6 +19,8 @@ local resource_capability_actions = {
   restart = "restart",
   port_forward = "port_forward",
   delete = "delete",
+  filter = "filter",
+  refresh = "refresh",
 }
 
 -- Actions allowed for each view type (base)
@@ -128,6 +130,7 @@ function M.get_kind_from_view_type(view_type)
     secret = "Secret",
     node = "Node",
     namespace = "Namespace",
+    application = "Application",
   }
 
   -- Extract prefix (e.g., "pod" from "pod_list")

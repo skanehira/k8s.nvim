@@ -95,6 +95,9 @@ local function get_status(item, kind)
       end
     end
     return "Unknown"
+  elseif kind == "Application" then
+    local sync = item.status and item.status.sync and item.status.sync.status or "Unknown"
+    return sync
   else
     return "Active"
   end

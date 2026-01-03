@@ -16,6 +16,7 @@ local subcommands = {
   "secrets",
   "nodes",
   "namespaces",
+  "applications",
   "portforwards",
   "context",
   "namespace",

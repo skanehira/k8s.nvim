@@ -192,6 +192,7 @@ local resource_types = {
   { text = "Secrets", value = "Secret" },
   { text = "Nodes", value = "Node" },
   { text = "Namespaces", value = "Namespace" },
+  { text = "Applications", value = "Application" },
 }
 
 ---Get resource menu items
