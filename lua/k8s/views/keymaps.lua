@@ -21,7 +21,7 @@ local resource_capability_actions = {
   delete = "delete",
 }
 
--- Actions allowed for each view type
+-- Actions allowed for each view type (base)
 local view_allowed_actions = {
   list = {
     describe = true,
@@ -66,78 +66,11 @@ local view_allowed_actions = {
 }
 
 -- Footer keymaps for each view type (displayed in footer)
-local footer_keymaps_def = {
-  list = {
-    { key = "d", action = "describe", desc = "Describe" },
-    { key = "l", action = "logs", desc = "Logs" },
-    { key = "D", action = "delete", desc = "Delete" },
-    { key = "/", action = "filter", desc = "Filter" },
-    { key = "r", action = "refresh", desc = "Refresh" },
-    { key = "?", action = "help", desc = "Help" },
-    { key = "q", action = "quit", desc = "Hide" },
-  },
-  describe = {
-    { key = "<C-h>", action = "back", desc = "Back" },
-    { key = "?", action = "help", desc = "Help" },
-    { key = "q", action = "quit", desc = "Hide" },
-  },
-  port_forward_list = {
-    { key = "D", action = "stop", desc = "Stop" },
-    { key = "<C-h>", action = "back", desc = "Back" },
-    { key = "q", action = "quit", desc = "Hide" },
-  },
-  help = {
-    { key = "<C-h>", action = "back", desc = "Back" },
-    { key = "q", action = "quit", desc = "Hide" },
-  },
-}
-
--- All keymaps for list view (used for keymap setup and help)
-local list_keymaps = {
-  { key = "<CR>", action = "select", desc = "Select" },
-  { key = "d", action = "describe", desc = "Describe" },
-  { key = "l", action = "logs", desc = "Logs" },
-  { key = "P", action = "logs_previous", desc = "PrevLogs" },
-  { key = "e", action = "exec", desc = "Exec" },
-  { key = "p", action = "port_forward", desc = "PortFwd" },
-  { key = "F", action = "port_forward_list", desc = "PortFwdList" },
-  { key = "D", action = "delete", desc = "Delete" },
-  { key = "s", action = "scale", desc = "Scale" },
-  { key = "X", action = "restart", desc = "Restart" },
-  { key = "r", action = "refresh", desc = "Refresh" },
-  { key = "/", action = "filter", desc = "Filter" },
-  { key = "R", action = "resource_menu", desc = "Resources" },
-  { key = "C", action = "context_menu", desc = "Context" },
-  { key = "N", action = "namespace_menu", desc = "Namespace" },
-  { key = "?", action = "help", desc = "Help" },
-  { key = "q", action = "quit", desc = "Hide" },
-  { key = "<C-c>", action = "close", desc = "Close" },
-  { key = "<C-h>", action = "back", desc = "Back" },
-}
-
--- Keymaps for describe view
-local describe_keymaps = {
-  { key = "S", action = "toggle_secret", desc = "ToggleSecret" },
-  { key = "?", action = "help", desc = "Help" },
-  { key = "q", action = "quit", desc = "Hide" },
-  { key = "<C-c>", action = "close", desc = "Close" },
-  { key = "<C-h>", action = "back", desc = "Back" },
-}
-
--- Port forward list view keymaps
-local port_forward_list_keymaps = {
-  { key = "D", action = "stop", desc = "Stop" },
-  { key = "?", action = "help", desc = "Help" },
-  { key = "q", action = "quit", desc = "Hide" },
-  { key = "<C-c>", action = "close", desc = "Close" },
-  { key = "<C-h>", action = "back", desc = "Back" },
-}
-
--- Help view keymaps
-local help_keymaps = {
-  { key = "q", action = "quit", desc = "Hide" },
-  { key = "<C-c>", action = "close", desc = "Close" },
-  { key = "<C-h>", action = "back", desc = "Back" },
+local footer_actions = {
+  list = { "describe", "logs", "delete", "filter", "refresh", "help", "quit" },
+  describe = { "back", "help", "quit" },
+  port_forward_list = { "stop", "back", "quit" },
+  help = { "back", "quit" },
 }
 
 -- Actions that require a resource to be selected
@@ -152,6 +85,19 @@ local resource_required_actions = {
   scale = true,
   restart = true,
 }
+
+---Get keymaps config from state
+---@return table
+local function get_keymaps_config()
+  local state = require("k8s.state")
+  local config = state.get_config()
+  if config and config.keymaps then
+    return config.keymaps
+  end
+  -- Fallback to default config
+  local config_mod = require("k8s.config")
+  return config_mod.get_defaults().keymaps
+end
 
 ---Get base view type from view_type string
 ---@param view_type string View type (e.g., "pod_list", "pod_describe")
@@ -224,41 +170,70 @@ function M.is_action_allowed(view_type, action)
   return allowed and allowed[action] == true
 end
 
+---Build keymap definitions from config
+---@param base_type string Base view type ("list", "describe", etc.)
+---@param kind string|nil Resource kind for capability filtering
+---@return KeymapDef[]
+local function build_keymaps_from_config(base_type, kind)
+  local keymaps_config = get_keymaps_config()
+  local global = keymaps_config.global or {}
+  local view_specific = keymaps_config[base_type] or {}
+
+  local result = {}
+
+  -- Add view-specific keymaps first
+  for action, def in pairs(view_specific) do
+    if is_action_allowed_for_kind(action, kind) then
+      table.insert(result, {
+        key = def.key,
+        action = action,
+        desc = def.desc,
+      })
+    end
+  end
+
+  -- Add global keymaps
+  for action, def in pairs(global) do
+    -- Skip help key for help view
+    if base_type == "help" and action == "help" then
+      goto continue
+    end
+    table.insert(result, {
+      key = def.key,
+      action = action,
+      desc = def.desc,
+    })
+    ::continue::
+  end
+
+  return result
+end
+
 ---Get keymaps for a view type
 ---@param view_type string View type (e.g., "pod_list", "pod_describe")
 ---@return KeymapDef[]
 function M.get_keymaps(view_type)
   local base_type = M.get_base_view_type(view_type)
+  local kind = nil
 
-  if base_type == "port_forward_list" then
-    return port_forward_list_keymaps
-  elseif base_type == "describe" then
-    -- Only include toggle_secret for secret_describe
-    if view_type == "secret_describe" then
-      return describe_keymaps
-    else
-      -- Return describe keymaps without toggle_secret
-      local filtered = {}
-      for _, km in ipairs(describe_keymaps) do
-        if km.action ~= "toggle_secret" then
-          table.insert(filtered, km)
-        end
+  if base_type == "list" then
+    kind = M.get_kind_from_view_type(view_type)
+  end
+
+  local keymaps = build_keymaps_from_config(base_type, kind)
+
+  -- Special handling for describe view: only include toggle_secret for secret_describe
+  if base_type == "describe" and view_type ~= "secret_describe" then
+    local filtered = {}
+    for _, km in ipairs(keymaps) do
+      if km.action ~= "toggle_secret" then
+        table.insert(filtered, km)
       end
-      return filtered
     end
-  elseif base_type == "help" then
-    return help_keymaps
+    return filtered
   end
 
-  -- For list views, filter keymaps based on resource capabilities
-  local kind = M.get_kind_from_view_type(view_type)
-  local filtered = {}
-  for _, km in ipairs(list_keymaps) do
-    if is_action_allowed_for_kind(km.action, kind) then
-      table.insert(filtered, km)
-    end
-  end
-  return filtered
+  return keymaps
 end
 
 ---Get action name for a key in a specific view type
@@ -287,21 +262,46 @@ end
 ---@return { key: string, action: string }[]
 function M.get_footer_keymaps(view_type)
   local base_type = M.get_base_view_type(view_type)
-  local keymaps = footer_keymaps_def[base_type] or footer_keymaps_def.list
+  local keymaps_config = get_keymaps_config()
+  local global = keymaps_config.global or {}
+  local view_specific = keymaps_config[base_type] or {}
+  local actions = footer_actions[base_type] or footer_actions.list
 
-  -- For list views, filter based on resource capabilities
   local kind = nil
   if base_type == "list" then
     kind = M.get_kind_from_view_type(view_type)
   end
 
   local result = {}
+  for _, action in ipairs(actions) do
+    -- Check capability for resource actions
+    if not is_action_allowed_for_kind(action, kind) then
+      goto continue
+    end
+
+    -- Get keymap definition
+    local def = view_specific[action] or global[action]
+    if def then
+      table.insert(result, { key = def.key, action = def.desc })
+    end
+    ::continue::
+  end
+
+  return result
+end
+
+---Get key for an action in a view type
+---@param view_type string View type
+---@param action string Action name
+---@return string|nil key Key sequence or nil
+function M.get_key_for_action(view_type, action)
+  local keymaps = M.get_keymaps(view_type)
   for _, km in ipairs(keymaps) do
-    if is_action_allowed_for_kind(km.action, kind) then
-      table.insert(result, { key = km.key, action = km.desc })
+    if km.action == action then
+      return km.key
     end
   end
-  return result
+  return nil
 end
 
 return M

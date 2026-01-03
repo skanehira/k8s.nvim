@@ -7,7 +7,6 @@ describe("config", function()
     it("should return default configuration", function()
       local defaults = config.get_defaults()
 
-      assert.equals(5000, defaults.refresh_interval)
       assert.equals(30000, defaults.timeout)
       assert.equals("default", defaults.default_namespace)
       assert.equals("Pod", defaults.default_kind)
@@ -15,12 +14,40 @@ describe("config", function()
       assert(defaults.keymaps)
     end)
 
+    it("should return keymaps with view-specific structure", function()
+      local defaults = config.get_defaults()
+
+      -- Check global keymaps
+      assert(defaults.keymaps.global)
+      assert.equals("q", defaults.keymaps.global.quit.key)
+      assert.equals("<C-c>", defaults.keymaps.global.close.key)
+      assert.equals("<C-h>", defaults.keymaps.global.back.key)
+      assert.equals("?", defaults.keymaps.global.help.key)
+
+      -- Check list keymaps
+      assert(defaults.keymaps.list)
+      assert.equals("d", defaults.keymaps.list.describe.key)
+      assert.equals("D", defaults.keymaps.list.delete.key)
+      assert.equals("l", defaults.keymaps.list.logs.key)
+
+      -- Check describe keymaps
+      assert(defaults.keymaps.describe)
+      assert.equals("S", defaults.keymaps.describe.toggle_secret.key)
+
+      -- Check port_forward_list keymaps
+      assert(defaults.keymaps.port_forward_list)
+      assert.equals("D", defaults.keymaps.port_forward_list.stop.key)
+
+      -- Check help keymaps (empty, only uses common)
+      assert(defaults.keymaps.help)
+    end)
+
     it("should return a copy of defaults", function()
       local defaults1 = config.get_defaults()
       local defaults2 = config.get_defaults()
 
-      defaults1.refresh_interval = 9999
-      assert.equals(5000, defaults2.refresh_interval)
+      defaults1.timeout = 9999
+      assert.equals(30000, defaults2.timeout)
     end)
   end)
 
@@ -28,28 +55,50 @@ describe("config", function()
     it("should return defaults when no user config", function()
       local merged = config.merge(nil)
 
-      assert.equals(5000, merged.refresh_interval)
+      assert.equals(30000, merged.timeout)
     end)
 
     it("should merge user config with defaults", function()
       local merged = config.merge({
-        refresh_interval = 10000,
+        timeout = 60000,
       })
 
-      assert.equals(10000, merged.refresh_interval)
-      assert.equals(30000, merged.timeout) -- default preserved
+      assert.equals(60000, merged.timeout)
+      assert.equals("default", merged.default_namespace) -- default preserved
     end)
 
-    it("should deep merge nested config", function()
+    it("should deep merge view-specific keymaps", function()
       local merged = config.merge({
         keymaps = {
-          describe = { key = "K", desc = "Custom describe" },
+          list = {
+            describe = { key = "K", desc = "Custom describe" },
+          },
         },
       })
 
-      assert.equals("K", merged.keymaps.describe.key)
-      assert.equals("Custom describe", merged.keymaps.describe.desc)
-      assert.equals("D", merged.keymaps.delete.key) -- default preserved
+      -- Custom keymap applied
+      assert.equals("K", merged.keymaps.list.describe.key)
+      assert.equals("Custom describe", merged.keymaps.list.describe.desc)
+
+      -- Other keymaps preserved
+      assert.equals("D", merged.keymaps.list.delete.key)
+      assert.equals("q", merged.keymaps.global.quit.key)
+    end)
+
+    it("should deep merge global keymaps", function()
+      local merged = config.merge({
+        keymaps = {
+          global = {
+            quit = { key = "Q", desc = "Custom quit" },
+          },
+        },
+      })
+
+      -- Custom keymap applied
+      assert.equals("Q", merged.keymaps.global.quit.key)
+
+      -- Other global keymaps preserved
+      assert.equals("<C-c>", merged.keymaps.global.close.key)
     end)
   end)
 
@@ -61,19 +110,8 @@ describe("config", function()
       assert.is_nil(err)
     end)
 
-    it("should return false when refresh_interval is too low", function()
-      local valid, err = config.validate({
-        refresh_interval = 100,
-        timeout = 30000,
-      })
-
-      assert.is_false(valid)
-      assert.equals("refresh_interval must be a number >= 500", err)
-    end)
-
     it("should return false when timeout is too low", function()
       local valid, err = config.validate({
-        refresh_interval = 5000,
         timeout = 500,
       })
 

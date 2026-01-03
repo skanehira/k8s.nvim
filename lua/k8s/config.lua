@@ -2,33 +2,47 @@
 
 local M = {}
 
--- Default keymaps (action -> { key, desc })
+-- Default keymaps per view type
 local default_keymaps = {
-  describe = { key = "d", desc = "Describe resource" },
-  delete = { key = "D", desc = "Delete resource" },
-  logs = { key = "l", desc = "View logs" },
-  logs_previous = { key = "P", desc = "Previous logs" },
-  exec = { key = "e", desc = "Execute shell" },
-  scale = { key = "s", desc = "Scale resource" },
-  restart = { key = "X", desc = "Restart resource" },
-  port_forward = { key = "p", desc = "Port forward" },
-  port_forward_list = { key = "F", desc = "Port forwards list" },
-  filter = { key = "/", desc = "Filter" },
-  refresh = { key = "r", desc = "Refresh" },
-  resource_menu = { key = "R", desc = "Resources" },
-  context_menu = { key = "C", desc = "Context" },
-  namespace_menu = { key = "N", desc = "Namespace" },
-  toggle_secret = { key = "S", desc = "Toggle secret" },
-  help = { key = "?", desc = "Help" },
-  quit = { key = "q", desc = "Hide" },
-  close = { key = "<C-c>", desc = "Close" },
-  back = { key = "<C-h>", desc = "Back" },
-  select = { key = "<CR>", desc = "Select" },
+  -- Global keymaps (shared across views)
+  global = {
+    quit = { key = "q", desc = "Hide" },
+    close = { key = "<C-c>", desc = "Close" },
+    back = { key = "<C-h>", desc = "Back" },
+    help = { key = "?", desc = "Help" },
+  },
+  -- List view keymaps
+  list = {
+    select = { key = "<CR>", desc = "Select" },
+    describe = { key = "d", desc = "Describe" },
+    delete = { key = "D", desc = "Delete" },
+    logs = { key = "l", desc = "Logs" },
+    logs_previous = { key = "P", desc = "PrevLogs" },
+    exec = { key = "e", desc = "Exec" },
+    scale = { key = "s", desc = "Scale" },
+    restart = { key = "X", desc = "Restart" },
+    port_forward = { key = "p", desc = "PortFwd" },
+    port_forward_list = { key = "F", desc = "PortFwdList" },
+    filter = { key = "/", desc = "Filter" },
+    refresh = { key = "r", desc = "Refresh" },
+    resource_menu = { key = "R", desc = "Resources" },
+    context_menu = { key = "C", desc = "Context" },
+    namespace_menu = { key = "N", desc = "Namespace" },
+  },
+  -- Describe view keymaps
+  describe = {
+    toggle_secret = { key = "S", desc = "ToggleSecret" },
+  },
+  -- Port forward list view keymaps
+  port_forward_list = {
+    stop = { key = "D", desc = "Stop" },
+  },
+  -- Help view keymaps (only navigation, no help key)
+  help = {},
 }
 
 -- Default configuration
 local defaults = {
-  refresh_interval = 5000, -- 5 seconds
   timeout = 30000, -- 30 seconds
   default_namespace = "default",
   default_kind = "Pod",
@@ -73,10 +87,6 @@ end
 ---@return boolean valid
 ---@return string|nil error
 function M.validate(cfg)
-  if type(cfg.refresh_interval) ~= "number" or cfg.refresh_interval < 500 then
-    return false, "refresh_interval must be a number >= 500"
-  end
-
   if type(cfg.timeout) ~= "number" or cfg.timeout < 1000 then
     return false, "timeout must be a number >= 1000"
   end
