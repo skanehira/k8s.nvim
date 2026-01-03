@@ -12,7 +12,7 @@ local table_component = require("k8s.ui.components.table")
 -- =============================================================================
 
 ---Create a list view with lifecycle callbacks
----@param kind string Resource kind (e.g., "Pod", "Deployment")
+---@param kind K8sResourceKind Resource kind (e.g., "Pod", "Deployment")
 ---@param opts? { window?: table }
 ---@return ViewState
 function M.create_view(kind, opts)
@@ -38,9 +38,9 @@ function M.create_view(kind, opts)
 end
 
 ---Called when view is mounted (shown)
----@param _view ViewState (unused, but required for lifecycle interface)
----@param kind string
-function M._on_mounted(_view, kind)
+---@param _ ViewState (unused, but required for lifecycle interface)
+---@param kind K8sResourceKind
+function M._on_mounted(_, kind)
   local watcher = require("k8s.handlers.watcher")
   local state = require("k8s.state")
 
@@ -56,8 +56,8 @@ function M._on_mounted(_view, kind)
 end
 
 ---Called when view is unmounted (hidden)
----@param _view ViewState (unused, but required for lifecycle interface)
-function M._on_unmounted(_view)
+---@param _ ViewState (unused, but required for lifecycle interface)
+function M._on_unmounted(_)
   local watcher = require("k8s.handlers.watcher")
   watcher.stop()
 end
@@ -65,7 +65,7 @@ end
 ---Render the list view
 ---@param view ViewState
 ---@param win table Window reference
----@param kind string
+---@param kind K8sResourceKind
 function M._render(view, win, kind)
   local window = require("k8s.ui.nui.window")
   local state = require("k8s.state")
@@ -158,10 +158,12 @@ end
 ---@field row_count number Number of rows rendered
 ---@field header_line string Header line content
 ---@field data_lines string[] Data line contents
+---@field columns table[] Column definitions
+---@field rows table[] Row data
 
 ---Prepare list view content for rendering
 ---@param resources table[] Resources to render
----@param kind string Resource kind (e.g., "Pod", "Deployment")
+---@param kind K8sResourceKind Resource kind (e.g., "Pod", "Deployment")
 ---@return ListRenderResult
 function M.prepare_content(resources, kind)
   -- Get columns for this kind
@@ -187,7 +189,7 @@ function M.prepare_content(resources, kind)
 end
 
 ---Get status highlights for rows
----@param kind string Resource kind
+---@param kind K8sResourceKind Resource kind
 ---@param rows table[] Row data
 ---@param widths number[] Column widths
 ---@return { row: number, start_col: number, end_col: number, hl_group: string }[]

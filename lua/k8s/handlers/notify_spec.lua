@@ -11,6 +11,7 @@ describe("notify", function()
     original_notify = vim.notify
     captured_msg = nil
     captured_level = nil
+    ---@diagnostic disable-next-line: duplicate-set-field
     vim.notify = function(msg, level)
       captured_msg = msg
       captured_level = level

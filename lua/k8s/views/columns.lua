@@ -74,7 +74,7 @@ local default_columns = {
 }
 
 ---Get columns for a resource kind
----@param kind string Resource kind
+---@param kind K8sResourceKind Resource kind
 ---@return Column[]
 function M.get_columns(kind)
   return column_definitions[kind] or default_columns
@@ -260,7 +260,7 @@ local status_column_keys = {
 }
 
 ---Get the key of the column used for status highlighting
----@param kind string Resource kind
+---@param kind K8sResourceKind Resource kind
 ---@return string key Column key for status
 function M.get_status_column_key(kind)
   return status_column_keys[kind] or "status"

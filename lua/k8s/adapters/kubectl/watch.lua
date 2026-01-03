@@ -17,7 +17,7 @@ function M._reset_job_starter()
 end
 
 ---Build kubectl watch command
----@param kind string
+---@param kind string kubectl resource name (e.g., "pods", "deployments")
 ---@param namespace string
 ---@return string[]
 local function build_watch_cmd(kind, namespace)
@@ -40,7 +40,7 @@ end
 ---@field on_started? fun() Called when watch process starts
 
 ---Start watching resources
----@param kind string
+---@param kind string kubectl resource name (e.g., "pods", "deployments")
 ---@param namespace string
 ---@param callbacks WatchCallbacks
 ---@return number|nil job_id

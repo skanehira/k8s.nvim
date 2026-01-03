@@ -12,21 +12,21 @@ describe("render", function()
   describe("render", function()
     it("should accept mode option", function()
       -- Should not error when called with mode option
-      assert.has_no.errors(function()
+      assert.has.no.errors(function()
         render.render({ mode = "immediate" })
       end)
     end)
 
     it("should accept debounced mode option", function()
       -- Should not error when called with debounced mode
-      assert.has_no.errors(function()
+      assert.has.no.errors(function()
         render.render({ mode = "debounced" })
       end)
     end)
 
     it("should default to immediate mode", function()
       -- Should not error when called without options
-      assert.has_no.errors(function()
+      assert.has.no.errors(function()
         render.render()
       end)
     end)

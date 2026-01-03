@@ -75,7 +75,7 @@ end
 
 ---Get status from resource based on kind
 ---@param item table
----@param kind string
+---@param kind string Resource kind from external JSON (may not be K8sResourceKind)
 ---@return string
 local function get_status(item, kind)
   if kind == "Pod" then

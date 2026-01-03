@@ -2,6 +2,8 @@
 
 local list = require("k8s.views.list")
 
+---@diagnostic disable: duplicate-set-field
+
 describe("list", function()
   describe("filter_resources", function()
     it("should return all resources when filter is nil", function()
@@ -193,10 +195,10 @@ describe("list", function()
       cursor_pos = nil
 
       -- Mock window functions
-      window.get_table_header_bufnr = function(_win)
+      window.get_table_header_bufnr = function(_)
         return 1
       end
-      window.get_content_bufnr = function(_win)
+      window.get_content_bufnr = function(_)
         return 2
       end
       window.set_lines = function(bufnr, lines)
@@ -206,10 +208,10 @@ describe("list", function()
           rendered_lines = lines
         end
       end
-      window.add_highlight = function(_bufnr, _hl_group, _row, _start_col, _end_col)
+      window.add_highlight = function(_, _, _, _, _)
         -- Mock highlight
       end
-      window.set_cursor = function(_win, row, _col)
+      window.set_cursor = function(_, row, _)
         cursor_pos = row
       end
 

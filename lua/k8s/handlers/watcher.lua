@@ -18,7 +18,7 @@ local function debug_log(msg)
 end
 
 ---Start watching resources for the current view
----@param kind string Resource kind (e.g., "Pod", "Deployment")
+---@param kind K8sResourceKind Resource kind (e.g., "Pod", "Deployment")
 ---@param namespace string Namespace
 ---@param callbacks? { on_started?: function }
 ---@return number|nil job_id
@@ -73,7 +73,7 @@ function M.start(kind, namespace, callbacks)
       -- Clear watcher job_id from state
       local current_view = state.get_current_view()
       if current_view and current_view.watcher_job_id then
-        state.set_watcher_job_id(nil)
+        state.clear_watcher_job_id()
       end
     end,
     on_started = callbacks.on_started,
@@ -91,7 +91,7 @@ function M.stop()
   local current_view = state.get_current_view()
   if current_view and current_view.watcher_job_id then
     watch_adapter.stop(current_view.watcher_job_id)
-    state.set_watcher_job_id(nil)
+    state.clear_watcher_job_id()
   end
 end
 

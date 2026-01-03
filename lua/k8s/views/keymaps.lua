@@ -140,7 +140,7 @@ end
 
 ---Check if an action is allowed for a specific resource kind
 ---@param action string Action name
----@param kind string|nil Resource kind
+---@param kind K8sResourceKind|nil Resource kind
 ---@return boolean
 local function is_action_allowed_for_kind(action, kind)
   local capability = resource_capability_actions[action]
@@ -172,7 +172,7 @@ end
 
 ---Build keymap definitions from config
 ---@param base_type string Base view type ("list", "describe", etc.)
----@param kind string|nil Resource kind for capability filtering
+---@param kind K8sResourceKind|nil Resource kind for capability filtering
 ---@return KeymapDef[]
 local function build_keymaps_from_config(base_type, kind)
   local keymaps_config = get_keymaps_config()

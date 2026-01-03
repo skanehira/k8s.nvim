@@ -39,7 +39,7 @@ describe("watcher", function()
     it("should call watch_adapter.watch with correct parameters", function()
       local captured_kind = nil
       local captured_namespace = nil
-      watch_adapter.watch = function(kind, namespace, _opts)
+      watch_adapter.watch = function(kind, namespace, _)
         captured_kind = kind
         captured_namespace = namespace
         return 12345
@@ -55,7 +55,7 @@ describe("watcher", function()
     end)
 
     it("should set watcher job_id in state", function()
-      watch_adapter.watch = function(_kind, _namespace, _opts)
+      watch_adapter.watch = function(_, _, _)
         return 12345
       end
 
@@ -69,7 +69,7 @@ describe("watcher", function()
     end)
 
     it("should return job_id", function()
-      watch_adapter.watch = function(_kind, _namespace, _opts)
+      watch_adapter.watch = function(_, _, _)
         return 99999
       end
 
@@ -82,7 +82,7 @@ describe("watcher", function()
 
     it("should call on_started callback", function()
       local on_started_called = false
-      watch_adapter.watch = function(_kind, _namespace, opts)
+      watch_adapter.watch = function(_, _, opts)
         if opts.on_started then
           opts.on_started()
         end
@@ -104,7 +104,7 @@ describe("watcher", function()
   describe("stop", function()
     it("should call watch_adapter.stop with job_id", function()
       local stopped_job_id = nil
-      watch_adapter.watch = function(_kind, _namespace, _opts)
+      watch_adapter.watch = function(_, _, _)
         return 12345
       end
       watch_adapter.stop = function(job_id)
@@ -120,10 +120,10 @@ describe("watcher", function()
     end)
 
     it("should clear watcher job_id from state", function()
-      watch_adapter.watch = function(_kind, _namespace, _opts)
+      watch_adapter.watch = function(_, _, _)
         return 12345
       end
-      watch_adapter.stop = function(_job_id) end
+      watch_adapter.stop = function(_) end
 
       state.push_view({ type = "pod_list", resources = {} })
       watcher.start("Pod", "default", {})
@@ -136,7 +136,7 @@ describe("watcher", function()
     end)
 
     it("should not error when no watcher is running", function()
-      watch_adapter.stop = function(_job_id) end
+      watch_adapter.stop = function(_) end
 
       state.push_view({ type = "pod_list", resources = {} })
 
@@ -149,11 +149,11 @@ describe("watcher", function()
     it("should stop and start watcher", function()
       local stop_called = false
       local start_kind = nil
-      watch_adapter.watch = function(kind, _namespace, _opts)
+      watch_adapter.watch = function(kind, _, _)
         start_kind = kind
         return 12345
       end
-      watch_adapter.stop = function(_job_id)
+      watch_adapter.stop = function(_)
         stop_called = true
       end
 
@@ -168,11 +168,11 @@ describe("watcher", function()
 
     it("should not start watcher when no current view", function()
       local watch_called = false
-      watch_adapter.watch = function(_kind, _namespace, _opts)
+      watch_adapter.watch = function(_, _, _)
         watch_called = true
         return 12345
       end
-      watch_adapter.stop = function(_job_id) end
+      watch_adapter.stop = function(_) end
 
       -- No view pushed
 

@@ -579,8 +579,7 @@ end
 
 ---Resize window to fit current screen size
 ---@param win K8sWindow
----@param _opts? { transparent?: boolean }
-function M.resize(win, _opts)
+function M.resize(win)
   if not win.mounted then
     return
   end

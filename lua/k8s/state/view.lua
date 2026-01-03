@@ -91,14 +91,14 @@ function M.is_describe_type(view_type)
 end
 
 ---Get list view type from kind
----@param kind string e.g., "Pod"
+---@param kind K8sResourceKind e.g., "Pod"
 ---@return ViewType
 function M.get_list_type_from_kind(kind)
   return string.lower(kind) .. "_list"
 end
 
 ---Get describe view type from kind
----@param kind string e.g., "Pod"
+---@param kind K8sResourceKind e.g., "Pod"
 ---@return ViewType
 function M.get_describe_type_from_kind(kind)
   return string.lower(kind) .. "_describe"
@@ -121,7 +121,10 @@ end
 ---@field resource table|nil Describe view only
 ---@field describe_output string|nil Describe view only
 ---@field mask_secrets boolean|nil secret_describe only
+---@field secret_data table<string, string>|nil secret_describe only
 ---@field parent_cursor number|nil Cursor position in parent view
+---@field help_content string[]|nil help view only
+---@field parent_type string|nil help view only
 
 ---Create a new list view state
 ---@param view_type ViewType

@@ -10,7 +10,7 @@ local resource_mod = require("k8s.handlers.resource")
 
 ---Format action result message
 ---@param action_type string
----@param kind string
+---@param kind K8sResourceKind
 ---@param name string
 ---@param success boolean
 ---@param error_msg? string
@@ -28,21 +28,21 @@ function M.format_result(action_type, kind, name, success, error_msg)
 end
 
 ---Validate if resource can be deleted
----@param kind string
+---@param kind K8sResourceKind
 ---@return boolean
 function M.can_delete(kind)
   return resource_mod.can_perform(kind, "delete")
 end
 
 ---Validate if resource can be scaled
----@param kind string
+---@param kind K8sResourceKind
 ---@return boolean
 function M.can_scale(kind)
   return resource_mod.can_perform(kind, "scale")
 end
 
 ---Validate if resource can be restarted
----@param kind string
+---@param kind K8sResourceKind
 ---@return boolean
 function M.can_restart(kind)
   return resource_mod.can_perform(kind, "restart")
@@ -53,7 +53,7 @@ end
 -- =============================================================================
 
 ---Validate if resource supports pod actions (logs, exec)
----@param kind string
+---@param kind K8sResourceKind
 ---@return boolean
 function M.is_pod(kind)
   return kind == "Pod"

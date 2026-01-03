@@ -22,7 +22,7 @@ end
 
 ---Show notification for action result
 ---@param action_type string
----@param kind string
+---@param kind K8sResourceKind
 ---@param name string
 ---@param success boolean
 ---@param error_msg? string

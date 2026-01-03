@@ -1,5 +1,7 @@
 --- resource.lua - リソースの機能定義
 
+---@alias K8sResourceKind "Pod"|"Deployment"|"Service"|"ConfigMap"|"Secret"|"Node"|"Namespace"
+
 ---@class ResourceCapabilities
 ---@field exec boolean
 ---@field logs boolean
@@ -10,7 +12,7 @@
 
 local M = {}
 
----@type table<string, ResourceCapabilities>
+---@type table<K8sResourceKind, ResourceCapabilities>
 local capabilities_map = {
   Pod = {
     exec = true,
@@ -80,14 +82,14 @@ local default_capabilities = {
 }
 
 ---Get capabilities for a resource kind
----@param kind string
+---@param kind K8sResourceKind
 ---@return ResourceCapabilities
 function M.capabilities(kind)
   return capabilities_map[kind] or default_capabilities
 end
 
 ---Check if a resource kind can perform an action
----@param kind string
+---@param kind K8sResourceKind
 ---@param action string
 ---@return boolean
 function M.can_perform(kind, action)

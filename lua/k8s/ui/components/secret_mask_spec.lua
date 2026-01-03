@@ -53,7 +53,7 @@ describe("secret_mask", function()
         "username:  5 bytes",
       }
 
-      local result = secret_mask.inject_secret_values(lines, nil)
+      local result = secret_mask.inject_secret_values(lines, {})
 
       assert.same(lines, result)
     end)

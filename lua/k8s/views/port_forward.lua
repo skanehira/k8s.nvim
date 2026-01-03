@@ -35,23 +35,23 @@ function M.create_view(opts)
 end
 
 ---Called when view is mounted (shown)
----@param _view ViewState (unused, but required for lifecycle interface)
-function M._on_mounted(_view)
+---@param _ ViewState (unused, but required for lifecycle interface)
+function M._on_mounted(_)
   -- Port forward list doesn't need watcher
   local state = require("k8s.state")
   state.notify()
 end
 
 ---Called when view is unmounted (hidden)
----@param _view ViewState (unused, but required for lifecycle interface)
-function M._on_unmounted(_view)
+---@param _ ViewState (unused, but required for lifecycle interface)
+function M._on_unmounted(_)
   -- No cleanup needed for port forward list
 end
 
 ---Render the port forward list view
----@param _view ViewState (unused, connections are global)
+---@param _ ViewState (unused, connections are global)
 ---@param win table Window reference
-function M._render(_view, win)
+function M._render(_, win)
   local window = require("k8s.ui.nui.window")
   local state = require("k8s.state")
   local connections = require("k8s.handlers.connections")

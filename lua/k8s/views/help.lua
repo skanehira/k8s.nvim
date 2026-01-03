@@ -43,16 +43,16 @@ function M.create_view(parent_type, opts)
 end
 
 ---Called when view is mounted (shown)
----@param _view ViewState (unused, but required for lifecycle interface)
-function M._on_mounted(_view)
+---@param _ ViewState (unused, but required for lifecycle interface)
+function M._on_mounted(_)
   -- Help view doesn't need watcher
   local state = require("k8s.state")
   state.notify()
 end
 
 ---Called when view is unmounted (hidden)
----@param _view ViewState (unused, but required for lifecycle interface)
-function M._on_unmounted(_view)
+---@param _ ViewState (unused, but required for lifecycle interface)
+function M._on_unmounted(_)
   -- No cleanup needed for help view
 end
 

@@ -6,7 +6,6 @@ describe("k8s.nvim E2E", function()
   local watch_adapter
 
   -- Mock buffers for window sections
-  local mock_buffers = {}
   local mock_buffer_lines = {}
   local mock_buffer_id = 100
 
@@ -27,7 +26,6 @@ describe("k8s.nvim E2E", function()
     -- Create actual buffers
     for _, bufnr in ipairs({ header_bufnr, table_header_bufnr, content_bufnr, footer_bufnr }) do
       vim.api.nvim_create_buf(false, true)
-      mock_buffers[bufnr] = true
       mock_buffer_lines[bufnr] = {}
     end
 
@@ -57,16 +55,15 @@ describe("k8s.nvim E2E", function()
     package.loaded["k8s.views.keymaps"] = nil
 
     -- Reset mock state
-    mock_buffers = {}
     mock_buffer_lines = {}
     mock_buffer_id = 100
 
     -- Create mock window module BEFORE loading k8s
     package.loaded["k8s.ui.nui.window"] = {
-      create_list_view = function(_opts)
+      create_list_view = function(_)
         return create_mock_window()
       end,
-      create_detail_view = function(_opts)
+      create_detail_view = function(_)
         return create_mock_window()
       end,
       mount = function(win)
@@ -75,10 +72,10 @@ describe("k8s.nvim E2E", function()
       unmount = function(win)
         win.mounted = false
       end,
-      hide = function(_win) end,
-      show = function(_win) end,
-      hide_table_header = function(_win) end,
-      show_table_header = function(_win) end,
+      hide = function(_) end,
+      show = function(_) end,
+      hide_table_header = function(_) end,
+      show_table_header = function(_) end,
       is_mounted = function(win)
         return win and win.mounted == true
       end,
@@ -97,15 +94,15 @@ describe("k8s.nvim E2E", function()
       get_footer_bufnr = function(win)
         return win and win.footer and win.footer.bufnr
       end,
-      set_cursor = function(_win, _row, _col) end,
-      get_cursor = function(_win)
+      set_cursor = function(_, _, _) end,
+      get_cursor = function(_)
         return 1, 0
       end,
       set_lines = function(bufnr, lines)
         mock_buffer_lines[bufnr] = lines
       end,
-      add_highlight = function(_bufnr, _hl_group, _row, _start_col, _end_col) end,
-      map_key = function(_win, _key, _callback, _opts) end,
+      add_highlight = function(_, _, _, _, _) end,
+      map_key = function(_, _, _, _) end,
     }
 
     -- Load state module
@@ -114,7 +111,7 @@ describe("k8s.nvim E2E", function()
 
     -- Setup watch adapter mock
     watch_adapter = require("k8s.adapters.kubectl.watch")
-    watch_adapter._set_job_starter(function(_cmd, opts)
+    watch_adapter._set_job_starter(function(_, opts)
       -- Simulate job started and emit events
       vim.schedule(function()
         if opts.on_stdout then

@@ -120,7 +120,7 @@ local function run_async(cmd, on_success, callback)
 end
 
 ---Get resources from kubectl
----@param kind string
+---@param kind string kubectl resource name (e.g., "pods", "deployments")
 ---@param namespace string
 ---@param callback fun(result: K8sResult)
 function M.get_resources(kind, namespace, callback)
@@ -129,7 +129,7 @@ function M.get_resources(kind, namespace, callback)
 end
 
 ---Describe a resource
----@param kind string
+---@param kind string kubectl resource name (e.g., "pods", "deployments")
 ---@param name string
 ---@param namespace string
 ---@param callback fun(result: K8sResult)
@@ -175,7 +175,7 @@ local function void_result(_)
 end
 
 ---Delete a resource
----@param kind string
+---@param kind string kubectl resource name (e.g., "pods", "deployments")
 ---@param name string
 ---@param namespace string
 ---@param callback fun(result: K8sResult)
@@ -185,7 +185,7 @@ function M.delete(kind, name, namespace, callback)
 end
 
 ---Scale a resource
----@param kind string
+---@param kind string kubectl resource name (e.g., "deployments")
 ---@param name string
 ---@param namespace string
 ---@param replicas number
@@ -196,7 +196,7 @@ function M.scale(kind, name, namespace, replicas, callback)
 end
 
 ---Restart a resource (rolling restart)
----@param kind string
+---@param kind string kubectl resource name (e.g., "deployments")
 ---@param name string
 ---@param namespace string
 ---@param callback fun(result: K8sResult)

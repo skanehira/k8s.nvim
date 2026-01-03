@@ -10,7 +10,7 @@ local buffer = require("k8s.ui.nui.buffer")
 -- =============================================================================
 
 ---Create a describe view with lifecycle callbacks
----@param kind string Resource kind (e.g., "Pod", "Deployment")
+---@param kind K8sResourceKind Resource kind (e.g., "Pod", "Deployment")
 ---@param resource table Target resource
 ---@param opts? { window?: table, describe_output?: string }
 ---@return ViewState
@@ -42,8 +42,8 @@ function M.create_view(kind, resource, opts)
 end
 
 ---Called when view is mounted (shown)
----@param _view ViewState (unused, but required for lifecycle interface)
-function M._on_mounted(_view)
+---@param _ ViewState (unused, but required for lifecycle interface)
+function M._on_mounted(_)
   -- Describe view doesn't need watcher
   -- Just trigger render
   local state = require("k8s.state")
@@ -51,15 +51,15 @@ function M._on_mounted(_view)
 end
 
 ---Called when view is unmounted (hidden)
----@param _view ViewState (unused, but required for lifecycle interface)
-function M._on_unmounted(_view)
+---@param _ ViewState (unused, but required for lifecycle interface)
+function M._on_unmounted(_)
   -- No cleanup needed for describe view
 end
 
 ---Render the describe view
 ---@param view ViewState
 ---@param win table Window reference
----@param kind string
+---@param kind K8sResourceKind
 function M._render(view, win, kind)
   local window = require("k8s.ui.nui.window")
   local state = require("k8s.state")

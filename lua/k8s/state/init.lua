@@ -305,6 +305,20 @@ function M.set_watcher_job_id(job_id)
   end)
 end
 
+---Clear watcher job_id in current view
+function M.clear_watcher_job_id()
+  global.update(function(state)
+    if #state.view_stack == 0 then
+      return state
+    end
+    local new_stack = vim.list_extend({}, state.view_stack)
+    local current = new_stack[#new_stack]
+    current.watcher_job_id = nil
+    new_stack[#new_stack] = current
+    return vim.tbl_extend("force", state, { view_stack = new_stack })
+  end)
+end
+
 -- =============================================================================
 -- Utility
 -- =============================================================================
