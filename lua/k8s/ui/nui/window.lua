@@ -577,4 +577,73 @@ function M.setup_close_handlers(win, on_close)
   M.map_key(win, "<C-h>", on_close, { desc = "Close" })
 end
 
+---Resize window to fit current screen size
+---@param win K8sWindow
+---@param _opts? { transparent?: boolean }
+function M.resize(win, _opts)
+  if not win.mounted then
+    return
+  end
+  local screen_width = vim.o.columns
+  local screen_height = vim.o.lines
+
+  local size = M.calculate_popup_size(screen_width, screen_height)
+  local center = M.get_center_position(screen_width, screen_height, size.width, size.height)
+
+  -- Update stored size
+  win.size = size
+
+  if win.view_type == "list" then
+    -- List view has table_header
+    local content_height = size.height - HEADER_HEIGHT - TABLE_HEADER_HEIGHT - FOOTER_HEIGHT - BORDER_ROWS
+
+    -- Update header
+    win.header:update_layout({
+      size = { width = size.width, height = HEADER_HEIGHT },
+      position = { row = center.row, col = center.col },
+    })
+
+    -- Update table_header
+    if win.table_header then
+      win.table_header:update_layout({
+        size = { width = size.width, height = TABLE_HEADER_HEIGHT },
+        position = { row = center.row + HEADER_HEIGHT + 2, col = center.col },
+      })
+    end
+
+    -- Update content
+    win.content:update_layout({
+      size = { width = size.width, height = content_height },
+      position = { row = center.row + HEADER_HEIGHT + 2 + TABLE_HEADER_HEIGHT, col = center.col },
+    })
+
+    -- Update footer
+    win.footer:update_layout({
+      size = { width = size.width, height = FOOTER_HEIGHT },
+      position = { row = center.row + HEADER_HEIGHT + 2 + TABLE_HEADER_HEIGHT + content_height + 1, col = center.col },
+    })
+  else
+    -- Detail view (no table_header)
+    local content_height = size.height - HEADER_HEIGHT - FOOTER_HEIGHT - DETAIL_BORDER_ROWS
+
+    -- Update header
+    win.header:update_layout({
+      size = { width = size.width, height = HEADER_HEIGHT },
+      position = { row = center.row, col = center.col },
+    })
+
+    -- Update content
+    win.content:update_layout({
+      size = { width = size.width, height = content_height },
+      position = { row = center.row + HEADER_HEIGHT + 2, col = center.col },
+    })
+
+    -- Update footer
+    win.footer:update_layout({
+      size = { width = size.width, height = FOOTER_HEIGHT },
+      position = { row = center.row + HEADER_HEIGHT + 2 + content_height + 1, col = center.col },
+    })
+  end
+end
+
 return M

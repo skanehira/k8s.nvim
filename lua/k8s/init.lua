@@ -132,8 +132,10 @@ function M.setup(user_config)
     vim.api.nvim_set_hl(0, name, hl)
   end
 
-  -- Setup VimLeavePre autocmd
+  -- Setup autocmds
   local group = vim.api.nvim_create_augroup("k8s_nvim", { clear = true })
+
+  -- Cleanup port forwards on exit
   vim.api.nvim_create_autocmd("VimLeavePre", {
     group = group,
     pattern = "*",
@@ -144,6 +146,24 @@ function M.setup(user_config)
         pcall(vim.fn.jobstop, conn.job_id)
       end
       connections.clear()
+    end,
+  })
+
+  -- Resize windows when screen size changes
+  vim.api.nvim_create_autocmd("VimResized", {
+    group = group,
+    pattern = "*",
+    desc = "k8s.nvim: resize windows on screen resize",
+    callback = function()
+      local window = require("k8s.ui.nui.window")
+
+      -- Resize all windows in the view stack
+      local view_stack = state.get_view_stack()
+      for _, view in ipairs(view_stack) do
+        if view.window and window.is_mounted(view.window) then
+          window.resize(view.window)
+        end
+      end
     end,
   })
 
