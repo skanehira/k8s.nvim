@@ -355,8 +355,8 @@ function M.mount(win)
   win.footer:mount()
   win.mounted = true
 
-  -- Focus on content window
-  if win.content.winid then
+  -- Focus on content window (check validity first)
+  if win.content.winid and vim.api.nvim_win_is_valid(win.content.winid) then
     vim.api.nvim_set_current_win(win.content.winid)
   end
 end
@@ -406,9 +406,25 @@ function M.show(win)
   win.content:show()
   win.footer:show()
 
-  -- Focus on content window
-  if win.content.winid then
+  -- Focus on content window (check validity first)
+  if win.content.winid and vim.api.nvim_win_is_valid(win.content.winid) then
     vim.api.nvim_set_current_win(win.content.winid)
+  end
+end
+
+---Hide table header section
+---@param win K8sWindow
+function M.hide_table_header(win)
+  if win.table_header then
+    win.table_header:hide()
+  end
+end
+
+---Show table header section
+---@param win K8sWindow
+function M.show_table_header(win)
+  if win.table_header then
+    win.table_header:show()
   end
 end
 
@@ -417,6 +433,17 @@ end
 ---@return boolean
 function M.is_mounted(win)
   return win.mounted == true
+end
+
+---Check if window buffers are valid
+---@param win K8sWindow
+---@return boolean
+function M.has_valid_buffers(win)
+  local content_bufnr = M.get_content_bufnr(win)
+  if not content_bufnr or not vim.api.nvim_buf_is_valid(content_bufnr) then
+    return false
+  end
+  return true
 end
 
 ---Check if window is visible (mounted and winid is valid)
@@ -530,7 +557,7 @@ end
 function M.map_key(win, key, callback, opts)
   opts = opts or {}
   local bufnr = M.get_content_bufnr(win)
-  if not bufnr then
+  if not bufnr or not vim.api.nvim_buf_is_valid(bufnr) then
     return
   end
 

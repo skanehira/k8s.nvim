@@ -5,6 +5,35 @@ if vim.g.loaded_k8s then
 end
 vim.g.loaded_k8s = true
 
+-- Subcommands for completion
+local subcommands = {
+  "open",
+  "close",
+  "pods",
+  "deployments",
+  "services",
+  "configmaps",
+  "secrets",
+  "nodes",
+  "namespaces",
+  "portforwards",
+  "context",
+  "namespace",
+}
+
+---Completion function
+---@param lead string
+---@return string[]
+local function complete(lead)
+  local results = {}
+  for _, cmd in ipairs(subcommands) do
+    if cmd:find("^" .. lead) then
+      table.insert(results, cmd)
+    end
+  end
+  return results
+end
+
 -- Create user command
 vim.api.nvim_create_user_command("K8s", function(opts)
   local k8s = require("k8s")
@@ -28,10 +57,9 @@ vim.api.nvim_create_user_command("K8s", function(opts)
 end, {
   nargs = "*",
   complete = function(_, line)
-    local plugin = require("k8s.plugin")
     local args = vim.split(line, "%s+")
     local lead = args[#args] or ""
-    return plugin.complete(lead)
+    return complete(lead)
   end,
   desc = "Kubernetes resource manager",
 })

@@ -9,6 +9,10 @@ vim.opt.rtp:append(nui_path)
 -- Add the plugin itself
 vim.opt.rtp:append(".")
 
+-- Add nui.nvim to Lua package.path
+package.path = package.path .. ";" .. nui_path .. "/lua/?.lua"
+package.path = package.path .. ";" .. nui_path .. "/lua/?/init.lua"
+
 -- Disable swap files
 vim.opt.swapfile = false
 
