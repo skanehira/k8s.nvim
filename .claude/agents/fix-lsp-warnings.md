@@ -1,11 +1,12 @@
 ---
 name: fix-lsp-warnings
 description: builtin LSPを使用してLua/Neovimプロジェクトの警告を検出し修正します。実装後の品質チェックとして使用します。型エラー、未定義変数、重複定義などの警告を自動修正します。
+tools: Read, Grep, Glob, Edit, Bash
 ---
 
-# LSP警告修正
+# LSP警告修正サブエージェント
 
-Neovim builtin LSP（lua_ls）を使用してLuaコードの警告を検出し、修正するスキル。
+Neovim builtin LSP（lua_ls）を使用してLuaコードの警告を検出し、修正する。
 
 ## 使用タイミング
 
@@ -22,8 +23,8 @@ Neovim builtin LSP（lua_ls）を使用してLuaコードの警告を検出し�
 ```bash
 nvim --headless \
   -c "lua require('lspconfig').lua_ls.setup{}" \
-  -c "edit lua/k8s/init.lua" \
-  -c "sleep 3" \
+  -c "lua local dirs = {'lua', 'plugin', 'tests'}; for _, dir in ipairs(dirs) do for _, f in ipairs(vim.fn.glob(dir .. '/**/*.lua', false, true)) do vim.fn.bufadd(f); vim.fn.bufload(vim.fn.bufnr(f)) end end" \
+  -c "sleep 5" \
   -c "lua vim.diagnostic.setqflist({open = false}); for _, d in ipairs(vim.fn.getqflist()) do print(vim.fn.bufname(d.bufnr) .. ':' .. d.lnum .. ': ' .. d.text) end" \
   -c "qa" 2>&1 | grep -v "deprecated\|stack traceback\|lspconfig\|\[string"
 ```
@@ -80,16 +81,7 @@ require("k8s.state")       -- OK (init.luaは自動解決される)
 
 ### ステップ3: 修正の確認
 
-修正後、再度LSPチェックを実行して警告がなくなったことを確認：
-
-```bash
-nvim --headless \
-  -c "lua require('lspconfig').lua_ls.setup{}" \
-  -c "edit lua/k8s/init.lua" \
-  -c "sleep 3" \
-  -c "lua vim.diagnostic.setqflist({open = false}); for _, d in ipairs(vim.fn.getqflist()) do print(vim.fn.bufname(d.bufnr) .. ':' .. d.lnum .. ': ' .. d.text) end" \
-  -c "qa" 2>&1 | grep -v "deprecated\|stack traceback\|lspconfig\|\[string"
-```
+修正後、再度LSPチェックを実行して警告がなくなったことを確認（ステップ1と同じコマンドを使用）。
 
 ### ステップ4: テスト実行
 
