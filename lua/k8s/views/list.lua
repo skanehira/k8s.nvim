@@ -88,6 +88,7 @@ function M._render(view, win, kind)
       filter = view.filter,
     })
     window.set_lines(header_bufnr, { header_content })
+    window.add_highlight(header_bufnr, "K8sHeader", 0, 0, #header_content)
   end
 
   -- Get current cursor position before re-rendering
@@ -107,6 +108,7 @@ function M._render(view, win, kind)
     local footer_keymaps = keymaps.get_footer_keymaps(view.type)
     local footer_content = buffer.create_footer_content(footer_keymaps)
     window.set_lines(footer_bufnr, { footer_content })
+    window.add_highlight(footer_bufnr, "K8sFooter", 0, 0, #footer_content)
   end
 end
 
@@ -245,6 +247,7 @@ function M.render(win, opts)
   local table_header_bufnr = window.get_table_header_bufnr(win)
   if table_header_bufnr then
     window.set_lines(table_header_bufnr, { content.header_line })
+    window.add_highlight(table_header_bufnr, "K8sTableHeader", 0, 0, #content.header_line)
   end
 
   -- Render table content
