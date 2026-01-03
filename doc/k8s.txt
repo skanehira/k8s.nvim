@@ -90,7 +90,17 @@ Call `require("k8s").setup()` with optional configuration: >lua
         describe = { key = "d", desc = "Describe" },
         delete = { key = "D", desc = "Delete" },
         logs = { key = "l", desc = "Logs" },
-        -- ... (see README for full list)
+        logs_previous = { key = "P", desc = "PrevLogs" },
+        exec = { key = "e", desc = "Exec" },
+        scale = { key = "s", desc = "Scale" },
+        restart = { key = "X", desc = "Restart" },
+        port_forward = { key = "p", desc = "PortFwd" },
+        port_forward_list = { key = "F", desc = "PortFwdList" },
+        filter = { key = "/", desc = "Filter" },
+        refresh = { key = "r", desc = "Refresh" },
+        resource_menu = { key = "R", desc = "Resources" },
+        context_menu = { key = "C", desc = "Context" },
+        namespace_menu = { key = "N", desc = "Namespace" },
       },
       -- Describe view keymaps
       describe = {
@@ -128,6 +138,8 @@ default_namespace~
                                                    *k8s-config-default_kind*
 default_kind~
   Default resource kind to display. Default: "Pod".
+  Available values: "Pod", "Deployment", "Service", "ConfigMap", "Secret",
+  "Node", "Namespace".
 
                                                     *k8s-config-transparent*
 transparent~
