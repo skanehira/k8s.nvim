@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-このファイルは Claude Code がこのリポジトリを扱う際のガイダンスを提供する。
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 ## プロジェクト概要
 
@@ -12,6 +12,9 @@ k8s.nvim は Neovim 用の Kubernetes リソース管理プラグイン。NuiPop
 make test          # 全テスト実行
 make lint          # luacheck によるリント
 make format        # stylua によるフォーマット
+
+# 単一テスト実行
+nvim --headless -u tests/minimal_init.lua -c "PlenaryBustedFile lua/k8s/path/to/file_spec.lua"
 ```
 
 ## アーキテクチャ
@@ -34,6 +37,8 @@ lua/k8s/
 │   ├── keymaps.lua          # キーマップ定義
 │   └── columns.lua          # カラム定義
 ├── handlers/                # ビジネスロジック
+│   ├── render.lua           # 集約された描画管理
+│   ├── lifecycle.lua        # View lifecycle管理
 │   ├── actions.lua          # アクション定義
 │   ├── resource.lua         # リソース capabilities
 │   ├── watcher.lua          # kubectl watch 管理
@@ -41,7 +46,7 @@ lua/k8s/
 │   └── notify.lua           # 通知
 ├── adapters/kubectl/        # kubectl アダプター
 │   ├── adapter.lua          # kubectl コマンド実行
-│   ├── watch_adapter.lua    # kubectl watch
+│   ├── watch.lua            # kubectl watch
 │   └── parser.lua           # JSON パース
 └── ui/                      # UI コンポーネント
     ├── nui/                  # NuiPopup ラッパー
@@ -67,63 +72,6 @@ lua/k8s/
 - `on_unmounted`: View が非表示になったとき（watcher 停止など）
 - `render`: 状態変更時の描画
 
-## 描画システム
-
-### 描画フロー
-
-```
-状態変更 → state.notify() → debounced render (100ms) → view.render()
-```
-
-1. watcher がリソース変更を検知
-2. `state.add_resource()` / `state.update_resource()` で状態更新
-3. `state.notify()` でリスナーに通知
-4. デバウンスされた `_render()` が 100ms 後に実行
-5. 現在の View の `render()` が呼ばれ、バッファに描画
-
-### 画面遷移時の描画
-
-画面遷移（push/pop）時は特別な処理が必要：
-
-```lua
--- 1. 中間描画を抑制
-local lazyredraw_was = vim.o.lazyredraw
-vim.o.lazyredraw = true
-
--- 2. window 操作
-window.mount(new_win)
-
--- 3. lifecycle 処理
-M._push_view_with_lifecycle(view_state)
-
--- 4. 即時 render（デバウンスをバイパス）
-if view_state.render then
-  view_state.render(view_state, new_win)
-end
-
--- 5. 一度だけ redraw
-vim.o.lazyredraw = lazyredraw_was
-vim.cmd("redraw")
-```
-
-**理由**: window mount 後、デバウンスされた render が実行されるまでの間に空のバッファが見えてしまう（チラツキ）。`lazyredraw` で中間描画を抑制し、即時 render してから一度だけ `redraw` することで解決。
-
-### pop 時の render 順序
-
-戻る操作では、show する前に render する必要がある：
-
-```lua
--- OK: render してから show
-if prev_view.render then
-  prev_view.render(prev_view, prev_win)
-end
-window.show(prev_win)
-
--- NG: 古いコンテンツが見える
-window.show(prev_win)
-prev_view.render(prev_view, prev_win)
-```
-
 ### Window 構成
 
 各 Window は 4 つのセクション（NuiPopup）で構成：
@@ -138,6 +86,54 @@ prev_view.render(prev_view, prev_win)
 ├─────────────────────────────────┤
 │ Footer (キーマップヒント)        │
 └─────────────────────────────────┘
+```
+
+## 描画システム
+
+すべての描画は `handlers/render.lua` を通じて行われる：
+
+```lua
+-- Watcher更新時（デバウンス付き、100ms）
+render.render({ mode = "debounced" })
+
+-- View遷移時（即時）
+render.render()
+```
+
+### 描画フロー
+
+```
+状態変更 → state.notify() → render.render({ mode = "debounced" }) → view.render()
+```
+
+1. watcher がリソース変更を検知
+2. `state.add_resource()` / `state.update_resource()` で状態更新
+3. `state.notify()` でリスナーに通知
+4. デバウンスされた render が 100ms 後に実行
+5. 現在の View の `render()` が呼ばれ、バッファに描画
+
+### View遷移時の描画
+
+View遷移（push/pop）時は即時描画：
+
+```lua
+-- state を更新してから render.render() を呼ぶ
+state.push_view(new_view)
+render.render()  -- 即時描画
+```
+
+### pop 時の render 順序
+
+戻る操作では、show する前に render する必要がある：
+
+```lua
+-- OK: render してから show
+render.render()
+window.show(prev_win)
+
+-- NG: 古いコンテンツが見える
+window.show(prev_win)
+render.render()
 ```
 
 ## 状態管理
@@ -241,4 +237,17 @@ assert.equals(123, conn.job_id)
 local conn = connections.get(123)
 assert.is.Not.Nil(conn)
 assert.equals(123, conn.job_id)  -- need-check-nil warning
+```
+
+## Terminal操作
+
+`vim.fn.jobstart(..., {term=true})` は**未変更バッファ**が必要：
+
+```lua
+-- NG: 現在のバッファが変更済みだとエラー
+vim.fn.jobstart(cmd, { term = true })
+
+-- OK: 新しいタブを開いてからターミナルを起動
+vim.cmd("tabnew")
+vim.fn.jobstart(cmd, { term = true })
 ```
