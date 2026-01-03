@@ -24,6 +24,7 @@ local DEFAULT_HEIGHT_PCT = 0.8
 ---@field content any NuiPopup instance
 ---@field footer any NuiPopup instance
 ---@field mounted boolean
+---@field visible boolean
 ---@field size { width: number, height: number }
 ---@field view_type WindowLayoutType
 
@@ -354,6 +355,7 @@ function M.mount(win)
   win.content:mount()
   win.footer:mount()
   win.mounted = true
+  win.visible = true
 
   -- Focus on content window (check validity first)
   if win.content.winid and vim.api.nvim_win_is_valid(win.content.winid) then
@@ -384,6 +386,7 @@ function M.hide(win)
     return
   end
 
+  win.visible = false
   win.header:hide()
   if win.table_header then
     win.table_header:hide()
@@ -399,6 +402,7 @@ function M.show(win)
     return
   end
 
+  win.visible = true
   win.header:show()
   if win.table_header then
     win.table_header:show()
@@ -433,6 +437,13 @@ end
 ---@return boolean
 function M.is_mounted(win)
   return win.mounted == true
+end
+
+---Check if window is visible (not hidden)
+---@param win K8sWindow
+---@return boolean
+function M.is_visible(win)
+  return win.visible == true
 end
 
 ---Check if window buffers are valid

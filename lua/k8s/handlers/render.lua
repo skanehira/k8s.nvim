@@ -19,6 +19,10 @@ local function do_render()
   if not window_mod.is_mounted(win) then
     return
   end
+  -- Skip render if window is hidden (prevents race condition with debounced render)
+  if not window_mod.is_visible(win) then
+    return
+  end
   view.render(view, win)
 end
 
