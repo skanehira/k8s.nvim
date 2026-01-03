@@ -11,6 +11,7 @@ local status_highlights = {
   Ready = "K8sStatusRunning",
   Synced = "K8sStatusRunning",
   Healthy = "K8sStatusRunning",
+  Normal = "K8sStatusRunning",
   -- 黄（待機中）
   Pending = "K8sStatusPending",
   Waiting = "K8sStatusPending",
@@ -18,6 +19,7 @@ local status_highlights = {
   OutOfSync = "K8sStatusPending",
   Progressing = "K8sStatusPending",
   Suspended = "K8sStatusPending",
+  Warning = "K8sStatusPending",
   -- 赤（エラー）
   Error = "K8sStatusError",
   Failed = "K8sStatusError",

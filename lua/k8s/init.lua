@@ -8,11 +8,16 @@ local command_to_kind = {
   pods = "Pod",
   deployments = "Deployment",
   statefulsets = "StatefulSet",
+  daemonsets = "DaemonSet",
+  jobs = "Job",
+  cronjobs = "CronJob",
   services = "Service",
   configmaps = "ConfigMap",
   secrets = "Secret",
   nodes = "Node",
   namespaces = "Namespace",
+  ingresses = "Ingress",
+  events = "Event",
   applications = "Application",
   portforwards = "PortForward",
 }
@@ -66,6 +71,19 @@ end
 ---@return string|nil
 function M.get_resource_kind_from_command(cmd)
   return command_to_kind[cmd]
+end
+
+-- Reverse mapping: Kind -> resource name (e.g., "Ingress" -> "ingresses")
+local kind_to_resource = {}
+for resource, kind in pairs(command_to_kind) do
+  kind_to_resource[kind] = resource
+end
+
+---Get kubectl resource name from Kind
+---@param kind string Resource kind (e.g., "Pod", "Ingress")
+---@return string resource_name kubectl resource name (e.g., "pods", "ingresses")
+function M.get_resource_name_from_kind(kind)
+  return kind_to_resource[kind] or (string.lower(kind) .. "s")
 end
 
 ---Parse command arguments

@@ -83,6 +83,7 @@ describe("columns", function()
     end)
 
     it("should return columns for PortForward", function()
+      ---@diagnostic disable-next-line: param-type-mismatch
       local cols = columns.get_columns("PortForward")
 
       assert.equals(4, #cols)
@@ -93,6 +94,7 @@ describe("columns", function()
     end)
 
     it("should return default columns for unknown kind", function()
+      ---@diagnostic disable-next-line: param-type-mismatch
       local cols = columns.get_columns("Unknown")
 
       assert.equals(4, #cols)
@@ -403,6 +405,7 @@ describe("columns", function()
     end)
 
     it("should return status for unknown kind", function()
+      ---@diagnostic disable-next-line: param-type-mismatch
       assert.equals("status", columns.get_status_column_key("Unknown"))
     end)
   end)

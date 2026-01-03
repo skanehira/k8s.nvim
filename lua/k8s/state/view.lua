@@ -16,6 +16,11 @@ local M = {}
 ---| "namespace_list"
 ---| "application_list"
 ---| "statefulset_list"
+---| "daemonset_list"
+---| "job_list"
+---| "cronjob_list"
+---| "event_list"
+---| "ingress_list"
 ---| "port_forward_list"
 ---| "pod_describe"
 ---| "deployment_describe"
@@ -26,6 +31,11 @@ local M = {}
 ---| "namespace_describe"
 ---| "application_describe"
 ---| "statefulset_describe"
+---| "daemonset_describe"
+---| "job_describe"
+---| "cronjob_describe"
+---| "event_describe"
+---| "ingress_describe"
 ---| "help"
 
 -- Mapping from view type to kind
@@ -39,6 +49,11 @@ local type_to_kind = {
   namespace_list = "Namespace",
   application_list = "Application",
   statefulset_list = "StatefulSet",
+  daemonset_list = "DaemonSet",
+  job_list = "Job",
+  cronjob_list = "CronJob",
+  event_list = "Event",
+  ingress_list = "Ingress",
   pod_describe = "Pod",
   deployment_describe = "Deployment",
   service_describe = "Service",
@@ -48,6 +63,11 @@ local type_to_kind = {
   namespace_describe = "Namespace",
   application_describe = "Application",
   statefulset_describe = "StatefulSet",
+  daemonset_describe = "DaemonSet",
+  job_describe = "Job",
+  cronjob_describe = "CronJob",
+  event_describe = "Event",
+  ingress_describe = "Ingress",
 }
 
 -- List view types
@@ -61,6 +81,11 @@ local list_types = {
   namespace_list = true,
   application_list = true,
   statefulset_list = true,
+  daemonset_list = true,
+  job_list = true,
+  cronjob_list = true,
+  event_list = true,
+  ingress_list = true,
   port_forward_list = true,
 }
 
@@ -75,6 +100,11 @@ local describe_types = {
   namespace_describe = true,
   application_describe = true,
   statefulset_describe = true,
+  daemonset_describe = true,
+  job_describe = true,
+  cronjob_describe = true,
+  event_describe = true,
+  ingress_describe = true,
 }
 
 -- =============================================================================

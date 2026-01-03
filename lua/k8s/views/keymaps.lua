@@ -132,6 +132,11 @@ function M.get_kind_from_view_type(view_type)
     namespace = "Namespace",
     application = "Application",
     statefulset = "StatefulSet",
+    daemonset = "DaemonSet",
+    job = "Job",
+    cronjob = "CronJob",
+    event = "Event",
+    ingress = "Ingress",
   }
 
   -- Extract prefix (e.g., "pod" from "pod_list")

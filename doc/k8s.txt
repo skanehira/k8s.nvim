@@ -138,8 +138,9 @@ default_namespace~
                                                    *k8s-config-default_kind*
 default_kind~
   Default resource kind to display. Default: "Pod".
-  Available values: "Pod", "Deployment", "StatefulSet", "Service", "ConfigMap",
-  "Secret", "Node", "Namespace", "Application".
+  Available values: "Pod", "Deployment", "StatefulSet", "DaemonSet", "Job",
+  "CronJob", "Service", "ConfigMap", "Secret", "Node", "Namespace", "Ingress",
+  "Event", "Application".
 
                                                     *k8s-config-transparent*
 transparent~
@@ -248,11 +249,16 @@ Supported Kubernetes resources and their available actions:
   Pod           x     x      -       -         x           x
   Deployment    -     -      x       x         x           x
   StatefulSet   -     -      x       x         x           x
+  DaemonSet     -     -      -       x         x           x
+  Job           -     x      -       -         -           x
+  CronJob       -     -      -       -         -           x
   Service       -     -      -       -         x           x
   ConfigMap     -     -      -       -         -           x
   Secret        -     -      -       -         -           x
   Node          -     -      -       -         -           -
   Namespace     -     -      -       -         -           -
+  Ingress       -     -      -       -         -           x
+  Event         -     -      -       -         -           -
 
 ==============================================================================
 vim:tw=78:ts=8:ft=help:norl:

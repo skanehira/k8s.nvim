@@ -41,17 +41,16 @@ local function extract_kind(list_kind)
   return (list_kind:gsub("List$", ""))
 end
 
----Calculate age from creation timestamp
+---Parse ISO 8601 timestamp to os.time
 ---@param timestamp string ISO 8601 format (e.g., "2024-12-30T10:00:00Z")
----@return string
-local function calculate_age(timestamp)
+---@return number|nil
+local function parse_timestamp(timestamp)
   local pattern = "(%d+)-(%d+)-(%d+)T(%d+):(%d+):(%d+)"
   local year, month, day, hour, min, sec = timestamp:match(pattern)
   if not year then
-    return "unknown"
+    return nil
   end
-
-  local created = os.time({
+  return os.time({
     year = assert(tonumber(year)),
     month = assert(tonumber(month)),
     day = assert(tonumber(day)),
@@ -59,9 +58,12 @@ local function calculate_age(timestamp)
     min = assert(tonumber(min)),
     sec = assert(tonumber(sec)),
   })
-  local now = os.time(os.date("!*t") --[[@as osdateparam]])
-  local diff = now - created
+end
 
+---Format duration in seconds to human-readable string
+---@param diff number Duration in seconds
+---@return string
+local function format_duration(diff)
   if diff < 60 then
     return string.format("%ds", diff)
   elseif diff < 3600 then
@@ -72,6 +74,24 @@ local function calculate_age(timestamp)
     return string.format("%dd", math.floor(diff / 86400))
   end
 end
+
+---Calculate age from creation timestamp
+---@param timestamp string ISO 8601 format (e.g., "2024-12-30T10:00:00Z")
+---@return string
+local function calculate_age(timestamp)
+  local created = parse_timestamp(timestamp)
+  if not created then
+    return "unknown"
+  end
+  local now = os.time(os.date("!*t") --[[@as osdateparam]])
+  local diff = now - created
+  return format_duration(diff)
+end
+
+-- Export utility functions for reuse
+M.parse_timestamp = parse_timestamp
+M.format_duration = format_duration
+M.calculate_age = calculate_age
 
 ---Get status from resource based on kind
 ---@param item table
@@ -102,6 +122,19 @@ local function get_status(item, kind)
     local ready = item.status and item.status.readyReplicas or 0
     local desired = item.spec and item.spec.replicas or 0
     return string.format("%d/%d", ready, desired)
+  elseif kind == "DaemonSet" then
+    local ready = item.status and item.status.numberReady or 0
+    local desired = item.status and item.status.desiredNumberScheduled or 0
+    return string.format("%d/%d", ready, desired)
+  elseif kind == "Job" then
+    local succeeded = item.status and item.status.succeeded or 0
+    local completions = item.spec and item.spec.completions or 1
+    return string.format("%d/%d", succeeded, completions)
+  elseif kind == "CronJob" then
+    local active = item.status and item.status.active and #item.status.active or 0
+    return string.format("%d active", active)
+  elseif kind == "Event" then
+    return item.type or "Normal"
   else
     return "Active"
   end

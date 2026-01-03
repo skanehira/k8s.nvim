@@ -60,6 +60,7 @@ describe("resource", function()
     end)
 
     it("should return default capabilities for unknown kind", function()
+      ---@diagnostic disable-next-line: param-type-mismatch
       local caps = resource.capabilities("Unknown")
 
       assert.is_false(caps.exec)

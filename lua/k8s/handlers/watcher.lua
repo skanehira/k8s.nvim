@@ -5,6 +5,7 @@ local M = {}
 local state = require("k8s.state")
 local watch_adapter = require("k8s.adapters.kubectl.watch")
 local parser = require("k8s.adapters.kubectl.parser")
+local k8s = require("k8s")
 
 -- Debug logging (set to true to enable)
 local DEBUG = false
@@ -27,7 +28,7 @@ function M.start(kind, namespace, callbacks)
 
   debug_log("Starting watch for " .. kind .. " in " .. namespace)
 
-  local job_id = watch_adapter.watch(string.lower(kind) .. "s", namespace, {
+  local job_id = watch_adapter.watch(k8s.get_resource_name_from_kind(kind), namespace, {
     on_event = function(event_type, raw_resource)
       debug_log("Received event: " .. event_type .. " for " .. (raw_resource.kind or "unknown"))
 

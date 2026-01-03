@@ -188,11 +188,16 @@ local resource_types = {
   { text = "Pods", value = "Pod" },
   { text = "Deployments", value = "Deployment" },
   { text = "StatefulSets", value = "StatefulSet" },
+  { text = "DaemonSets", value = "DaemonSet" },
+  { text = "Jobs", value = "Job" },
+  { text = "CronJobs", value = "CronJob" },
   { text = "Services", value = "Service" },
   { text = "ConfigMaps", value = "ConfigMap" },
   { text = "Secrets", value = "Secret" },
   { text = "Nodes", value = "Node" },
   { text = "Namespaces", value = "Namespace" },
+  { text = "Ingresses", value = "Ingress" },
+  { text = "Events", value = "Event" },
   { text = "Applications", value = "Application" },
 }
 

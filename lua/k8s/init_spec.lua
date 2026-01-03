@@ -64,6 +64,24 @@ describe("k8s", function()
     end)
   end)
 
+  describe("get_resource_name_from_kind", function()
+    it("should return pods for Pod", function()
+      assert.equals("pods", k8s.get_resource_name_from_kind("Pod"))
+    end)
+
+    it("should return ingresses for Ingress", function()
+      assert.equals("ingresses", k8s.get_resource_name_from_kind("Ingress"))
+    end)
+
+    it("should return deployments for Deployment", function()
+      assert.equals("deployments", k8s.get_resource_name_from_kind("Deployment"))
+    end)
+
+    it("should fallback to kind + s for unknown kind", function()
+      assert.equals("unknowns", k8s.get_resource_name_from_kind("Unknown"))
+    end)
+  end)
+
   describe("parse_command_args", function()
     it("should return toggle for empty args", function()
       local cmd, args = k8s.parse_command_args({})

@@ -1,5 +1,7 @@
 --- columns.lua - リソースタイプごとのカラム定義
 
+local parser = require("k8s.adapters.kubectl.parser")
+
 local M = {}
 
 ---@class Column
@@ -69,6 +71,48 @@ local column_definitions = {
     { key = "name", header = "NAME" },
     { key = "namespace", header = "NAMESPACE" },
     { key = "ready", header = "READY" },
+    { key = "age", header = "AGE" },
+  },
+  DaemonSet = {
+    { key = "name", header = "NAME" },
+    { key = "namespace", header = "NAMESPACE" },
+    { key = "ready", header = "READY" },
+    { key = "available", header = "AVAILABLE" },
+    { key = "age", header = "AGE" },
+  },
+  Job = {
+    { key = "name", header = "NAME" },
+    { key = "namespace", header = "NAMESPACE" },
+    { key = "completions", header = "COMPLETIONS" },
+    { key = "duration", header = "DURATION" },
+    { key = "age", header = "AGE" },
+  },
+  CronJob = {
+    { key = "name", header = "NAME" },
+    { key = "namespace", header = "NAMESPACE" },
+    { key = "schedule", header = "SCHEDULE" },
+    { key = "suspend", header = "SUSPEND" },
+    { key = "active", header = "ACTIVE" },
+    { key = "last_schedule", header = "LAST SCHEDULE" },
+    { key = "age", header = "AGE" },
+  },
+  Event = {
+    { key = "name", header = "NAME" },
+    { key = "namespace", header = "NAMESPACE" },
+    { key = "type", header = "TYPE" },
+    { key = "reason", header = "REASON" },
+    { key = "object", header = "OBJECT" },
+    { key = "message", header = "MESSAGE" },
+    { key = "count", header = "COUNT" },
+    { key = "age", header = "AGE" },
+  },
+  Ingress = {
+    { key = "name", header = "NAME" },
+    { key = "namespace", header = "NAMESPACE" },
+    { key = "class", header = "CLASS" },
+    { key = "hosts", header = "HOSTS" },
+    { key = "address", header = "ADDRESS" },
+    { key = "ports", header = "PORTS" },
     { key = "age", header = "AGE" },
   },
   PortForward = {
@@ -213,6 +257,27 @@ local function extract_node_version(raw)
   return "<unknown>"
 end
 
+---Calculate Job duration from start and end timestamps
+---@param start_time string ISO 8601 format
+---@param end_time string ISO 8601 format
+---@return string duration Formatted duration string
+local function calculate_job_duration(start_time, end_time)
+  local start_ts = parser.parse_timestamp(start_time)
+  local end_ts = parser.parse_timestamp(end_time)
+  if not start_ts or not end_ts then
+    return "<unknown>"
+  end
+  local diff = end_ts - start_ts
+
+  if diff < 60 then
+    return string.format("%ds", diff)
+  elseif diff < 3600 then
+    return string.format("%dm%ds", math.floor(diff / 60), diff % 60)
+  else
+    return string.format("%dh%dm", math.floor(diff / 3600), math.floor((diff % 3600) / 60))
+  end
+end
+
 ---Extract row data from resource
 ---@param resource table Resource with kind, name, namespace, status, age, raw
 ---@return table row Row data with keys matching column definitions
@@ -265,6 +330,83 @@ function M.extract_row(resource)
     local ready = status.readyReplicas or 0
     local desired = spec.replicas or 0
     row.ready = string.format("%d/%d", ready, desired)
+  elseif kind == "DaemonSet" then
+    local status = raw.status or {}
+    local ready = status.numberReady or 0
+    local desired = status.desiredNumberScheduled or 0
+    row.ready = string.format("%d/%d", ready, desired)
+    row.available = status.numberAvailable or 0
+  elseif kind == "Job" then
+    local status = raw.status or {}
+    local spec = raw.spec or {}
+    local succeeded = status.succeeded or 0
+    local completions = spec.completions or 1
+    row.completions = string.format("%d/%d", succeeded, completions)
+    -- Calculate duration
+    if status.startTime and status.completionTime then
+      local start_time = status.startTime
+      local end_time = status.completionTime
+      row.duration = calculate_job_duration(start_time, end_time)
+    elseif status.startTime then
+      row.duration = "Running"
+    else
+      row.duration = "-"
+    end
+  elseif kind == "CronJob" then
+    local status = raw.status or {}
+    local spec = raw.spec or {}
+    row.schedule = spec.schedule or "<none>"
+    row.suspend = spec.suspend and "True" or "False"
+    row.active = status.active and #status.active or 0
+    -- Last schedule time
+    if status.lastScheduleTime then
+      row.last_schedule = parser.calculate_age(status.lastScheduleTime)
+    else
+      row.last_schedule = "<none>"
+    end
+  elseif kind == "Ingress" then
+    local spec = raw.spec or {}
+    local status = raw.status or {}
+    -- IngressClassName
+    row.class = spec.ingressClassName or "<none>"
+    -- Hosts
+    local hosts = {}
+    if spec.rules then
+      for _, rule in ipairs(spec.rules) do
+        if rule.host then
+          table.insert(hosts, rule.host)
+        end
+      end
+    end
+    row.hosts = #hosts > 0 and table.concat(hosts, ",") or "*"
+    -- Address (from LoadBalancer status)
+    local lb = status.loadBalancer or {}
+    local ingress_list = lb.ingress or {}
+    if #ingress_list > 0 then
+      local addr = ingress_list[1].ip or ingress_list[1].hostname or ""
+      row.address = addr ~= "" and addr or "<none>"
+    else
+      row.address = "<none>"
+    end
+    -- Ports (check if TLS is configured)
+    local has_tls = spec.tls and #spec.tls > 0
+    row.ports = has_tls and "80, 443" or "80"
+  elseif kind == "Event" then
+    row.type = raw.type or "Normal"
+    row.reason = raw.reason or ""
+    -- Build object reference (kind/name)
+    local involved = raw.involvedObject or {}
+    local obj_kind = involved.kind or ""
+    local obj_name = involved.name or ""
+    row.object = obj_kind ~= "" and obj_name ~= "" and string.format("%s/%s", obj_kind, obj_name) or "<none>"
+    -- Truncate message if too long
+    local msg = raw.message or ""
+    if #msg > 50 then
+      row.message = msg:sub(1, 47) .. "..."
+    else
+      row.message = msg
+    end
+    row.count = raw.count or 1
   end
 
   return row
@@ -281,6 +423,11 @@ local status_column_keys = {
   Namespace = "status",
   Application = "sync_status",
   StatefulSet = "ready",
+  DaemonSet = "ready",
+  Job = "completions",
+  CronJob = "schedule",
+  Event = "type",
+  Ingress = "class",
   PortForward = "status",
 }
 
