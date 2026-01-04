@@ -18,13 +18,17 @@ local function debug_log(msg)
   end
 end
 
+---@class WatcherStartOptions
+---@field on_started? function Called when watch starts
+---@field field_selector? string Field selector for filtering
+
 ---Start watching resources for the current view
 ---@param kind K8sResourceKind Resource kind (e.g., "Pod", "Deployment")
 ---@param namespace string Namespace
----@param callbacks? { on_started?: function }
+---@param opts? WatcherStartOptions
 ---@return number|nil job_id
-function M.start(kind, namespace, callbacks)
-  callbacks = callbacks or {}
+function M.start(kind, namespace, opts)
+  opts = opts or {}
 
   debug_log("Starting watch for " .. kind .. " in " .. namespace)
 
@@ -77,8 +81,8 @@ function M.start(kind, namespace, callbacks)
         state.clear_watcher_job_id()
       end
     end,
-    on_started = callbacks.on_started,
-  })
+    on_started = opts.on_started,
+  }, { field_selector = opts.field_selector })
 
   if job_id then
     state.set_watcher_job_id(job_id)
@@ -97,8 +101,8 @@ function M.stop()
 end
 
 ---Restart watcher for the current view
----@param callbacks? { on_started?: function }
-function M.restart(callbacks)
+---@param opts? WatcherStartOptions
+function M.restart(opts)
   M.stop()
 
   local current_view = state.get_current_view()
@@ -111,8 +115,14 @@ function M.restart(callbacks)
     return
   end
 
+  -- Merge opts with view's field_selector (view's field_selector takes precedence for restart)
+  opts = opts or {}
+  if current_view.field_selector and not opts.field_selector then
+    opts.field_selector = current_view.field_selector
+  end
+
   local namespace = state.get_namespace()
-  M.start(kind, namespace, callbacks)
+  M.start(kind, namespace, opts)
 end
 
 return M

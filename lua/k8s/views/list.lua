@@ -13,7 +13,7 @@ local table_component = require("k8s.ui.components.table")
 
 ---Create a list view with lifecycle callbacks
 ---@param kind K8sResourceKind Resource kind (e.g., "Pod", "Deployment")
----@param opts? { window?: table }
+---@param opts? { window?: table, field_selector?: string }
 ---@return ViewState
 function M.create_view(kind, opts)
   opts = opts or {}
@@ -23,8 +23,9 @@ function M.create_view(kind, opts)
   -- Create view state with lifecycle callbacks
   local view_state = view_module.create_list_state(view_type, {
     window = opts.window,
+    field_selector = opts.field_selector,
     on_mounted = function(view)
-      M._on_mounted(view, kind)
+      M._on_mounted(view, kind, opts.field_selector)
     end,
     on_unmounted = function(view)
       M._on_unmounted(view)
@@ -40,7 +41,8 @@ end
 ---Called when view is mounted (shown)
 ---@param _ ViewState (unused, but required for lifecycle interface)
 ---@param kind K8sResourceKind
-function M._on_mounted(_, kind)
+---@param field_selector? string
+function M._on_mounted(_, kind, field_selector)
   local watcher = require("k8s.handlers.watcher")
   local state = require("k8s.state")
 
@@ -52,6 +54,7 @@ function M._on_mounted(_, kind)
     on_started = function()
       state.notify()
     end,
+    field_selector = field_selector,
   })
 end
 

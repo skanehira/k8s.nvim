@@ -167,10 +167,11 @@ end
 ---@field parent_cursor number|nil Cursor position in parent view
 ---@field help_content string[]|nil help view only
 ---@field parent_type string|nil help view only
+---@field field_selector string|nil List view only - kubectl field selector for filtering
 
 ---Create a new list view state
 ---@param view_type ViewType
----@param opts? { window?: table, on_mounted?: function, on_unmounted?: function, render?: function, parent_cursor?: number }
+---@param opts? { window?: table, on_mounted?: function, on_unmounted?: function, render?: function, parent_cursor?: number, field_selector?: string }
 ---@return ViewState
 function M.create_list_state(view_type, opts)
   opts = opts or {}
@@ -185,6 +186,7 @@ function M.create_list_state(view_type, opts)
     cursor = 1,
     watcher_job_id = nil,
     parent_cursor = opts.parent_cursor,
+    field_selector = opts.field_selector,
   }
 end
 

@@ -49,6 +49,11 @@ function M.push_view(new_view, setup_keymaps)
   -- Setup keymaps for new view
   setup_keymaps(new_view.window)
 
+  -- Show new view window (if same window was hidden, show it again)
+  if new_view.window and window.is_mounted(new_view.window) then
+    window.show(new_view.window)
+  end
+
   -- Call on_mounted for new view
   M.call_on_mounted(new_view)
 end

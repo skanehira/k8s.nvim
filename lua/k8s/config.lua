@@ -28,6 +28,7 @@ local default_keymaps = {
     resource_menu = { key = "R", desc = "Resources" },
     context_menu = { key = "C", desc = "Context" },
     namespace_menu = { key = "N", desc = "Namespace" },
+    show_events = { key = "E", desc = "Events" },
   },
   -- Describe view keymaps
   describe = {

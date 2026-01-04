@@ -3,6 +3,43 @@
 
 local M = {}
 
+---Show events for the selected pod (from pod_list view)
+---@param resource table The selected Pod resource
+function M.show_pod_events(resource)
+  local state = require("k8s.state")
+  local list_view = require("k8s.views.list")
+  local lifecycle = require("k8s.handlers.lifecycle")
+  local window = require("k8s.ui.nui.window")
+  local render = require("k8s.handlers.render")
+
+  if not resource then
+    return
+  end
+
+  -- Create field selector for events related to this pod
+  local field_selector = string.format("involvedObject.name=%s,involvedObject.kind=Pod", resource.name)
+
+  -- Create new list view window (don't reuse, as pop_view unmounts current window)
+  local config = state.get_config() or {}
+  local new_win = window.create_list_view({ transparent = config.transparent })
+  window.mount(new_win)
+
+  -- Create event list view with field_selector
+  local view_state = list_view.create_view("Event", {
+    window = new_win,
+    field_selector = field_selector,
+  })
+
+  -- Get setup_keymaps callback from init module
+  local k8s = require("k8s")
+
+  -- Push the view
+  lifecycle.push_view(view_state, k8s._setup_keymaps)
+
+  -- Render immediately
+  render.render()
+end
+
 ---Toggle secret masking in describe view
 function M.toggle_secret()
   local state = require("k8s.state")
@@ -254,6 +291,8 @@ function M.execute(action, resource, setup_keymaps)
         notify.action_result("restart", kind, name, result.ok, result.error)
       end)
     end)
+  elseif action == "show_events" then
+    M.show_pod_events(resource)
   end
 end
 

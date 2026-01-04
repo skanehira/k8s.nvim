@@ -16,12 +16,22 @@ function M._reset_job_starter()
   job_starter = vim.fn.jobstart
 end
 
+---@class WatchOptions
+---@field field_selector? string Field selector for filtering (e.g., "involvedObject.name=my-pod")
+
 ---Build kubectl watch command
 ---@param kind string kubectl resource name (e.g., "pods", "deployments")
 ---@param namespace string
+---@param opts? WatchOptions
 ---@return string[]
-local function build_watch_cmd(kind, namespace)
+local function build_watch_cmd(kind, namespace, opts)
+  opts = opts or {}
   local cmd = { "kubectl", "get", kind, "--watch", "--output-watch-events", "-o", "json" }
+
+  if opts.field_selector then
+    table.insert(cmd, "--field-selector")
+    table.insert(cmd, opts.field_selector)
+  end
 
   if namespace == "All Namespaces" then
     table.insert(cmd, "--all-namespaces")
@@ -43,9 +53,10 @@ end
 ---@param kind string kubectl resource name (e.g., "pods", "deployments")
 ---@param namespace string
 ---@param callbacks WatchCallbacks
+---@param opts? WatchOptions
 ---@return number|nil job_id
-function M.watch(kind, namespace, callbacks)
-  local cmd = build_watch_cmd(kind, namespace)
+function M.watch(kind, namespace, callbacks, opts)
+  local cmd = build_watch_cmd(kind, namespace, opts)
   local buffer = ""
 
   local job_id = job_starter(cmd, {

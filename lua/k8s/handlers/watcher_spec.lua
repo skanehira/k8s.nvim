@@ -180,5 +180,26 @@ describe("watcher", function()
 
       assert.is_false(watch_called)
     end)
+
+    it("should use field_selector from view state", function()
+      local captured_opts = nil
+      watch_adapter.watch = function(_, _, _, opts)
+        captured_opts = opts
+        return 12345
+      end
+      watch_adapter.stop = function(_) end
+
+      -- Push view with field_selector
+      state.push_view({
+        type = "event_list",
+        resources = {},
+        field_selector = "involvedObject.name=my-pod,involvedObject.kind=Pod",
+      })
+
+      watcher.restart({})
+
+      assert(captured_opts)
+      assert.equals("involvedObject.name=my-pod,involvedObject.kind=Pod", captured_opts.field_selector)
+    end)
   end)
 end)

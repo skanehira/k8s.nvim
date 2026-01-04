@@ -41,6 +41,7 @@ local view_allowed_actions = {
     resource_menu = true,
     context_menu = true,
     namespace_menu = true,
+    show_events = true,
     help = true,
     quit = true,
     close = true,
@@ -69,7 +70,7 @@ local view_allowed_actions = {
 
 -- Footer keymaps for each view type (displayed in footer)
 local footer_actions = {
-  list = { "describe", "logs", "delete", "filter", "refresh", "help", "quit" },
+  list = { "describe", "logs", "show_events", "delete", "filter", "refresh", "help", "quit" },
   describe = { "back", "help", "quit" },
   port_forward_list = { "stop", "back", "quit" },
   help = { "back", "quit" },
@@ -86,6 +87,7 @@ local resource_required_actions = {
   delete = true,
   scale = true,
   restart = true,
+  show_events = true,
 }
 
 ---Get keymaps config from state
@@ -174,6 +176,11 @@ function M.is_action_allowed(view_type, action)
     return view_type == "secret_describe"
   end
 
+  -- show_events is only allowed for pod_list
+  if action == "show_events" then
+    return view_type == "pod_list"
+  end
+
   local base_type = M.get_base_view_type(view_type)
   local allowed = view_allowed_actions[base_type]
   return allowed and allowed[action] == true
@@ -231,18 +238,15 @@ function M.get_keymaps(view_type)
 
   local keymaps = build_keymaps_from_config(base_type, kind)
 
-  -- Special handling for describe view: only include toggle_secret for secret_describe
-  if base_type == "describe" and view_type ~= "secret_describe" then
-    local filtered = {}
-    for _, km in ipairs(keymaps) do
-      if km.action ~= "toggle_secret" then
-        table.insert(filtered, km)
-      end
+  -- Filter keymaps based on view-specific action permissions
+  local filtered = {}
+  for _, km in ipairs(keymaps) do
+    if M.is_action_allowed(view_type, km.action) then
+      table.insert(filtered, km)
     end
-    return filtered
   end
 
-  return keymaps
+  return filtered
 end
 
 ---Get action name for a key in a specific view type
@@ -283,6 +287,11 @@ function M.get_footer_keymaps(view_type)
 
   local result = {}
   for _, action in ipairs(actions) do
+    -- Check if action is allowed for this view type
+    if not M.is_action_allowed(view_type, action) then
+      goto continue
+    end
+
     -- Check capability for resource actions
     if not is_action_allowed_for_kind(action, kind) then
       goto continue
