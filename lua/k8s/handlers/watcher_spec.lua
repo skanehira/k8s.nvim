@@ -202,4 +202,101 @@ describe("watcher", function()
       assert.equals("involvedObject.name=my-pod,involvedObject.kind=Pod", captured_opts.field_selector)
     end)
   end)
+
+  describe("on_event namespace filtering", function()
+    it("should ignore events from different namespace", function()
+      local captured_callbacks = nil
+      watch_adapter.watch = function(_, _, callbacks, _)
+        captured_callbacks = callbacks
+        return 12345
+      end
+      watch_adapter.stop = function(_) end
+
+      -- Setup: namespace is "default"
+      state.set_namespace("default")
+      state.push_view({ type = "pod_list", resources = {} })
+
+      watcher.start("Pod", "default", {})
+
+      -- Simulate event from different namespace (kube-system)
+      captured_callbacks.on_event("ADDED", {
+        kind = "Pod",
+        metadata = {
+          name = "coredns-abc123",
+          namespace = "kube-system",
+        },
+        spec = {},
+        status = { phase = "Running" },
+      })
+
+      -- Resource should NOT be added
+      local current = state.get_current_view()
+      assert(current)
+      assert.equals(0, #current.resources)
+    end)
+
+    it("should accept events from matching namespace", function()
+      local captured_callbacks = nil
+      watch_adapter.watch = function(_, _, callbacks, _)
+        captured_callbacks = callbacks
+        return 12345
+      end
+      watch_adapter.stop = function(_) end
+
+      -- Setup: namespace is "default"
+      state.set_namespace("default")
+      state.push_view({ type = "pod_list", resources = {} })
+
+      watcher.start("Pod", "default", {})
+
+      -- Simulate event from matching namespace
+      captured_callbacks.on_event("ADDED", {
+        kind = "Pod",
+        metadata = {
+          name = "my-pod",
+          namespace = "default",
+        },
+        spec = {},
+        status = { phase = "Running" },
+      })
+
+      -- Resource should be added
+      local current = state.get_current_view()
+      assert(current)
+      assert.equals(1, #current.resources)
+      assert.equals("my-pod", current.resources[1].name)
+    end)
+
+    it("should accept events from any namespace when All Namespaces is selected", function()
+      local captured_callbacks = nil
+      watch_adapter.watch = function(_, _, callbacks, _)
+        captured_callbacks = callbacks
+        return 12345
+      end
+      watch_adapter.stop = function(_) end
+
+      -- Setup: namespace is "All Namespaces"
+      state.set_namespace("All Namespaces")
+      state.push_view({ type = "pod_list", resources = {} })
+
+      watcher.start("Pod", "All Namespaces", {})
+
+      -- Simulate event from kube-system
+      captured_callbacks.on_event("ADDED", {
+        kind = "Pod",
+        metadata = {
+          name = "coredns-abc123",
+          namespace = "kube-system",
+        },
+        spec = {},
+        status = { phase = "Running" },
+      })
+
+      -- Resource should be added
+      local current = state.get_current_view()
+      assert(current)
+      assert.equals(1, #current.resources)
+      assert.equals("coredns-abc123", current.resources[1].name)
+    end)
+  end)
 end)

@@ -58,6 +58,14 @@ function M.start(kind, namespace, opts)
         return
       end
 
+      -- Check if this event is for the current namespace
+      local current_namespace = state.get_namespace()
+      local resource_namespace = raw_resource.metadata and raw_resource.metadata.namespace or ""
+      if current_namespace ~= "All Namespaces" and resource_namespace ~= current_namespace then
+        debug_log("Namespace mismatch: " .. resource_namespace .. " != " .. current_namespace)
+        return
+      end
+
       -- Parse the resource
       local resource = parser.parse_single_resource(raw_resource)
       debug_log("Parsed resource: " .. resource.name .. " (" .. resource.status .. ")")
