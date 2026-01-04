@@ -26,6 +26,7 @@ Features:
   - View resource details with kubectl describe
   - Execute commands in pods
   - View pod logs
+  - Debug pods with ephemeral containers (kubectl debug)
   - Port forwarding with connection management
   - Scale and restart deployments
   - Delete resources
@@ -75,6 +76,9 @@ Call `require("k8s").setup()` with optional configuration: >lua
     -- Transparent window background (default: false)
     transparent = false,
 
+    -- Debug container image for kubectl debug (default: "busybox")
+    debug_image = "busybox",
+
     -- Custom keymaps (optional, organized by view)
     keymaps = {
       -- Global keymaps (shared across all views)
@@ -92,6 +96,7 @@ Call `require("k8s").setup()` with optional configuration: >lua
         logs = { key = "l", desc = "Logs" },
         logs_previous = { key = "P", desc = "PrevLogs" },
         exec = { key = "e", desc = "Exec" },
+        debug = { key = "<leader>d", desc = "Debug" },
         scale = { key = "s", desc = "Scale" },
         restart = { key = "X", desc = "Restart" },
         port_forward = { key = "p", desc = "PortFwd" },
@@ -101,6 +106,7 @@ Call `require("k8s").setup()` with optional configuration: >lua
         resource_menu = { key = "R", desc = "Resources" },
         context_menu = { key = "C", desc = "Context" },
         namespace_menu = { key = "N", desc = "Namespace" },
+        show_events = { key = "E", desc = "Events" },
       },
       -- Describe view keymaps
       describe = {
@@ -145,6 +151,11 @@ default_kind~
                                                     *k8s-config-transparent*
 transparent~
   Enable transparent window background. Default: false.
+
+                                                    *k8s-config-debug_image*
+debug_image~
+  Container image used for kubectl debug ephemeral containers.
+  Default: "busybox".
 
 ==============================================================================
 5. COMMANDS                                                      *k8s-commands*
@@ -200,6 +211,7 @@ RESOURCE LIST VIEW                                        *k8s-keymaps-list*
   l         logs              View pod logs (Pod only)
   P         logs_previous     View previous pod logs (Pod only)
   e         exec              Execute shell in pod (Pod only)
+  <leader>d debug             Debug pod with ephemeral container (Pod only)
   p         port_forward      Start port forwarding
   F         port_forward_list Show active port forwards
   D         delete            Delete resource
@@ -210,6 +222,7 @@ RESOURCE LIST VIEW                                        *k8s-keymaps-list*
   R         resource_menu     Switch resource kind
   C         context_menu      Switch context
   N         namespace_menu    Switch namespace
+  E         show_events       Show events for pod (Pod only)
   ?         help              Show help
   q         quit              Hide window
   <C-c>     close             Close window
@@ -245,21 +258,21 @@ HELP VIEW                                                *k8s-keymaps-help*
 
 Supported Kubernetes resources and their available actions:
 
-  Resource     exec  logs  scale  restart  port_forward  delete~
-  Pod           x     x      -       -         x           x
-  Deployment    -     -      x       x         x           x
-  ReplicaSet    -     -      x       -         -           x
-  StatefulSet   -     -      x       x         x           x
-  DaemonSet     -     -      -       x         x           x
-  Job           -     x      -       -         -           x
-  CronJob       -     -      -       -         -           x
-  Service       -     -      -       -         x           x
-  ConfigMap     -     -      -       -         -           x
-  Secret        -     -      -       -         -           x
-  Node          -     -      -       -         -           -
-  Namespace     -     -      -       -         -           -
-  Ingress       -     -      -       -         -           x
-  Event         -     -      -       -         -           -
+  Resource     exec  logs  debug  scale  restart  port_forward  delete~
+  Pod           x     x      x      -       -         x           x
+  Deployment    -     -      -      x       x         x           x
+  ReplicaSet    -     -      -      x       -         -           x
+  StatefulSet   -     -      -      x       x         x           x
+  DaemonSet     -     -      -      -       x         x           x
+  Job           -     x      -      -       -         -           x
+  CronJob       -     -      -      -       -         -           x
+  Service       -     -      -      -       -         x           x
+  ConfigMap     -     -      -      -       -         -           x
+  Secret        -     -      -      -       -         -           x
+  Node          -     -      -      -       -         -           -
+  Namespace     -     -      -      -       -         -           -
+  Ingress       -     -      -      -       -         -           x
+  Event         -     -      -      -       -         -           -
 
 ==============================================================================
 vim:tw=78:ts=8:ft=help:norl:

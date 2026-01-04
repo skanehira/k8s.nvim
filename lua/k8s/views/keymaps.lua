@@ -20,6 +20,7 @@ local resource_capability_actions = {
   restart = "restart",
   port_forward = "port_forward",
   delete = "delete",
+  debug = "debug",
   filter = "filter",
   refresh = "refresh",
 }
@@ -37,6 +38,7 @@ local view_allowed_actions = {
     restart = true,
     port_forward = true,
     port_forward_list = true,
+    debug = true,
     filter = true,
     refresh = true,
     resource_menu = true,
@@ -88,6 +90,7 @@ local resource_required_actions = {
   delete = true,
   scale = true,
   restart = true,
+  debug = true,
   show_events = true,
 }
 
@@ -168,6 +171,11 @@ function M.is_action_allowed(view_type, action)
 
   -- show_events is only allowed for pod_list
   if action == "show_events" then
+    return view_type == "pod_list"
+  end
+
+  -- debug is only allowed for pod_list
+  if action == "debug" then
     return view_type == "pod_list"
   end
 

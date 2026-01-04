@@ -220,6 +220,18 @@ describe("actions", function()
 
       assert.equals("[Exec] nginx-abc123:nginx", name)
     end)
+
+    it("should format debug tab name", function()
+      local name = actions.format_tab_name("debug", "nginx-abc123", "nginx")
+
+      assert.equals("[Debug] nginx-abc123:nginx", name)
+    end)
+
+    it("should format logs-prev tab name", function()
+      local name = actions.format_tab_name("logs-prev", "nginx-abc123", "nginx")
+
+      assert.equals("[Logs-Prev] nginx-abc123:nginx", name)
+    end)
   end)
 
   describe("get_resource_menu_items", function()

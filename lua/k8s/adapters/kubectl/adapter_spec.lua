@@ -404,6 +404,56 @@ Node:         minikube/192.168.49.2
     end)
   end)
 
+  describe("debug", function()
+    it("should build correct command", function()
+      local captured_cmd
+      adapter._set_term_opener(function(cmd)
+        captured_cmd = cmd
+        return 12345
+      end)
+
+      local result = adapter.debug("nginx-abc123", "nginx", "default", "busybox")
+
+      assert.is_true(result.ok)
+      assert.equals(12345, result.data.job_id)
+      assert.is.not_nil(captured_cmd)
+      -- kubectl debug -it -n default nginx-abc123 --target=nginx --profile=sysadmin --image=busybox -- sh
+      assert.is_true(captured_cmd:find("kubectl") ~= nil)
+      assert.is_true(captured_cmd:find("debug") ~= nil)
+      assert.is_true(captured_cmd:find("nginx%-abc123") ~= nil)
+      assert.is_true(captured_cmd:find("%-%-target=nginx") ~= nil)
+      assert.is_true(captured_cmd:find("%-%-profile=sysadmin") ~= nil)
+      assert.is_true(captured_cmd:find("%-%-image=busybox") ~= nil)
+    end)
+
+    it("should pass tab_name to term opener", function()
+      local captured_opts
+      adapter._set_term_opener(function(_, opts)
+        captured_opts = opts
+        return 12345
+      end)
+
+      adapter.debug("nginx-abc123", "nginx", "default", "busybox", { tab_name = "[Debug] nginx-abc123:nginx" })
+
+      assert.is.Not.Nil(captured_opts)
+      assert.equals("[Debug] nginx-abc123:nginx", captured_opts.tab_name)
+    end)
+
+    it("should pass on_exit callback to term opener", function()
+      local captured_opts
+      adapter._set_term_opener(function(_, opts)
+        captured_opts = opts
+        return 12345
+      end)
+
+      local on_exit = function() end
+      adapter.debug("nginx-abc123", "nginx", "default", "busybox", { on_exit = on_exit })
+
+      assert.is.Not.Nil(captured_opts)
+      assert.equals(on_exit, captured_opts.on_exit)
+    end)
+  end)
+
   describe("port_forward", function()
     it("should build correct command", function()
       local captured_cmd

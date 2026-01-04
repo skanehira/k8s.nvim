@@ -148,6 +148,44 @@ function M.start_port_forward(resource, local_port, remote_port)
   end
 end
 
+---Start debug session for a pod
+---@param resource table Pod resource
+function M.start_debug(resource)
+  local state = require("k8s.state")
+  local adapter = require("k8s.adapters.kubectl.adapter")
+  local actions = require("k8s.handlers.actions")
+  local notify = require("k8s.handlers.notify")
+
+  local name = resource.name
+  local namespace = resource.namespace
+  local containers = actions.get_containers(resource)
+
+  if #containers == 0 then
+    notify.warn("No containers found")
+    return
+  end
+
+  ---@param container string
+  local function do_debug(container)
+    local config = state.get_config() or {}
+    local debug_image = config.debug_image or "busybox"
+    local tab_name = actions.format_tab_name("debug", name, container)
+    adapter.debug(name, container, namespace, debug_image, { tab_name = tab_name })
+  end
+
+  if #containers == 1 then
+    do_debug(containers[1])
+  else
+    vim.ui.select(containers, {
+      prompt = "Select target container for debug:",
+    }, function(choice)
+      if choice then
+        do_debug(choice)
+      end
+    end)
+  end
+end
+
 ---Handle port forward action for a resource
 ---@param resource table
 function M.handle_port_forward(resource)
@@ -293,6 +331,8 @@ function M.execute(action, resource, setup_keymaps)
     end)
   elseif action == "show_events" then
     M.show_pod_events(resource)
+  elseif action == "debug" then
+    M.start_debug(resource)
   end
 end
 

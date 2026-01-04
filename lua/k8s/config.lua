@@ -29,6 +29,7 @@ local default_keymaps = {
     context_menu = { key = "C", desc = "Context" },
     namespace_menu = { key = "N", desc = "Namespace" },
     show_events = { key = "E", desc = "Events" },
+    debug = { key = "<leader>d", desc = "Debug" },
   },
   -- Describe view keymaps
   describe = {
@@ -48,6 +49,7 @@ local defaults = {
   default_namespace = "default",
   default_kind = "Pod",
   transparent = false, -- Transparent window background
+  debug_image = "busybox", -- Debug container image for kubectl debug
   keymaps = default_keymaps,
 }
 

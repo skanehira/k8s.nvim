@@ -166,7 +166,7 @@ function M.get_container_ports(resource)
 end
 
 ---Format tab name for terminal
----@param action_type "logs"|"exec"|"logs-prev"
+---@param action_type "logs"|"exec"|"logs-prev"|"debug"
 ---@param pod_name string
 ---@param container string
 ---@return string
@@ -175,6 +175,7 @@ function M.format_tab_name(action_type, pod_name, container)
     logs = "[Logs]",
     exec = "[Exec]",
     ["logs-prev"] = "[Logs-Prev]",
+    debug = "[Debug]",
   }
   local prefix = prefix_map[action_type] or "[Unknown]"
   return string.format("%s %s:%s", prefix, pod_name, container)

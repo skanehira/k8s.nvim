@@ -261,6 +261,30 @@ function M.logs(pod, container, namespace, opts)
   return ok({ job_id = job_id })
 end
 
+---@class DebugOpts
+---@field on_exit? fun(job_id: number, exit_code: number, event: string) Callback when process exits
+---@field tab_name? string Tab name to display
+
+---Debug a pod with ephemeral container
+---@param pod string Pod name
+---@param container string Target container name
+---@param namespace string Namespace
+---@param image string Debug image (e.g., "busybox")
+---@param opts? DebugOpts
+---@return K8sResult
+function M.debug(pod, container, namespace, image, opts)
+  opts = opts or {}
+  local cmd = string.format(
+    "kubectl debug -it -n %s %s --target=%s --profile=sysadmin --image=%s -- sh",
+    namespace,
+    pod,
+    container,
+    image
+  )
+  local job_id = term_opener(cmd, { on_exit = opts.on_exit, tab_name = opts.tab_name })
+  return ok({ job_id = job_id })
+end
+
 ---Start port forwarding (runs as background job, not terminal)
 ---@param resource string
 ---@param namespace string

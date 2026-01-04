@@ -16,6 +16,7 @@ local M = {}
 ---@field restart boolean
 ---@field port_forward boolean
 ---@field delete boolean
+---@field debug boolean
 ---@field filter boolean
 ---@field refresh boolean
 
@@ -36,6 +37,7 @@ local default_capabilities = {
   restart = false,
   port_forward = false,
   delete = false,
+  debug = false,
   filter = true,
   refresh = true,
 }
@@ -53,6 +55,7 @@ M.resources = {
       restart = false,
       port_forward = true,
       delete = true,
+      debug = true,
       filter = true,
       refresh = true,
     },
