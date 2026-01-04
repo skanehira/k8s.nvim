@@ -3,25 +3,7 @@
 
 local M = {}
 
--- Command to kind mapping
-local command_to_kind = {
-  pods = "Pod",
-  deployments = "Deployment",
-  replicasets = "ReplicaSet",
-  statefulsets = "StatefulSet",
-  daemonsets = "DaemonSet",
-  jobs = "Job",
-  cronjobs = "CronJob",
-  services = "Service",
-  configmaps = "ConfigMap",
-  secrets = "Secret",
-  nodes = "Node",
-  namespaces = "Namespace",
-  ingresses = "Ingress",
-  events = "Event",
-  applications = "Application",
-  portforwards = "PortForward",
-}
+local registry = require("k8s.resources.registry")
 
 -- =============================================================================
 -- Public API
@@ -67,24 +49,18 @@ function M.get_default_kind()
   return "Pod"
 end
 
----Get resource kind from command
----@param cmd string
----@return string|nil
+---Get resource kind from command (plural name)
+---@param cmd string Command/plural name (e.g., "pods", "deployments")
+---@return string|nil kind Resource kind (e.g., "Pod", "Deployment")
 function M.get_resource_kind_from_command(cmd)
-  return command_to_kind[cmd]
-end
-
--- Reverse mapping: Kind -> resource name (e.g., "Ingress" -> "ingresses")
-local kind_to_resource = {}
-for resource, kind in pairs(command_to_kind) do
-  kind_to_resource[kind] = resource
+  return registry.get_kind_from_plural(cmd)
 end
 
 ---Get kubectl resource name from Kind
 ---@param kind string Resource kind (e.g., "Pod", "Ingress")
 ---@return string resource_name kubectl resource name (e.g., "pods", "ingresses")
 function M.get_resource_name_from_kind(kind)
-  return kind_to_resource[kind] or (string.lower(kind) .. "s")
+  return registry.get_plural_from_kind(kind)
 end
 
 ---Parse command arguments

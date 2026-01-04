@@ -227,9 +227,15 @@ describe("actions", function()
       local items = actions.get_resource_menu_items()
 
       assert(#items > 0)
-      -- Check first item
-      assert.equals("Pods", items[1].text)
-      assert.equals("Pod", items[1].value)
+      -- Items are sorted alphabetically by text
+      local item_map = {}
+      for _, item in ipairs(items) do
+        item_map[item.value] = item.text
+      end
+      -- Check that known resources are included
+      assert.equals("Pods", item_map["Pod"])
+      assert.equals("Deployments", item_map["Deployment"])
+      assert.equals("Services", item_map["Service"])
     end)
   end)
 

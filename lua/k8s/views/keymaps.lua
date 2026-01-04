@@ -3,6 +3,7 @@
 local M = {}
 
 local resource_mod = require("k8s.handlers.resource")
+local registry = require("k8s.resources.registry")
 
 ---@class KeymapDef
 ---@field key string Key sequence
@@ -123,29 +124,17 @@ end
 ---@param view_type string View type (e.g., "pod_list", "deployment_describe")
 ---@return string|nil kind Resource kind (e.g., "Pod", "Deployment") or nil
 function M.get_kind_from_view_type(view_type)
-  -- Map view type prefix to resource kind
-  local kind_map = {
-    pod = "Pod",
-    deployment = "Deployment",
-    service = "Service",
-    configmap = "ConfigMap",
-    secret = "Secret",
-    node = "Node",
-    namespace = "Namespace",
-    application = "Application",
-    statefulset = "StatefulSet",
-    daemonset = "DaemonSet",
-    job = "Job",
-    cronjob = "CronJob",
-    event = "Event",
-    ingress = "Ingress",
-    replicaset = "ReplicaSet",
-  }
-
   -- Extract prefix (e.g., "pod" from "pod_list")
   local prefix = view_type:match("^(%w+)_")
-  if prefix then
-    return kind_map[prefix]
+  if not prefix then
+    return nil
+  end
+
+  -- Find matching kind from registry
+  for kind in pairs(registry.resources) do
+    if string.lower(kind) == prefix then
+      return kind
+    end
   end
   return nil
 end

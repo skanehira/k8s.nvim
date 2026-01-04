@@ -5,36 +5,20 @@ if vim.g.loaded_k8s then
 end
 vim.g.loaded_k8s = true
 
--- Subcommands for completion
-local subcommands = {
-  "open",
-  "close",
-  "pods",
-  "deployments",
-  "replicasets",
-  "statefulsets",
-  "daemonsets",
-  "jobs",
-  "cronjobs",
-  "services",
-  "configmaps",
-  "secrets",
-  "nodes",
-  "namespaces",
-  "ingresses",
-  "events",
-  "applications",
-  "portforwards",
-  "context",
-  "namespace",
-}
+local registry = require("k8s.resources.registry")
+
+---Get subcommands for completion (cached)
+---@return string[]
+local function get_subcommands()
+  return registry.get_subcommands()
+end
 
 ---Completion function
 ---@param lead string
 ---@return string[]
 local function complete(lead)
   local results = {}
-  for _, cmd in ipairs(subcommands) do
+  for _, cmd in ipairs(get_subcommands()) do
     if cmd:find("^" .. lead) then
       table.insert(results, cmd)
     end

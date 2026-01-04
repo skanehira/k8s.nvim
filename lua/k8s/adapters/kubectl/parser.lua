@@ -13,6 +13,9 @@
 
 local M = {}
 
+local extractors = require("k8s.resources.extractors")
+local registry = require("k8s.resources.registry")
+
 ---Create a success result
 ---@param data any
 ---@return K8sResult
@@ -41,156 +44,10 @@ local function extract_kind(list_kind)
   return (list_kind:gsub("List$", ""))
 end
 
----Parse ISO 8601 timestamp to os.time
----@param timestamp string ISO 8601 format (e.g., "2024-12-30T10:00:00Z")
----@return number|nil
-local function parse_timestamp(timestamp)
-  local pattern = "(%d+)-(%d+)-(%d+)T(%d+):(%d+):(%d+)"
-  local year, month, day, hour, min, sec = timestamp:match(pattern)
-  if not year then
-    return nil
-  end
-  return os.time({
-    year = assert(tonumber(year)),
-    month = assert(tonumber(month)),
-    day = assert(tonumber(day)),
-    hour = assert(tonumber(hour)),
-    min = assert(tonumber(min)),
-    sec = assert(tonumber(sec)),
-  })
-end
-
----Format duration in seconds to human-readable string
----@param diff number Duration in seconds
----@return string
-local function format_duration(diff)
-  if diff < 60 then
-    return string.format("%ds", diff)
-  elseif diff < 3600 then
-    return string.format("%dm", math.floor(diff / 60))
-  elseif diff < 86400 then
-    return string.format("%dh", math.floor(diff / 3600))
-  else
-    return string.format("%dd", math.floor(diff / 86400))
-  end
-end
-
----Calculate age from creation timestamp
----@param timestamp string ISO 8601 format (e.g., "2024-12-30T10:00:00Z")
----@return string
-local function calculate_age(timestamp)
-  local created = parse_timestamp(timestamp)
-  if not created then
-    return "unknown"
-  end
-  local now = os.time(os.date("!*t") --[[@as osdateparam]])
-  local diff = now - created
-  return format_duration(diff)
-end
-
--- Export utility functions for reuse
-M.parse_timestamp = parse_timestamp
-M.format_duration = format_duration
-M.calculate_age = calculate_age
-
----Get Pod status with detailed container state
----@param item table Pod resource
----@return string
-local function get_pod_status(item)
-  if not item.status then
-    return "Unknown"
-  end
-
-  -- Check init container statuses first
-  if item.status.initContainerStatuses then
-    for i, cs in ipairs(item.status.initContainerStatuses) do
-      if cs.state then
-        if cs.state.waiting and cs.state.waiting.reason then
-          return "Init:" .. i - 1 .. "/" .. #item.status.initContainerStatuses
-        end
-        if cs.state.terminated and cs.state.terminated.exitCode ~= 0 then
-          return "Init:Error"
-        end
-        -- If still running, show init progress
-        if cs.state.running then
-          return "Init:" .. i - 1 .. "/" .. #item.status.initContainerStatuses
-        end
-      end
-    end
-  end
-
-  -- Check container statuses for waiting/terminated states
-  if item.status.containerStatuses then
-    for _, cs in ipairs(item.status.containerStatuses) do
-      if cs.state then
-        -- Check waiting state (ContainerCreating, ImagePullBackOff, CrashLoopBackOff, etc.)
-        if cs.state.waiting and cs.state.waiting.reason then
-          return cs.state.waiting.reason
-        end
-        -- Check terminated state with error
-        if cs.state.terminated and cs.state.terminated.reason then
-          if cs.state.terminated.exitCode ~= 0 then
-            return cs.state.terminated.reason
-          end
-        end
-      end
-    end
-  end
-
-  -- Fall back to phase
-  return item.status.phase or "Unknown"
-end
-
----Get status from resource based on kind
----@param item table
----@param kind string Resource kind from external JSON (may not be K8sResourceKind)
----@return string
-local function get_status(item, kind)
-  if kind == "Pod" then
-    return get_pod_status(item)
-  elseif kind == "Deployment" then
-    local ready = item.status and item.status.readyReplicas or 0
-    local desired = item.spec and item.spec.replicas or 0
-    return string.format("%d/%d", ready, desired)
-  elseif kind == "Service" then
-    return item.spec and item.spec.type or "Unknown"
-  elseif kind == "Node" then
-    if item.status and item.status.conditions then
-      for _, cond in ipairs(item.status.conditions) do
-        if cond.type == "Ready" then
-          return cond.status == "True" and "Ready" or "NotReady"
-        end
-      end
-    end
-    return "Unknown"
-  elseif kind == "Application" then
-    local sync = item.status and item.status.sync and item.status.sync.status or "Unknown"
-    return sync
-  elseif kind == "StatefulSet" then
-    local ready = item.status and item.status.readyReplicas or 0
-    local desired = item.spec and item.spec.replicas or 0
-    return string.format("%d/%d", ready, desired)
-  elseif kind == "DaemonSet" then
-    local ready = item.status and item.status.numberReady or 0
-    local desired = item.status and item.status.desiredNumberScheduled or 0
-    return string.format("%d/%d", ready, desired)
-  elseif kind == "Job" then
-    local succeeded = item.status and item.status.succeeded or 0
-    local completions = item.spec and item.spec.completions or 1
-    return string.format("%d/%d", succeeded, completions)
-  elseif kind == "CronJob" then
-    local active = item.status and item.status.active and #item.status.active or 0
-    return string.format("%d active", active)
-  elseif kind == "Event" then
-    return item.type or "Normal"
-  elseif kind == "ReplicaSet" then
-    local ready = item.status and item.status.readyReplicas or 0
-    local desired = item.spec and item.spec.replicas or 0
-    return string.format("%d/%d", ready, desired)
-  else
-    return "Active"
-  end
-end
+-- Export utility functions for reuse (delegate to extractors)
+M.parse_timestamp = extractors.parse_timestamp
+M.format_duration = extractors.format_duration
+M.calculate_age = extractors.calculate_age
 
 ---Parse kubectl get -o json output
 ---@param json string
@@ -220,8 +77,8 @@ function M.parse_resources(json)
       kind = item_kind,
       name = metadata.name or "",
       namespace = metadata.namespace or "",
-      status = get_status(item, item_kind),
-      age = calculate_age(metadata.creationTimestamp or ""),
+      status = registry.extract_status(item, item_kind),
+      age = extractors.calculate_age(metadata.creationTimestamp or ""),
       raw = item,
     })
   end
@@ -276,8 +133,8 @@ function M.parse_single_resource(item)
     kind = kind,
     name = metadata.name or "",
     namespace = metadata.namespace or "",
-    status = get_status(item, kind),
-    age = calculate_age(metadata.creationTimestamp or ""),
+    status = registry.extract_status(item, kind),
+    age = extractors.calculate_age(metadata.creationTimestamp or ""),
     raw = item,
   }
 end

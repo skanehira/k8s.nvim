@@ -439,13 +439,6 @@ function M.is_mounted(win)
   return win.mounted == true
 end
 
----Check if window is visible (not hidden)
----@param win K8sWindow
----@return boolean
-function M.is_visible(win)
-  return win.visible == true
-end
-
 ---Check if window buffers are valid
 ---@param win K8sWindow
 ---@return boolean

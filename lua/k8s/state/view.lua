@@ -2,152 +2,66 @@
 
 local M = {}
 
+local registry = require("k8s.resources.registry")
+
 -- =============================================================================
--- View Type Definitions
+-- View Type Definitions (generated from registry)
 -- =============================================================================
 
----@alias ViewType
----| "pod_list"
----| "deployment_list"
----| "service_list"
----| "configmap_list"
----| "secret_list"
----| "node_list"
----| "namespace_list"
----| "application_list"
----| "statefulset_list"
----| "daemonset_list"
----| "job_list"
----| "cronjob_list"
----| "event_list"
----| "ingress_list"
----| "replicaset_list"
----| "port_forward_list"
----| "pod_describe"
----| "deployment_describe"
----| "service_describe"
----| "configmap_describe"
----| "secret_describe"
----| "node_describe"
----| "namespace_describe"
----| "application_describe"
----| "statefulset_describe"
----| "daemonset_describe"
----| "job_describe"
----| "cronjob_describe"
----| "event_describe"
----| "ingress_describe"
----| "replicaset_describe"
----| "help"
+-- Build type_to_kind, list_types, describe_types from registry
+local type_to_kind = {}
+local list_types = {}
+local describe_types = {}
 
--- Mapping from view type to kind
-local type_to_kind = {
-  pod_list = "Pod",
-  deployment_list = "Deployment",
-  service_list = "Service",
-  configmap_list = "ConfigMap",
-  secret_list = "Secret",
-  node_list = "Node",
-  namespace_list = "Namespace",
-  application_list = "Application",
-  statefulset_list = "StatefulSet",
-  daemonset_list = "DaemonSet",
-  job_list = "Job",
-  cronjob_list = "CronJob",
-  event_list = "Event",
-  ingress_list = "Ingress",
-  replicaset_list = "ReplicaSet",
-  pod_describe = "Pod",
-  deployment_describe = "Deployment",
-  service_describe = "Service",
-  configmap_describe = "ConfigMap",
-  secret_describe = "Secret",
-  node_describe = "Node",
-  namespace_describe = "Namespace",
-  application_describe = "Application",
-  statefulset_describe = "StatefulSet",
-  daemonset_describe = "DaemonSet",
-  job_describe = "Job",
-  cronjob_describe = "CronJob",
-  event_describe = "Event",
-  ingress_describe = "Ingress",
-  replicaset_describe = "ReplicaSet",
-}
+for kind in pairs(registry.resources) do
+  local lower_kind = string.lower(kind)
+  local list_type = lower_kind .. "_list"
+  local describe_type = lower_kind .. "_describe"
 
--- List view types
-local list_types = {
-  pod_list = true,
-  deployment_list = true,
-  service_list = true,
-  configmap_list = true,
-  secret_list = true,
-  node_list = true,
-  namespace_list = true,
-  application_list = true,
-  statefulset_list = true,
-  daemonset_list = true,
-  job_list = true,
-  cronjob_list = true,
-  event_list = true,
-  ingress_list = true,
-  replicaset_list = true,
-  port_forward_list = true,
-}
+  type_to_kind[list_type] = kind
+  type_to_kind[describe_type] = kind
+  list_types[list_type] = true
+  describe_types[describe_type] = true
+end
 
--- Describe view types
-local describe_types = {
-  pod_describe = true,
-  deployment_describe = true,
-  service_describe = true,
-  configmap_describe = true,
-  secret_describe = true,
-  node_describe = true,
-  namespace_describe = true,
-  application_describe = true,
-  statefulset_describe = true,
-  daemonset_describe = true,
-  job_describe = true,
-  cronjob_describe = true,
-  event_describe = true,
-  ingress_describe = true,
-  replicaset_describe = true,
-}
+-- Add special view type for help
+-- (help is not a resource, so it's not in the registry)
 
 -- =============================================================================
 -- View Type Utilities
 -- =============================================================================
 
 ---Get kind from view type
----@param view_type ViewType
+---@param view_type string
 ---@return string|nil
 function M.get_kind_from_type(view_type)
   return type_to_kind[view_type]
 end
 
 ---Check if view type is a list view
----@param view_type ViewType
+---@param view_type string
 ---@return boolean
 function M.is_list_type(view_type)
   return list_types[view_type] == true
 end
 
 ---Check if view type is a describe view
----@param view_type ViewType
+---@param view_type string
 ---@return boolean
 function M.is_describe_type(view_type)
   return describe_types[view_type] == true
 end
 
 ---Get list view type from kind
----@param kind K8sResourceKind e.g., "Pod"
----@return ViewType
+---@param kind string e.g., "Pod"
+---@return string
 function M.get_list_type_from_kind(kind)
   return string.lower(kind) .. "_list"
 end
 
 ---Get describe view type from kind
----@param kind K8sResourceKind e.g., "Pod"
----@return ViewType
+---@param kind string e.g., "Pod"
+---@return string
 function M.get_describe_type_from_kind(kind)
   return string.lower(kind) .. "_describe"
 end
@@ -157,7 +71,7 @@ end
 -- =============================================================================
 
 ---@class ViewState
----@field type ViewType
+---@field type string
 ---@field window table|nil
 ---@field on_mounted function|nil
 ---@field on_unmounted function|nil
@@ -176,7 +90,7 @@ end
 ---@field field_selector string|nil List view only - kubectl field selector for filtering
 
 ---Create a new list view state
----@param view_type ViewType
+---@param view_type string
 ---@param opts? { window?: table, on_mounted?: function, on_unmounted?: function, render?: function, parent_cursor?: number, field_selector?: string }
 ---@return ViewState
 function M.create_list_state(view_type, opts)
@@ -197,7 +111,7 @@ function M.create_list_state(view_type, opts)
 end
 
 ---Create a new describe view state
----@param view_type ViewType
+---@param view_type string
 ---@param resource table Target resource
 ---@param opts? { window?: table, on_mounted?: function, on_unmounted?: function, render?: function, parent_cursor?: number }
 ---@return ViewState
