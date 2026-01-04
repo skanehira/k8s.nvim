@@ -24,6 +24,7 @@ local status_highlights = {
   Error = "K8sStatusError",
   Failed = "K8sStatusError",
   CrashLoopBackOff = "K8sStatusError",
+  CreateContainerConfigError = "K8sStatusError",
   Terminating = "K8sStatusError",
   Degraded = "K8sStatusError",
   Missing = "K8sStatusError",

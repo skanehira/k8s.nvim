@@ -106,6 +106,10 @@ describe("table", function()
       assert.equals("K8sStatusError", tbl.get_status_highlight("CrashLoopBackOff"))
     end)
 
+    it("should return red for CreateContainerConfigError", function()
+      assert.equals("K8sStatusError", tbl.get_status_highlight("CreateContainerConfigError"))
+    end)
+
     it("should return nil for unknown status", function()
       assert.is_nil(tbl.get_status_highlight("Unknown"))
     end)
