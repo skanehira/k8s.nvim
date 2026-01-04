@@ -93,13 +93,61 @@ M.parse_timestamp = parse_timestamp
 M.format_duration = format_duration
 M.calculate_age = calculate_age
 
+---Get Pod status with detailed container state
+---@param item table Pod resource
+---@return string
+local function get_pod_status(item)
+  if not item.status then
+    return "Unknown"
+  end
+
+  -- Check init container statuses first
+  if item.status.initContainerStatuses then
+    for i, cs in ipairs(item.status.initContainerStatuses) do
+      if cs.state then
+        if cs.state.waiting and cs.state.waiting.reason then
+          return "Init:" .. i - 1 .. "/" .. #item.status.initContainerStatuses
+        end
+        if cs.state.terminated and cs.state.terminated.exitCode ~= 0 then
+          return "Init:Error"
+        end
+        -- If still running, show init progress
+        if cs.state.running then
+          return "Init:" .. i - 1 .. "/" .. #item.status.initContainerStatuses
+        end
+      end
+    end
+  end
+
+  -- Check container statuses for waiting/terminated states
+  if item.status.containerStatuses then
+    for _, cs in ipairs(item.status.containerStatuses) do
+      if cs.state then
+        -- Check waiting state (ContainerCreating, ImagePullBackOff, CrashLoopBackOff, etc.)
+        if cs.state.waiting and cs.state.waiting.reason then
+          return cs.state.waiting.reason
+        end
+        -- Check terminated state with error
+        if cs.state.terminated and cs.state.terminated.reason then
+          if cs.state.terminated.exitCode ~= 0 then
+            return cs.state.terminated.reason
+          end
+        end
+      end
+    end
+  end
+
+  -- Fall back to phase
+  return item.status.phase or "Unknown"
+end
+
 ---Get status from resource based on kind
 ---@param item table
 ---@param kind string Resource kind from external JSON (may not be K8sResourceKind)
 ---@return string
 local function get_status(item, kind)
   if kind == "Pod" then
-    return item.status and item.status.phase or "Unknown"
+    return get_pod_status(item)
   elseif kind == "Deployment" then
     local ready = item.status and item.status.readyReplicas or 0
     local desired = item.spec and item.spec.replicas or 0

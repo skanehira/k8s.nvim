@@ -88,6 +88,125 @@ describe("parser", function()
       assert.equals("Pod", result.data[1].kind)
     end)
 
+    it("should parse pod with ContainerCreating status", function()
+      local json = [[
+{
+  "apiVersion": "v1",
+  "kind": "PodList",
+  "items": [
+    {
+      "metadata": {
+        "name": "nginx-pending",
+        "namespace": "default",
+        "creationTimestamp": "2024-12-30T10:00:00Z"
+      },
+      "status": {
+        "phase": "Pending",
+        "containerStatuses": [
+          {
+            "ready": false,
+            "state": {
+              "waiting": {
+                "reason": "ContainerCreating",
+                "message": "Image is being pulled"
+              }
+            }
+          }
+        ]
+      }
+    }
+  ]
+}
+]]
+      local result = parser.parse_resources(json)
+
+      assert.is_true(result.ok)
+      assert.equals(1, #result.data)
+      assert.equals("ContainerCreating", result.data[1].status)
+    end)
+
+    it("should parse pod with CrashLoopBackOff status", function()
+      local json = [[
+{
+  "apiVersion": "v1",
+  "kind": "PodList",
+  "items": [
+    {
+      "metadata": {
+        "name": "crashing-pod",
+        "namespace": "default",
+        "creationTimestamp": "2024-12-30T10:00:00Z"
+      },
+      "status": {
+        "phase": "Running",
+        "containerStatuses": [
+          {
+            "ready": false,
+            "restartCount": 5,
+            "state": {
+              "waiting": {
+                "reason": "CrashLoopBackOff",
+                "message": "back-off 5m0s restarting failed container"
+              }
+            }
+          }
+        ]
+      }
+    }
+  ]
+}
+]]
+      local result = parser.parse_resources(json)
+
+      assert.is_true(result.ok)
+      assert.equals(1, #result.data)
+      assert.equals("CrashLoopBackOff", result.data[1].status)
+    end)
+
+    it("should parse pod with init container in progress", function()
+      local json = [[
+{
+  "apiVersion": "v1",
+  "kind": "PodList",
+  "items": [
+    {
+      "metadata": {
+        "name": "init-pod",
+        "namespace": "default",
+        "creationTimestamp": "2024-12-30T10:00:00Z"
+      },
+      "status": {
+        "phase": "Pending",
+        "initContainerStatuses": [
+          {
+            "ready": false,
+            "state": {
+              "running": {
+                "startedAt": "2024-12-30T10:00:00Z"
+              }
+            }
+          },
+          {
+            "ready": false,
+            "state": {
+              "waiting": {
+                "reason": "PodInitializing"
+              }
+            }
+          }
+        ]
+      }
+    }
+  ]
+}
+]]
+      local result = parser.parse_resources(json)
+
+      assert.is_true(result.ok)
+      assert.equals(1, #result.data)
+      assert.equals("Init:0/2", result.data[1].status)
+    end)
+
     it("should parse deployment list JSON", function()
       local json = [[
 {
