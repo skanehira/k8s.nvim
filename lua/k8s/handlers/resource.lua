@@ -1,6 +1,6 @@
 --- resource.lua - リソースの機能定義
 
----@alias K8sResourceKind "Pod"|"Deployment"|"Service"|"ConfigMap"|"Secret"|"Node"|"Namespace"|"Application"|"StatefulSet"|"DaemonSet"|"Job"|"CronJob"|"Event"|"Ingress"
+---@alias K8sResourceKind "Pod"|"Deployment"|"Service"|"ConfigMap"|"Secret"|"Node"|"Namespace"|"Application"|"StatefulSet"|"DaemonSet"|"Job"|"CronJob"|"Event"|"Ingress"|"ReplicaSet"
 
 ---@class ResourceCapabilities
 ---@field exec boolean
@@ -150,6 +150,16 @@ local capabilities_map = {
     exec = false,
     logs = false,
     scale = false,
+    restart = false,
+    port_forward = false,
+    delete = true,
+    filter = true,
+    refresh = true,
+  },
+  ReplicaSet = {
+    exec = false,
+    logs = false,
+    scale = true,
     restart = false,
     port_forward = false,
     delete = true,

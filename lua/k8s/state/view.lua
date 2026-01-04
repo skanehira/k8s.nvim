@@ -21,6 +21,7 @@ local M = {}
 ---| "cronjob_list"
 ---| "event_list"
 ---| "ingress_list"
+---| "replicaset_list"
 ---| "port_forward_list"
 ---| "pod_describe"
 ---| "deployment_describe"
@@ -36,6 +37,7 @@ local M = {}
 ---| "cronjob_describe"
 ---| "event_describe"
 ---| "ingress_describe"
+---| "replicaset_describe"
 ---| "help"
 
 -- Mapping from view type to kind
@@ -54,6 +56,7 @@ local type_to_kind = {
   cronjob_list = "CronJob",
   event_list = "Event",
   ingress_list = "Ingress",
+  replicaset_list = "ReplicaSet",
   pod_describe = "Pod",
   deployment_describe = "Deployment",
   service_describe = "Service",
@@ -68,6 +71,7 @@ local type_to_kind = {
   cronjob_describe = "CronJob",
   event_describe = "Event",
   ingress_describe = "Ingress",
+  replicaset_describe = "ReplicaSet",
 }
 
 -- List view types
@@ -86,6 +90,7 @@ local list_types = {
   cronjob_list = true,
   event_list = true,
   ingress_list = true,
+  replicaset_list = true,
   port_forward_list = true,
 }
 
@@ -105,6 +110,7 @@ local describe_types = {
   cronjob_describe = true,
   event_describe = true,
   ingress_describe = true,
+  replicaset_describe = true,
 }
 
 -- =============================================================================

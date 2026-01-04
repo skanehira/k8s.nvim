@@ -183,6 +183,10 @@ local function get_status(item, kind)
     return string.format("%d active", active)
   elseif kind == "Event" then
     return item.type or "Normal"
+  elseif kind == "ReplicaSet" then
+    local ready = item.status and item.status.readyReplicas or 0
+    local desired = item.spec and item.spec.replicas or 0
+    return string.format("%d/%d", ready, desired)
   else
     return "Active"
   end

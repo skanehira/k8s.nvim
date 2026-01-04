@@ -139,6 +139,7 @@ function M.get_kind_from_view_type(view_type)
     cronjob = "CronJob",
     event = "Event",
     ingress = "Ingress",
+    replicaset = "ReplicaSet",
   }
 
   -- Extract prefix (e.g., "pod" from "pod_list")

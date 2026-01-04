@@ -7,6 +7,7 @@ local M = {}
 local command_to_kind = {
   pods = "Pod",
   deployments = "Deployment",
+  replicasets = "ReplicaSet",
   statefulsets = "StatefulSet",
   daemonsets = "DaemonSet",
   jobs = "Job",

@@ -11,6 +11,7 @@ local subcommands = {
   "close",
   "pods",
   "deployments",
+  "replicasets",
   "statefulsets",
   "daemonsets",
   "jobs",

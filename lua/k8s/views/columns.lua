@@ -115,6 +115,14 @@ local column_definitions = {
     { key = "ports", header = "PORTS" },
     { key = "age", header = "AGE" },
   },
+  ReplicaSet = {
+    { key = "name", header = "NAME" },
+    { key = "namespace", header = "NAMESPACE" },
+    { key = "desired", header = "DESIRED" },
+    { key = "current", header = "CURRENT" },
+    { key = "ready", header = "READY" },
+    { key = "age", header = "AGE" },
+  },
   PortForward = {
     { key = "local_port", header = "LOCAL" },
     { key = "remote_port", header = "REMOTE" },
@@ -407,6 +415,12 @@ function M.extract_row(resource)
       row.message = msg
     end
     row.count = raw.count or 1
+  elseif kind == "ReplicaSet" then
+    local status = raw.status or {}
+    local spec = raw.spec or {}
+    row.desired = spec.replicas or 0
+    row.current = status.replicas or 0
+    row.ready = status.readyReplicas or 0
   end
 
   return row
@@ -428,6 +442,7 @@ local status_column_keys = {
   CronJob = "schedule",
   Event = "type",
   Ingress = "class",
+  ReplicaSet = "ready",
   PortForward = "status",
 }
 
