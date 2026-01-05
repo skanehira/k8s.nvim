@@ -48,6 +48,27 @@ function M.show_resource_menu(setup_keymaps)
     for _, item in ipairs(items) do
       if item.text == choice then
         local kind = item.value
+
+        -- PortForward is a plugin-specific view, not a K8s resource
+        if kind == "PortForward" then
+          local current_view = state.get_current_view()
+          if current_view and current_view.type == "port_forward_list" then
+            return
+          end
+
+          local config = state.get_config() or {}
+          local new_win = window.create_list_view({ transparent = config.transparent })
+          window.mount(new_win)
+
+          local port_forward_view = require("k8s.views.port_forward")
+          local view_state = port_forward_view.create_view({ window = new_win })
+
+          lifecycle.push_view(view_state, setup_keymaps)
+          render.render()
+          break
+        end
+
+        -- K8s resource handling
         local view_type = kind:lower() .. "_list"
 
         -- Check if switching to same resource type
