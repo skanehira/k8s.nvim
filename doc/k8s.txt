@@ -79,7 +79,7 @@ Call `require("k8s").setup()` with optional configuration: >lua
     -- Debug container image for kubectl debug (default: "busybox")
     debug_image = "busybox",
 
-    -- Custom keymaps (optional, organized by view)
+    -- Custom keymaps (optional, organized by view type)
     keymaps = {
       -- Global keymaps (shared across all views)
       global = {
@@ -89,28 +89,16 @@ Call `require("k8s").setup()` with optional configuration: >lua
         forward = { key = "<C-l>", desc = "Forward" },
         help = { key = "?", desc = "Help" },
       },
-      -- List view keymaps
-      list = {
-        select = { key = "<CR>", desc = "Select" },
-        describe = { key = "d", desc = "Describe" },
-        delete = { key = "D", desc = "Delete" },
-        logs = { key = "l", desc = "Logs" },
-        logs_previous = { key = "P", desc = "PrevLogs" },
-        exec = { key = "e", desc = "Exec" },
-        debug = { key = "<leader>d", desc = "Debug" },
-        scale = { key = "s", desc = "Scale" },
-        restart = { key = "X", desc = "Restart" },
-        port_forward = { key = "p", desc = "PortFwd" },
-        port_forward_list = { key = "F", desc = "PortFwdList" },
-        filter = { key = "<C-f>", desc = "Filter" },
-        refresh = { key = "r", desc = "Refresh" },
-        resource_menu = { key = "<C-r>", desc = "Resources" },
-        context_menu = { key = "C", desc = "Context" },
-        namespace_menu = { key = "N", desc = "Namespace" },
-        show_events = { key = "E", desc = "Events" },
+      -- Pod list view keymaps
+      pod_list = {
+        describe = { key = "K", desc = "Describe" },  -- override default
       },
-      -- Describe view keymaps
-      describe = {
+      -- Deployment list view keymaps
+      deployment_list = {
+        scale = { key = "S", desc = "Scale" },  -- override default
+      },
+      -- Secret describe view keymaps
+      secret_describe = {
         toggle_secret = { key = "S", desc = "ToggleSecret" },
       },
       -- Port forward list keymaps
@@ -125,13 +113,20 @@ Call `require("k8s").setup()` with optional configuration: >lua
 keymaps~
   Table of view-specific keymaps. Structure:
     - global: Keymaps shared across all views (quit, close, back, help)
-    - list: Keymaps for resource list views
-    - describe: Keymaps for describe views
+    - pod_list, deployment_list, etc.: Keymaps for specific resource lists
+    - describe: Keymaps for describe views (common)
+    - secret_describe: Keymaps for Secret describe view
     - port_forward_list: Keymaps for port forward list view
-    - help: Keymaps for help view (empty by default, uses global)
+    - help: Keymaps for help view
 
   Each keymap is a table with `key` and `desc` fields.
   Override individual keys without replacing the entire table.
+
+  Available view types:
+    pod_list, deployment_list, replicaset_list, statefulset_list,
+    daemonset_list, job_list, cronjob_list, service_list, configmap_list,
+    secret_list, node_list, namespace_list, ingress_list, event_list,
+    application_list, describe, secret_describe, port_forward_list, help
 
                                                         *k8s-config-timeout*
 timeout~
@@ -201,62 +196,78 @@ debug_image~
 ==============================================================================
 6. KEYMAPS                                                        *k8s-keymaps*
 
-Resource-specific actions (logs, exec, scale, restart, port_forward) are only
-available for resource kinds that support them. See |k8s-resources|.
+Keymaps are defined per view type. Press `?` in any view to see available
+keymaps for that view.
 
-RESOURCE LIST VIEW                                        *k8s-keymaps-list*
+GLOBAL KEYMAPS                                            *k8s-keymaps-global*
 
-  Key       Action            Description~
-  <CR>      select            Select resource (describe)
-  d         describe          Show resource details
-  l         logs              View pod logs (Pod only)
-  P         logs_previous     View previous pod logs (Pod only)
-  e         exec              Execute shell in pod (Pod only)
-  <leader>d debug             Debug pod with ephemeral container (Pod only)
-  p         port_forward      Start port forwarding
-  F         port_forward_list Show active port forwards
-  D         delete            Delete resource
-  s         scale             Scale deployment (Deployment only)
-  X         restart           Restart deployment (Deployment only)
-  r         refresh           Refresh resource list
-  /         filter            Filter resources
-  R         resource_menu     Switch resource kind
-  C         context_menu      Switch context
-  N         namespace_menu    Switch namespace
-  E         show_events       Show events for pod (Pod only)
-  ?         help              Show help
-  q         quit              Hide window
-  <C-c>     close             Close window
-  <C-h>     back              Go back in history
-  <C-l>     forward           Go forward in history
+These keymaps are available in all views.
 
-DESCRIBE VIEW                                          *k8s-keymaps-describe*
+  Key         Action~
+  q           Hide window
+  <C-c>       Close window
+  <C-h>       Go back in history
+  <C-l>       Go forward in history
+  ?           Show help
 
-  Key       Action            Description~
-  S         toggle_secret     Toggle secret visibility (Secret only)
-  ?         help              Show help
-  q         quit              Hide window
-  <C-c>     close             Close window
-  <C-h>     back              Go back in history
-  <C-l>     forward           Go forward in history
+COMMON LIST KEYMAPS                                  *k8s-keymaps-list-common*
 
-PORT FORWARD LIST VIEW                            *k8s-keymaps-port-forward*
+These keymaps are shared by all resource list views.
 
-  Key       Action            Description~
-  D         stop              Stop port forward
-  ?         help              Show help
-  q         quit              Hide window
-  <C-c>     close             Close window
-  <C-h>     back              Go back in history
-  <C-l>     forward           Go forward in history
+  Key         Action~
+  <CR>        Select resource (describe)
+  d           Show resource details
+  <C-f>       Filter resources
+  r           Refresh resource list
+  <C-r>       Switch resource kind
+  C           Switch context
+  N           Switch namespace
+  F           Show active port forwards
 
-HELP VIEW                                                *k8s-keymaps-help*
+LIST VIEW KEYMAPS BY RESOURCE                              *k8s-keymaps-list*
 
-  Key       Action            Description~
-  q         quit              Hide window
-  <C-c>     close             Close window
-  <C-h>     back              Go back in history
-  <C-l>     forward           Go forward in history
+Each resource has different available actions. The table below shows which
+keymaps are available for each resource type.
+
+Common list keymaps (above) are available for all resources.
+
+                                                                             ~
+  Resource     Delete Logs PrevLogs Exec Debug Scale Restart PortFwd Events~
+  Pod            x     x      x      x     x     -      -       x      x
+  Deployment     x     -      -      -     -     x      x       x      -
+  ReplicaSet     x     -      -      -     -     x      -       -      -
+  StatefulSet    x     -      -      -     -     x      x       x      -
+  DaemonSet      x     -      -      -     -     -      x       x      -
+  Job            x     x      x      -     -     -      -       -      -
+  CronJob        x     -      -      -     -     -      -       -      -
+  Service        x     -      -      -     -     -      -       x      -
+  ConfigMap      x     -      -      -     -     -      -       -      -
+  Secret         x     -      -      -     -     -      -       -      -
+  Namespace      x     -      -      -     -     -      -       -      -
+  Ingress        x     -      -      -     -     -      -       -      -
+
+Keys: D=Delete, l=Logs, P=PrevLogs, e=Exec, <leader>d=Debug
+      s=Scale, X=Restart, p=PortFwd, E=Events
+
+Note: Node, Event, Application have common list keymaps only.
+
+DESCRIBE VIEW KEYMAPS                                  *k8s-keymaps-describe*
+
+Global keymaps only. Secret describe view has additional keymap:
+
+  Key         Action~
+  S           Toggle secret visibility (Secret only)
+
+PORT FORWARD LIST VIEW KEYMAPS                    *k8s-keymaps-port-forward*
+
+Global keymaps plus:
+
+  Key         Action~
+  D           Stop port forward
+
+HELP VIEW KEYMAPS                                        *k8s-keymaps-help*
+
+Global keymaps only (except `?` help key).
 
 ==============================================================================
 7. RESOURCES                                                    *k8s-resources*
@@ -275,7 +286,7 @@ Supported Kubernetes resources and their available actions:
   ConfigMap     -     -      -      -       -         -           x
   Secret        -     -      -      -       -         -           x
   Node          -     -      -      -       -         -           -
-  Namespace     -     -      -      -       -         -           -
+  Namespace     -     -      -      -       -         -           x
   Ingress       -     -      -      -       -         -           x
   Event         -     -      -      -       -         -           -
 
