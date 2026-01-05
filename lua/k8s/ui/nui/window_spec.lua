@@ -25,20 +25,9 @@ describe("window", function()
       })
 
       assert.equals(100, config.size.width)
-      -- 30 - 1 (header) - 1 (table_header) - 1 (footer) - 4 (border rows) = 23
-      assert.equals(23, config.size.height)
+      -- 30 - 1 (header) - 1 (table_header) - 3 (border rows) = 25
+      assert.equals(25, config.size.height)
       assert.equals(3, config.position.row)
-    end)
-
-    it("should create config for footer section", function()
-      local config = window.create_popup_config("footer", {
-        width = 100,
-        height = 30,
-      })
-
-      assert.equals(100, config.size.width)
-      assert.equals(1, config.size.height)
-      assert.equals(30, config.position.row)
     end)
   end)
 
@@ -50,7 +39,6 @@ describe("window", function()
       assert.is_nil(state.header)
       assert.is_nil(state.table_header)
       assert.is_nil(state.content)
-      assert.is_nil(state.footer)
     end)
   end)
 
@@ -133,12 +121,6 @@ describe("window", function()
 
       assert.is_false(opts.cursorline)
     end)
-
-    it("should return footer specific options", function()
-      local opts = window.get_window_options("footer")
-
-      assert.is_false(opts.cursorline)
-    end)
   end)
 
   describe("validate_section", function()
@@ -146,7 +128,6 @@ describe("window", function()
       assert.is_true(window.validate_section("header"))
       assert.is_true(window.validate_section("table_header"))
       assert.is_true(window.validate_section("content"))
-      assert.is_true(window.validate_section("footer"))
     end)
 
     it("should return false for invalid sections", function()

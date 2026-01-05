@@ -99,16 +99,6 @@ function M._render(view, win, kind)
     -- Apply YAML syntax highlighting
     vim.bo[content_bufnr].filetype = "yaml"
   end
-
-  -- Update footer
-  local keymaps = require("k8s.views.keymaps")
-  local footer_bufnr = window.get_footer_bufnr(win)
-  if footer_bufnr then
-    local footer_keymaps = keymaps.get_footer_keymaps(view.type)
-    local footer_content = buffer.create_footer_content(footer_keymaps)
-    window.set_lines(footer_bufnr, { footer_content })
-    window.add_highlight(footer_bufnr, "K8sFooter", 0, 0, #footer_content)
-  end
 end
 
 return M

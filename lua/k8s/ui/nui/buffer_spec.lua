@@ -42,31 +42,6 @@ describe("buffer", function()
     end)
   end)
 
-  describe("create_footer_content", function()
-    it("should create footer with keymap hints", function()
-      local keymaps = {
-        { key = "d", action = "describe" },
-        { key = "l", action = "logs" },
-        { key = "q", action = "quit" },
-      }
-
-      local content = buffer.create_footer_content(keymaps)
-
-      assert(content:find("d"))
-      assert(content:find("describe"))
-      assert(content:find("l"))
-      assert(content:find("logs"))
-      assert(content:find("q"))
-      assert(content:find("quit"))
-    end)
-
-    it("should handle empty keymaps", function()
-      local content = buffer.create_footer_content({})
-
-      assert.equals("", content)
-    end)
-  end)
-
   describe("create_table_line", function()
     it("should create table line from columns and row", function()
       local columns = {

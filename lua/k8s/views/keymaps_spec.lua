@@ -115,27 +115,6 @@ describe("keymaps", function()
     end)
   end)
 
-  describe("get_footer_keymaps", function()
-    it("should return footer keymaps for display", function()
-      local footer = keymaps.get_footer_keymaps("pod_list")
-
-      assert(#footer > 0)
-      -- Each item should have key and action
-      for _, km in ipairs(footer) do
-        assert.is.Not.Nil(km.key)
-        assert.is.Not.Nil(km.action)
-      end
-    end)
-
-    it("should return different footer keymaps for describe view", function()
-      local list_footer = keymaps.get_footer_keymaps("pod_list")
-      local describe_footer = keymaps.get_footer_keymaps("pod_describe")
-
-      -- Describe footer should have fewer items
-      assert(#describe_footer < #list_footer)
-    end)
-  end)
-
   describe("get_base_view_type", function()
     it("should return list for list views", function()
       assert.equals("list", keymaps.get_base_view_type("pod_list"))

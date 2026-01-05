@@ -7,15 +7,6 @@ local M = {}
 ---@field action string Action name
 ---@field desc string Description for help
 
--- Footer keymaps for each view type (displayed in footer)
--- These are the actions shown in the footer area
-local footer_actions = {
-  list = { "describe", "logs", "show_events", "delete", "filter", "refresh", "help", "quit" },
-  describe = { "back", "help", "quit" },
-  port_forward_list = { "stop", "back", "quit" },
-  help = { "back", "quit" },
-}
-
 -- Actions that require a resource to be selected
 local resource_required_actions = {
   select = true,
@@ -140,29 +131,6 @@ end
 ---@return boolean
 function M.requires_resource_selection(action)
   return resource_required_actions[action] == true
-end
-
----Get footer keymaps for display
----@param view_type string View type
----@return { key: string, action: string }[]
-function M.get_footer_keymaps(view_type)
-  local base_type = M.get_base_view_type(view_type)
-  local keymaps_config = get_keymaps_config()
-  local global = keymaps_config.global or {}
-  local keymaps_key = get_keymaps_key(view_type)
-  local view_specific = keymaps_config[keymaps_key] or {}
-  local footer_action_list = footer_actions[base_type] or footer_actions.list
-
-  local result = {}
-  for _, action in ipairs(footer_action_list) do
-    -- Get keymap definition from view-specific or global
-    local def = view_specific[action] or global[action]
-    if def then
-      table.insert(result, { key = def.key, action = def.desc })
-    end
-  end
-
-  return result
 end
 
 ---Get key for an action in a view type

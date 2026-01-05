@@ -24,22 +24,6 @@ function M.create_header_content(opts)
   return table.concat(parts, " | ")
 end
 
----Create footer content string
----@param keymaps { key: string, action: string }[]
----@return string content Footer content
-function M.create_footer_content(keymaps)
-  if #keymaps == 0 then
-    return ""
-  end
-
-  local parts = {}
-  for _, km in ipairs(keymaps) do
-    table.insert(parts, string.format("[%s] %s", km.key, km.action))
-  end
-
-  return table.concat(parts, "  ")
-end
-
 ---Create table line from columns and row
 ---@param columns { key: string, header: string }[]
 ---@param widths number[]

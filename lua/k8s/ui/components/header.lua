@@ -1,4 +1,4 @@
---- header.lua - ヘッダー・フッターのフォーマット
+--- header.lua - ヘッダーのフォーマット
 
 local M = {}
 
@@ -29,13 +29,6 @@ function M.format(opts)
   end
 
   return table.concat(parts, " ")
-end
-
----Format footer text with keymaps
----@param keymaps string[] Keymap hints
----@return string text Formatted footer text
-function M.format_footer(keymaps)
-  return table.concat(keymaps, "  ")
 end
 
 return M

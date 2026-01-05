@@ -56,23 +56,4 @@ describe("header", function()
       assert.equals("[Context: minikube] [Namespace: default] [Pods] Filter: nginx Loading...", text)
     end)
   end)
-
-  describe("format_footer", function()
-    it("should format footer with keymaps", function()
-      local text = header.format_footer({
-        "<CR> Select",
-        "d Describe",
-        "l Logs",
-        "? Help",
-      })
-
-      assert.equals("<CR> Select  d Describe  l Logs  ? Help", text)
-    end)
-
-    it("should handle empty keymaps", function()
-      local text = header.format_footer({})
-
-      assert.equals("", text)
-    end)
-  end)
 end)

@@ -8,13 +8,12 @@ local hl_ns = vim.api.nvim_create_namespace("k8s")
 -- Layout constants
 local HEADER_HEIGHT = 1
 local TABLE_HEADER_HEIGHT = 1
-local FOOTER_HEIGHT = 1
 local MIN_WIDTH = 40
 local MIN_HEIGHT = 10
 local DEFAULT_WIDTH_PCT = 0.8
 local DEFAULT_HEIGHT_PCT = 0.8
 
----@alias SectionType "header"|"table_header"|"content"|"footer"
+---@alias SectionType "header"|"table_header"|"content"
 
 ---@alias WindowLayoutType "list"|"detail"
 
@@ -22,7 +21,6 @@ local DEFAULT_HEIGHT_PCT = 0.8
 ---@field header any NuiPopup instance
 ---@field table_header any|nil NuiPopup instance (nil for detail view)
 ---@field content any NuiPopup instance
----@field footer any NuiPopup instance
 ---@field mounted boolean
 ---@field visible boolean
 ---@field size { width: number, height: number }
@@ -35,7 +33,7 @@ function M.validate_section(section)
   if type(section) ~= "string" then
     return false
   end
-  return section == "header" or section == "table_header" or section == "content" or section == "footer"
+  return section == "header" or section == "table_header" or section == "content"
 end
 
 -- Border characters for single style: top-left, top, top-right, right, bottom-right, bottom, bottom-left, left
@@ -44,14 +42,12 @@ local border_chars = {
   header = { "┌", "─", "┐", "│", "┤", "─", "├", "│" },
   -- Table header: sides only (left and right)
   table_header = { "", "", "", "│", "", "", "", "│" },
-  -- Content: sides + bottom separator
-  content = { "", "", "", "│", "┤", "─", "├", "│" },
-  -- Footer: sides + bottom
-  footer = { "", "", "", "│", "┘", "─", "└", "│" },
+  -- Content: sides + bottom (closing the window)
+  content = { "", "", "", "│", "┘", "─", "└", "│" },
 }
 
--- Border rows: header top (1) + header bottom sep (1) + content bottom sep (1) + footer bottom (1) = 4
-local BORDER_ROWS = 4
+-- Border rows: header top (1) + header bottom sep (1) + content bottom (1) = 3
+local BORDER_ROWS = 3
 
 ---Create popup config for a specific section
 ---@param section SectionType
@@ -60,7 +56,7 @@ local BORDER_ROWS = 4
 function M.create_popup_config(section, opts)
   local width = opts.width
   local height = opts.height
-  local content_height = height - HEADER_HEIGHT - TABLE_HEADER_HEIGHT - FOOTER_HEIGHT - BORDER_ROWS
+  local content_height = height - HEADER_HEIGHT - TABLE_HEADER_HEIGHT - BORDER_ROWS
 
   local section_config = {
     header = {
@@ -74,10 +70,6 @@ function M.create_popup_config(section, opts)
     content = {
       height = content_height,
       row = HEADER_HEIGHT + TABLE_HEADER_HEIGHT + 1,
-    },
-    footer = {
-      height = FOOTER_HEIGHT,
-      row = height,
     },
   }
 
@@ -106,7 +98,6 @@ function M.create_window_state()
     header = nil,
     table_header = nil,
     content = nil,
-    footer = nil,
   }
 end
 
@@ -191,7 +182,7 @@ local function get_popup()
   return Popup
 end
 
----Create a list view window (header + table_header + content + footer)
+---Create a list view window (header + table_header + content)
 ---@param opts? { width_pct?: number, height_pct?: number, transparent?: boolean }
 ---@return K8sWindow
 function M.create_list_view(opts)
@@ -202,9 +193,6 @@ function M.create_list_view(opts)
 
   local size = M.calculate_popup_size(screen_width, screen_height, opts)
   local center = M.get_center_position(screen_width, screen_height, size.width, size.height)
-
-  -- content_height for position calculation (with table_header)
-  local content_height = size.height - HEADER_HEIGHT - TABLE_HEADER_HEIGHT - FOOTER_HEIGHT - BORDER_ROWS
 
   -- Create header popup (top border + bottom separator)
   local header_config = M.create_popup_config("header", size)
@@ -227,7 +215,7 @@ function M.create_list_view(opts)
   table_header_config.win_options = M.get_window_options("table_header", opts)
   table_header_config.buf_options = M.get_buffer_options()
 
-  -- Create content popup (bottom separator)
+  -- Create content popup (bottom border - closing the window)
   -- Position: after table_header
   local content_config = M.create_popup_config("content", size)
   content_config.relative = "editor"
@@ -238,23 +226,11 @@ function M.create_list_view(opts)
   content_config.win_options = M.get_window_options("content", opts)
   content_config.buf_options = M.get_buffer_options()
 
-  -- Create footer popup (bottom border)
-  -- Position: after content + content bottom sep (1)
-  local footer_config = M.create_popup_config("footer", size)
-  footer_config.relative = "editor"
-  footer_config.position = {
-    row = center.row + HEADER_HEIGHT + 2 + TABLE_HEADER_HEIGHT + content_height + 1,
-    col = center.col,
-  }
-  footer_config.win_options = M.get_window_options("footer", opts)
-  footer_config.buf_options = M.get_buffer_options()
-
   local PopupClass = get_popup()
   return {
     header = PopupClass(header_config),
     table_header = PopupClass(table_header_config),
     content = PopupClass(content_config),
-    footer = PopupClass(footer_config),
     mounted = false,
     size = size,
     view_type = "list",
@@ -264,14 +240,14 @@ end
 -- Border characters for detail view (no table_header)
 local detail_border_chars = {
   header = { "┌", "─", "┐", "│", "┤", "─", "├", "│" },
-  content = { "", "", "", "│", "┤", "─", "├", "│" },
-  footer = { "", "", "", "│", "┘", "─", "└", "│" },
+  -- Content: sides + bottom (closing the window)
+  content = { "", "", "", "│", "┘", "─", "└", "│" },
 }
 
--- Border rows for detail view: header top (1) + header bottom sep (1) + content bottom sep (1) + footer bottom (1) = 4
-local DETAIL_BORDER_ROWS = 4
+-- Border rows for detail view: header top (1) + header bottom sep (1) + content bottom (1) = 3
+local DETAIL_BORDER_ROWS = 3
 
----Create a detail view window (header + content + footer, no table_header)
+---Create a detail view window (header + content, no table_header)
 ---@param opts? { width_pct?: number, height_pct?: number, transparent?: boolean }
 ---@return K8sWindow
 function M.create_detail_view(opts)
@@ -284,7 +260,7 @@ function M.create_detail_view(opts)
   local center = M.get_center_position(screen_width, screen_height, size.width, size.height)
 
   -- content_height for detail view (no table_header)
-  local content_height = size.height - HEADER_HEIGHT - FOOTER_HEIGHT - DETAIL_BORDER_ROWS
+  local content_height = size.height - HEADER_HEIGHT - DETAIL_BORDER_ROWS
 
   -- Create header popup
   local header_config = {
@@ -296,7 +272,7 @@ function M.create_detail_view(opts)
     buf_options = M.get_buffer_options(),
   }
 
-  -- Create content popup (directly after header)
+  -- Create content popup (directly after header, with bottom border)
   local content_config = {
     border = { style = detail_border_chars.content },
     size = { width = size.width, height = content_height },
@@ -309,25 +285,11 @@ function M.create_detail_view(opts)
     buf_options = M.get_buffer_options(),
   }
 
-  -- Create footer popup
-  local footer_config = {
-    border = { style = detail_border_chars.footer },
-    size = { width = size.width, height = FOOTER_HEIGHT },
-    relative = "editor",
-    position = {
-      row = center.row + HEADER_HEIGHT + 2 + content_height + 1, -- after content + bottom sep
-      col = center.col,
-    },
-    win_options = M.get_window_options("footer", opts),
-    buf_options = M.get_buffer_options(),
-  }
-
   local PopupClass = get_popup()
   return {
     header = PopupClass(header_config),
     table_header = nil, -- No table_header for detail view
     content = PopupClass(content_config),
-    footer = PopupClass(footer_config),
     mounted = false,
     size = size,
     view_type = "detail",
@@ -353,7 +315,6 @@ function M.mount(win)
     win.table_header:mount()
   end
   win.content:mount()
-  win.footer:mount()
   win.mounted = true
   win.visible = true
 
@@ -375,7 +336,6 @@ function M.unmount(win)
     win.table_header:unmount()
   end
   win.content:unmount()
-  win.footer:unmount()
   win.mounted = false
 end
 
@@ -392,7 +352,6 @@ function M.hide(win)
     win.table_header:hide()
   end
   win.content:hide()
-  win.footer:hide()
 end
 
 ---Show the window
@@ -408,7 +367,6 @@ function M.show(win)
     win.table_header:show()
   end
   win.content:show()
-  win.footer:show()
 
   -- Focus on content window (check validity first)
   if win.content.winid and vim.api.nvim_win_is_valid(win.content.winid) then
@@ -490,16 +448,6 @@ end
 function M.get_table_header_bufnr(win)
   if win.table_header and win.table_header.bufnr then
     return win.table_header.bufnr
-  end
-  return nil
-end
-
----Get footer buffer number
----@param win K8sWindow
----@return number|nil
-function M.get_footer_bufnr(win)
-  if win.footer and win.footer.bufnr then
-    return win.footer.bufnr
   end
   return nil
 end
@@ -598,7 +546,7 @@ function M.resize(win)
 
   if win.view_type == "list" then
     -- List view has table_header
-    local content_height = size.height - HEADER_HEIGHT - TABLE_HEADER_HEIGHT - FOOTER_HEIGHT - BORDER_ROWS
+    local content_height = size.height - HEADER_HEIGHT - TABLE_HEADER_HEIGHT - BORDER_ROWS
 
     -- Update header
     win.header:update_layout({
@@ -619,15 +567,9 @@ function M.resize(win)
       size = { width = size.width, height = content_height },
       position = { row = center.row + HEADER_HEIGHT + 2 + TABLE_HEADER_HEIGHT, col = center.col },
     })
-
-    -- Update footer
-    win.footer:update_layout({
-      size = { width = size.width, height = FOOTER_HEIGHT },
-      position = { row = center.row + HEADER_HEIGHT + 2 + TABLE_HEADER_HEIGHT + content_height + 1, col = center.col },
-    })
   else
     -- Detail view (no table_header)
-    local content_height = size.height - HEADER_HEIGHT - FOOTER_HEIGHT - DETAIL_BORDER_ROWS
+    local content_height = size.height - HEADER_HEIGHT - DETAIL_BORDER_ROWS
 
     -- Update header
     win.header:update_layout({
@@ -639,12 +581,6 @@ function M.resize(win)
     win.content:update_layout({
       size = { width = size.width, height = content_height },
       position = { row = center.row + HEADER_HEIGHT + 2, col = center.col },
-    })
-
-    -- Update footer
-    win.footer:update_layout({
-      size = { width = size.width, height = FOOTER_HEIGHT },
-      position = { row = center.row + HEADER_HEIGHT + 2 + content_height + 1, col = center.col },
     })
   end
 end

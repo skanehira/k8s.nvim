@@ -4,7 +4,6 @@
 local M = {}
 
 local buffer = require("k8s.ui.nui.buffer")
-local keymaps = require("k8s.views.keymaps")
 
 -- =============================================================================
 -- View Factory
@@ -95,15 +94,6 @@ function M._render(_, win)
     end
 
     window.set_lines(content_bufnr, lines)
-  end
-
-  -- Update footer
-  local footer_bufnr = window.get_footer_bufnr(win)
-  if footer_bufnr then
-    local footer_keymaps = keymaps.get_footer_keymaps("port_forward_list")
-    local footer_content = buffer.create_footer_content(footer_keymaps)
-    window.set_lines(footer_bufnr, { footer_content })
-    window.add_highlight(footer_bufnr, "K8sFooter", 0, 0, #footer_content)
   end
 end
 

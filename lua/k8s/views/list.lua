@@ -72,7 +72,6 @@ end
 function M._render(view, win, kind)
   local window = require("k8s.ui.nui.window")
   local state = require("k8s.state")
-  local keymaps = require("k8s.views.keymaps")
 
   if not win or not window.is_mounted(win) then
     return
@@ -104,15 +103,6 @@ function M._render(view, win, kind)
     kind = kind,
     restore_cursor = current_cursor,
   })
-
-  -- Update footer
-  local footer_bufnr = window.get_footer_bufnr(win)
-  if footer_bufnr then
-    local footer_keymaps = keymaps.get_footer_keymaps(view.type)
-    local footer_content = buffer.create_footer_content(footer_keymaps)
-    window.set_lines(footer_bufnr, { footer_content })
-    window.add_highlight(footer_bufnr, "K8sFooter", 0, 0, #footer_content)
-  end
 end
 
 -- =============================================================================
