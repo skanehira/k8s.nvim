@@ -10,9 +10,9 @@ local M = {}
 local list_common = {
   select = { key = "<CR>", desc = "Select" },
   describe = { key = "d", desc = "Describe" },
-  filter = { key = "/", desc = "Filter" },
+  filter = { key = "<C-f>", desc = "Filter" },
   refresh = { key = "r", desc = "Refresh" },
-  resource_menu = { key = "R", desc = "Resources" },
+  resource_menu = { key = "<C-r>", desc = "Resources" },
   context_menu = { key = "C", desc = "Context" },
   namespace_menu = { key = "N", desc = "Namespace" },
   port_forward_list = { key = "F", desc = "PortFwdList" },
