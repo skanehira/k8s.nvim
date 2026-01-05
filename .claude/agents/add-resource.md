@@ -1,6 +1,6 @@
 ---
 name: add-resource
-description: 新しいKubernetesリソースをk8s.nvimに追加します。registry.luaにリソース定義を追加するだけで完了します。
+description: 新しいKubernetesリソースをk8s.nvimに追加します。registry.luaにリソース定義を追加し、config.luaにキーマップを追加します。
 tools: Read, Grep, Glob, Edit, Write, Bash, AskUserQuestion
 ---
 
@@ -10,8 +10,9 @@ tools: Read, Grep, Glob, Edit, Write, Bash, AskUserQuestion
 
 ## 概要
 
-リソース追加は **`lua/k8s/resources/registry.lua`** に定義を追加するだけで完了する。
-他のファイルは registry を参照するため、自動的に対応される。
+リソース追加には以下のファイルを更新する:
+1. **`lua/k8s/resources/registry.lua`** - リソース定義（カラム、抽出ロジック）
+2. **`lua/k8s/config.lua`** - キーマップ定義（利用可能なアクション）
 
 ## 使用タイミング
 
@@ -54,19 +55,18 @@ AskUserQuestion で以下を確認:
 - status 系フィールド（phase, conditions など）
 - リソース固有のフィールド
 
-**2. capabilities**（どのアクションを許可するか）:
+**2. 利用可能なアクション**（どのキーマップを設定するか）:
 - `exec`: コンテナ実行（通常 Pod のみ）
 - `logs`: ログ表示（Pod, Job のみ）
 - `scale`: レプリカ数変更
 - `restart`: 再起動（rollout restart）
 - `port_forward`: ポートフォワード
 - `delete`: 削除
-- `filter`: フィルタリング（通常 true）
-- `refresh`: 自動更新（通常 true）
+- `debug`: デバッグコンテナ起動（Pod のみ）
 
 ### ステップ4: 実装
 
-#### 更新するファイル（1ファイルのみ）
+#### 4.1 registry.lua にリソース定義を追加
 
 **`lua/k8s/resources/registry.lua`**
 
@@ -77,16 +77,6 @@ NewResource = {
   kind = "NewResource",
   plural = "newresources",
   display_name = "New Resources",
-  capabilities = {
-    exec = false,
-    logs = false,
-    scale = false,
-    restart = false,
-    port_forward = false,
-    delete = true,
-    filter = true,
-    refresh = true,
-  },
   columns = {
     { key = "name", header = "NAME" },
     { key = "namespace", header = "NAMESPACE" },
@@ -108,6 +98,26 @@ NewResource = {
   end,
 },
 ```
+
+#### 4.2 config.lua にキーマップを追加
+
+**`lua/k8s/config.lua`**
+
+`default_keymaps` テーブルに新しいリソースのキーマップを追加:
+
+```lua
+-- 新しいリソースのリストビュー
+newresource_list = merge_keymaps(list_common, {
+  delete = actions.delete,
+  -- 必要に応じて他のアクションを追加
+  -- port_forward = actions.port_forward,
+}),
+```
+
+**アクションの選択**:
+- `list_common` は全リストビューで共通のキーマップ（select, describe, filter, refresh など）
+- `actions` から利用可能なアクションを選択して追加
+- 利用できないアクションは追加しない（キーマップに表示されなくなる）
 
 #### 必要に応じて追加するファイル
 
@@ -160,8 +170,7 @@ nvim --headless -u tests/minimal_init.lua -c "PlenaryBustedFile lua/k8s/resource
 ```
 
 テストが失敗した場合は、以下を確認:
-- 必須フィールド（kind, plural, display_name, capabilities, columns, status_column_key, extract_row）が全てあるか
-- capabilities に全項目（exec, logs, scale, restart, port_forward, delete, filter, refresh）があるか
+- 必須フィールド（kind, plural, display_name, columns, status_column_key, extract_row）が全てあるか
 - columns の各項目に key と header があるか
 
 ### ステップ7: 動作確認
@@ -169,10 +178,10 @@ nvim --headless -u tests/minimal_init.lua -c "PlenaryBustedFile lua/k8s/resource
 以下を実際に確認:
 
 1. `:K8s <plural>` でリソース一覧が表示されるか
-2. `R` キーでリソースメニューに表示されるか
+2. `<C-r>` キーでリソースメニューに表示されるか
 3. カラムが正しく表示されるか
 4. ステータスハイライトが正しく適用されるか
-5. capabilities で許可したアクションのみキーマップに表示されるか
+5. `?` でヘルプを表示し、設定したアクションのみ表示されるか
 6. `<CR>` で describe が正しく動作するか
 
 ## CRD 対応時の注意
@@ -198,11 +207,14 @@ cluster-scoped リソースの場合:
   - [ ] kind
   - [ ] plural
   - [ ] display_name
-  - [ ] capabilities（全8項目）
   - [ ] columns
   - [ ] status_column_key
   - [ ] extract_status（オプション）
   - [ ] extract_row
+- [ ] `config.lua` の `default_keymaps` にキーマップを追加
+  - [ ] `<kind>_list` キーで定義
+  - [ ] `merge_keymaps(list_common, { ... })` を使用
+  - [ ] 必要なアクションのみ追加
 - [ ] LSP 警告なし
 - [ ] registry テストが通る
 - [ ] 動作確認完了
@@ -217,8 +229,14 @@ grep -A 40 "^  Pod = {" lua/k8s/resources/registry.lua
 
 # Deployment の定義を確認
 grep -A 40 "^  Deployment = {" lua/k8s/resources/registry.lua
+
+# Pod のキーマップ定義を確認
+grep -A 10 "pod_list = " lua/k8s/config.lua
+
+# Deployment のキーマップ定義を確認
+grep -A 10 "deployment_list = " lua/k8s/config.lua
 ```
 
 ---
 
-**重要: リソース追加は registry.lua への追加のみで完了する。他のファイルは自動的に registry を参照する。**
+**重要: リソース追加には registry.lua と config.lua の2ファイルを更新する。registry.lua でリソース定義を追加し、config.lua でキーマップを追加することで、利用可能なアクションが決まる。**

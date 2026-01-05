@@ -40,7 +40,6 @@ lua/k8s/
 │   ├── render.lua           # 集約された描画管理
 │   ├── lifecycle.lua        # View lifecycle管理
 │   ├── actions.lua          # アクション定義
-│   ├── resource.lua         # リソース capabilities
 │   ├── watcher.lua          # kubectl watch 管理
 │   ├── connections.lua      # port-forward 接続管理
 │   └── notify.lua           # 通知
@@ -74,7 +73,7 @@ lua/k8s/
 
 ### Window 構成
 
-各 Window は 4 つのセクション（NuiPopup）で構成：
+各 Window は 3 つのセクション（NuiPopup）で構成：
 
 ```
 ┌─────────────────────────────────┐
@@ -83,10 +82,10 @@ lua/k8s/
 │ Table Header (カラムヘッダー)    │  ← list view のみ
 ├─────────────────────────────────┤
 │ Content (リソース一覧/詳細)      │
-├─────────────────────────────────┤
-│ Footer (キーマップヒント)        │
 └─────────────────────────────────┘
 ```
+
+キーマップはヘルプビュー（`?`キー）で確認できる。
 
 ## 描画システム
 
@@ -188,14 +187,23 @@ render.render()
 
 ## キーマップ設計
 
-キーマップはリソース種別の capabilities に基づいて動的に設定される：
+キーマップは `config.lua` でリソース種別ごとに定義される：
 
 ```lua
--- resource.lua
-capabilities_map = {
-  Pod = { logs = true, exec = true, scale = false, restart = false, ... },
-  Deployment = { logs = false, exec = false, scale = true, restart = true, ... },
-}
+-- config.lua
+pod_list = merge_keymaps(list_common, {
+  delete = actions.delete,
+  logs = actions.logs,
+  exec = actions.exec,
+  port_forward = actions.port_forward,
+  debug = actions.debug,
+}),
+deployment_list = merge_keymaps(list_common, {
+  delete = actions.delete,
+  scale = actions.scale,
+  restart = actions.restart,
+  port_forward = actions.port_forward,
+}),
 ```
 
 **重要**: 使えないアクションは実行時チェックではなく、**キーマップ自体を設定しない**ことで制御する。

@@ -4,14 +4,13 @@
 
 ### リソース種別ごとのアクション制御
 
-各リソース種別（Pod, Deployment, Service など）で利用可能なアクションは `lua/k8s/handlers/resource.lua` の `capabilities_map` で定義されている。
+各リソース種別（Pod, Deployment, Service など）で利用可能なアクションは `lua/k8s/config.lua` のキーマップ定義で決定される。
 
 **重要**: アクション実行時のcapabilityチェックではなく、**キーマップ自体を設定しない**ことで制御する。
 
 #### 正しいアプローチ
 - 各viewのキーマップ設定時に、そのリソース種別で利用可能なアクションのみをマップする
 - ヘルプ画面には利用可能なアクションのみを表示する
-- フッターには利用可能なアクションのみを表示する
 
 #### 間違ったアプローチ
 - すべてのキーマップを設定しておき、実行時にcapabilityをチェックする
@@ -19,35 +18,33 @@
 
 ### 実装箇所
 
-1. **キーマップ設定**: `lua/k8s/views/keymaps.lua`
-   - `get_keymaps(view_type)` でリソース種別に応じたキーマップを返す
-   - リソース固有のアクション（logs, exec, scale, restart, port_forward）はリソース種別をチェックして含める
+1. **キーマップ定義**: `lua/k8s/config.lua`
+   - `default_keymaps` でリソース種別ごとのキーマップを定義
+   - `merge_keymaps()` で共通キーマップとリソース固有キーマップを結合
 
-2. **フッター表示**: `lua/k8s/views/keymaps.lua`
-   - `get_footer_keymaps(view_type)` で表示するキーマップを返す
+2. **キーマップ取得**: `lua/k8s/views/keymaps.lua`
+   - `get_keymaps(view_type)` でリソース種別に応じたキーマップを返す
 
 3. **ヘルプ表示**: `lua/k8s/views/help.lua`
    - `create_content(view_type)` でヘルプ内容を生成
 
-### capabilities_map の定義
+### キーマップ定義の例
 
 ```lua
-Pod = {
-  exec = true,
-  logs = true,
-  scale = false,      -- Pod は scale できない
-  restart = false,    -- Pod は restart できない
-  port_forward = true,
-  delete = true,
-},
-Deployment = {
-  exec = false,       -- Deployment は直接 exec できない
-  logs = false,       -- Deployment は直接 logs できない
-  scale = true,
-  restart = true,
-  port_forward = true,
-  delete = true,
-},
+-- config.lua
+pod_list = merge_keymaps(list_common, {
+  delete = actions.delete,
+  logs = actions.logs,
+  exec = actions.exec,
+  port_forward = actions.port_forward,
+  debug = actions.debug,
+}),
+deployment_list = merge_keymaps(list_common, {
+  delete = actions.delete,
+  scale = actions.scale,
+  restart = actions.restart,
+  port_forward = actions.port_forward,
+}),
 ```
 
 ### 例: Pod リストビューのキーマップ
