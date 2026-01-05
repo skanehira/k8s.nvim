@@ -2,6 +2,17 @@
 
 A Neovim plugin for managing Kubernetes resources.
 
+<table>
+  <tr>
+    <td><img src="https://i.gyazo.com/e50276c903e45ec2995d41f29f0e1d03.png" alt="Image from Gyazo"></a></td>
+    <td><img src="https://i.gyazo.com/91914f58f33455045d90318d9faa6b68.png" alt="Image from Gyazo"></a></td>
+  </tr>
+  <tr>
+    <td><img src="https://i.gyazo.com/db6633005503eb3168e2cac63af093ea.png" alt="Image from Gyazo"></a></td>
+    <td><img src="https://i.gyazo.com/f673d9b3739a8b531a1f943345af1b52.png" alt="Image from Gyazo"></a></td>
+  </tr>
+</table>
+
 ## Features
 
 - Browse and manage Kubernetes resources (Pod, Deployment, Service, ConfigMap, Secret, Node, Namespace)
