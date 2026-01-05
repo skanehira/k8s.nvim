@@ -5,42 +5,36 @@ local extractors = require("k8s.resources.extractors")
 
 local M = {}
 
+---@alias K8sResourceKind
+---| "Pod"
+---| "Deployment"
+---| "ReplicaSet"
+---| "StatefulSet"
+---| "DaemonSet"
+---| "Job"
+---| "CronJob"
+---| "Service"
+---| "ConfigMap"
+---| "Secret"
+---| "Node"
+---| "Namespace"
+---| "Ingress"
+---| "Event"
+---| "Application"
+---| "PortForward"
+
 ---@class Column
 ---@field key string Data key for row extraction
 ---@field header string Display header text
-
----@class ResourceCapabilities
----@field exec boolean
----@field logs boolean
----@field scale boolean
----@field restart boolean
----@field port_forward boolean
----@field delete boolean
----@field debug boolean
----@field filter boolean
----@field refresh boolean
 
 ---@class ResourceDefinition
 ---@field kind string
 ---@field plural string
 ---@field display_name string
----@field capabilities ResourceCapabilities
 ---@field columns Column[]
 ---@field status_column_key string
 ---@field extract_status? fun(item: table): string
 ---@field extract_row fun(resource: table): table
-
-local default_capabilities = {
-  exec = false,
-  logs = false,
-  scale = false,
-  restart = false,
-  port_forward = false,
-  delete = false,
-  debug = false,
-  filter = true,
-  refresh = true,
-}
 
 ---@type table<string, ResourceDefinition>
 M.resources = {
@@ -48,17 +42,6 @@ M.resources = {
     kind = "Pod",
     plural = "pods",
     display_name = "Pods",
-    capabilities = {
-      exec = true,
-      logs = true,
-      scale = false,
-      restart = false,
-      port_forward = true,
-      delete = true,
-      debug = true,
-      filter = true,
-      refresh = true,
-    },
     columns = {
       { key = "name", header = "NAME" },
       { key = "namespace", header = "NAMESPACE" },
@@ -88,16 +71,6 @@ M.resources = {
     kind = "Deployment",
     plural = "deployments",
     display_name = "Deployments",
-    capabilities = {
-      exec = false,
-      logs = false,
-      scale = true,
-      restart = true,
-      port_forward = true,
-      delete = true,
-      filter = true,
-      refresh = true,
-    },
     columns = {
       { key = "name", header = "NAME" },
       { key = "namespace", header = "NAMESPACE" },
@@ -134,16 +107,6 @@ M.resources = {
     kind = "ReplicaSet",
     plural = "replicasets",
     display_name = "ReplicaSets",
-    capabilities = {
-      exec = false,
-      logs = false,
-      scale = true,
-      restart = false,
-      port_forward = false,
-      delete = true,
-      filter = true,
-      refresh = true,
-    },
     columns = {
       { key = "name", header = "NAME" },
       { key = "namespace", header = "NAMESPACE" },
@@ -178,16 +141,6 @@ M.resources = {
     kind = "StatefulSet",
     plural = "statefulsets",
     display_name = "StatefulSets",
-    capabilities = {
-      exec = false,
-      logs = false,
-      scale = true,
-      restart = true,
-      port_forward = true,
-      delete = true,
-      filter = true,
-      refresh = true,
-    },
     columns = {
       { key = "name", header = "NAME" },
       { key = "namespace", header = "NAMESPACE" },
@@ -220,16 +173,6 @@ M.resources = {
     kind = "DaemonSet",
     plural = "daemonsets",
     display_name = "DaemonSets",
-    capabilities = {
-      exec = false,
-      logs = false,
-      scale = false,
-      restart = true,
-      port_forward = true,
-      delete = true,
-      filter = true,
-      refresh = true,
-    },
     columns = {
       { key = "name", header = "NAME" },
       { key = "namespace", header = "NAMESPACE" },
@@ -263,16 +206,6 @@ M.resources = {
     kind = "Job",
     plural = "jobs",
     display_name = "Jobs",
-    capabilities = {
-      exec = false,
-      logs = true,
-      scale = false,
-      restart = false,
-      port_forward = false,
-      delete = true,
-      filter = true,
-      refresh = true,
-    },
     columns = {
       { key = "name", header = "NAME" },
       { key = "namespace", header = "NAMESPACE" },
@@ -315,16 +248,6 @@ M.resources = {
     kind = "CronJob",
     plural = "cronjobs",
     display_name = "CronJobs",
-    capabilities = {
-      exec = false,
-      logs = false,
-      scale = false,
-      restart = false,
-      port_forward = false,
-      delete = true,
-      filter = true,
-      refresh = true,
-    },
     columns = {
       { key = "name", header = "NAME" },
       { key = "namespace", header = "NAMESPACE" },
@@ -366,16 +289,6 @@ M.resources = {
     kind = "Service",
     plural = "services",
     display_name = "Services",
-    capabilities = {
-      exec = false,
-      logs = false,
-      scale = false,
-      restart = false,
-      port_forward = true,
-      delete = true,
-      filter = true,
-      refresh = true,
-    },
     columns = {
       { key = "name", header = "NAME" },
       { key = "namespace", header = "NAMESPACE" },
@@ -409,16 +322,6 @@ M.resources = {
     kind = "ConfigMap",
     plural = "configmaps",
     display_name = "ConfigMaps",
-    capabilities = {
-      exec = false,
-      logs = false,
-      scale = false,
-      restart = false,
-      port_forward = false,
-      delete = true,
-      filter = true,
-      refresh = true,
-    },
     columns = {
       { key = "name", header = "NAME" },
       { key = "namespace", header = "NAMESPACE" },
@@ -445,16 +348,6 @@ M.resources = {
     kind = "Secret",
     plural = "secrets",
     display_name = "Secrets",
-    capabilities = {
-      exec = false,
-      logs = false,
-      scale = false,
-      restart = false,
-      port_forward = false,
-      delete = true,
-      filter = true,
-      refresh = true,
-    },
     columns = {
       { key = "name", header = "NAME" },
       { key = "namespace", header = "NAMESPACE" },
@@ -483,16 +376,6 @@ M.resources = {
     kind = "Node",
     plural = "nodes",
     display_name = "Nodes",
-    capabilities = {
-      exec = false,
-      logs = false,
-      scale = false,
-      restart = false,
-      port_forward = false,
-      delete = false,
-      filter = true,
-      refresh = true,
-    },
     columns = {
       { key = "name", header = "NAME" },
       { key = "status", header = "STATUS" },
@@ -528,16 +411,6 @@ M.resources = {
     kind = "Namespace",
     plural = "namespaces",
     display_name = "Namespaces",
-    capabilities = {
-      exec = false,
-      logs = false,
-      scale = false,
-      restart = false,
-      port_forward = false,
-      delete = true,
-      filter = true,
-      refresh = true,
-    },
     columns = {
       { key = "name", header = "NAME" },
       { key = "status", header = "STATUS" },
@@ -563,16 +436,6 @@ M.resources = {
     kind = "Ingress",
     plural = "ingresses",
     display_name = "Ingresses",
-    capabilities = {
-      exec = false,
-      logs = false,
-      scale = false,
-      restart = false,
-      port_forward = false,
-      delete = true,
-      filter = true,
-      refresh = true,
-    },
     columns = {
       { key = "name", header = "NAME" },
       { key = "namespace", header = "NAMESPACE" },
@@ -628,16 +491,6 @@ M.resources = {
     kind = "Event",
     plural = "events",
     display_name = "Events",
-    capabilities = {
-      exec = false,
-      logs = false,
-      scale = false,
-      restart = false,
-      port_forward = false,
-      delete = false,
-      filter = true,
-      refresh = true,
-    },
     columns = {
       { key = "name", header = "NAME" },
       { key = "namespace", header = "NAMESPACE" },
@@ -680,16 +533,6 @@ M.resources = {
     kind = "Application",
     plural = "applications",
     display_name = "Applications",
-    capabilities = {
-      exec = false,
-      logs = false,
-      scale = false,
-      restart = false,
-      port_forward = false,
-      delete = false,
-      filter = true,
-      refresh = false,
-    },
     columns = {
       { key = "name", header = "NAME" },
       { key = "namespace", header = "NAMESPACE" },
@@ -720,16 +563,6 @@ M.resources = {
     kind = "PortForward",
     plural = "portforwards",
     display_name = "Port Forwards",
-    capabilities = {
-      exec = false,
-      logs = false,
-      scale = false,
-      restart = false,
-      port_forward = false,
-      delete = true,
-      filter = false,
-      refresh = false,
-    },
     columns = {
       { key = "local_port", header = "LOCAL" },
       { key = "remote_port", header = "REMOTE" },
@@ -769,26 +602,6 @@ function M.all_kinds()
   end
   table.sort(kinds)
   return kinds
-end
-
----Get capabilities for a resource kind
----@param kind string
----@return ResourceCapabilities
-function M.capabilities(kind)
-  local def = M.resources[kind]
-  if def then
-    return def.capabilities
-  end
-  return default_capabilities
-end
-
----Check if a resource kind can perform an action
----@param kind string
----@param action string
----@return boolean
-function M.can_perform(kind, action)
-  local caps = M.capabilities(kind)
-  return caps[action] == true
 end
 
 ---Get menu items for resource selection

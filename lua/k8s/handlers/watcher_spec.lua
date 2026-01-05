@@ -219,6 +219,7 @@ describe("watcher", function()
       watcher.start("Pod", "default", {})
 
       -- Simulate event from different namespace (kube-system)
+      assert(captured_callbacks)
       captured_callbacks.on_event("ADDED", {
         kind = "Pod",
         metadata = {
@@ -250,6 +251,7 @@ describe("watcher", function()
       watcher.start("Pod", "default", {})
 
       -- Simulate event from matching namespace
+      assert(captured_callbacks)
       captured_callbacks.on_event("ADDED", {
         kind = "Pod",
         metadata = {
@@ -282,6 +284,7 @@ describe("watcher", function()
       watcher.start("Pod", "All Namespaces", {})
 
       -- Simulate event from kube-system
+      assert(captured_callbacks)
       captured_callbacks.on_event("ADDED", {
         kind = "Pod",
         metadata = {

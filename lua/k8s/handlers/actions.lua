@@ -2,7 +2,6 @@
 
 local M = {}
 
-local resource_mod = require("k8s.handlers.resource")
 local registry = require("k8s.resources.registry")
 
 -- =============================================================================
@@ -26,27 +25,6 @@ function M.format_result(action_type, kind, name, success, error_msg)
   else
     return string.format("Failed to %s %s '%s': %s", action_type, kind, name, error_msg or "unknown error")
   end
-end
-
----Validate if resource can be deleted
----@param kind K8sResourceKind
----@return boolean
-function M.can_delete(kind)
-  return resource_mod.can_perform(kind, "delete")
-end
-
----Validate if resource can be scaled
----@param kind K8sResourceKind
----@return boolean
-function M.can_scale(kind)
-  return resource_mod.can_perform(kind, "scale")
-end
-
----Validate if resource can be restarted
----@param kind K8sResourceKind
----@return boolean
-function M.can_restart(kind)
-  return resource_mod.can_perform(kind, "restart")
 end
 
 -- =============================================================================

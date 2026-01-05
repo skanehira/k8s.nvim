@@ -23,36 +23,6 @@ describe("actions", function()
     end)
   end)
 
-  describe("can_delete", function()
-    it("should return true for Pod", function()
-      assert.is_true(actions.can_delete("Pod"))
-    end)
-
-    it("should return false for Node", function()
-      assert.is_false(actions.can_delete("Node"))
-    end)
-  end)
-
-  describe("can_scale", function()
-    it("should return true for Deployment", function()
-      assert.is_true(actions.can_scale("Deployment"))
-    end)
-
-    it("should return false for Pod", function()
-      assert.is_false(actions.can_scale("Pod"))
-    end)
-  end)
-
-  describe("can_restart", function()
-    it("should return true for Deployment", function()
-      assert.is_true(actions.can_restart("Deployment"))
-    end)
-
-    it("should return false for Pod", function()
-      assert.is_false(actions.can_restart("Pod"))
-    end)
-  end)
-
   describe("is_pod", function()
     it("should return true for Pod", function()
       assert.is_true(actions.is_pod("Pod"))

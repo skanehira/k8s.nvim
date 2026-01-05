@@ -24,15 +24,21 @@ describe("config", function()
       assert.equals("<C-h>", defaults.keymaps.global.back.key)
       assert.equals("?", defaults.keymaps.global.help.key)
 
-      -- Check list keymaps
-      assert(defaults.keymaps.list)
-      assert.equals("d", defaults.keymaps.list.describe.key)
-      assert.equals("D", defaults.keymaps.list.delete.key)
-      assert.equals("l", defaults.keymaps.list.logs.key)
+      -- Check pod_list keymaps (resource-specific)
+      assert(defaults.keymaps.pod_list)
+      assert.equals("d", defaults.keymaps.pod_list.describe.key)
+      assert.equals("D", defaults.keymaps.pod_list.delete.key)
+      assert.equals("l", defaults.keymaps.pod_list.logs.key)
 
-      -- Check describe keymaps
-      assert(defaults.keymaps.describe)
-      assert.equals("S", defaults.keymaps.describe.toggle_secret.key)
+      -- Check deployment_list keymaps (different actions)
+      assert(defaults.keymaps.deployment_list)
+      assert.equals("s", defaults.keymaps.deployment_list.scale.key)
+      assert.equals("X", defaults.keymaps.deployment_list.restart.key)
+      assert.is_nil(defaults.keymaps.deployment_list.logs) -- deployment doesn't have logs
+
+      -- Check secret_describe keymaps
+      assert(defaults.keymaps.secret_describe)
+      assert.equals("S", defaults.keymaps.secret_describe.toggle_secret.key)
 
       -- Check port_forward_list keymaps
       assert(defaults.keymaps.port_forward_list)
@@ -70,18 +76,18 @@ describe("config", function()
     it("should deep merge view-specific keymaps", function()
       local merged = config.merge({
         keymaps = {
-          list = {
+          pod_list = {
             describe = { key = "K", desc = "Custom describe" },
           },
         },
       })
 
       -- Custom keymap applied
-      assert.equals("K", merged.keymaps.list.describe.key)
-      assert.equals("Custom describe", merged.keymaps.list.describe.desc)
+      assert.equals("K", merged.keymaps.pod_list.describe.key)
+      assert.equals("Custom describe", merged.keymaps.pod_list.describe.desc)
 
       -- Other keymaps preserved
-      assert.equals("D", merged.keymaps.list.delete.key)
+      assert.equals("D", merged.keymaps.pod_list.delete.key)
       assert.equals("q", merged.keymaps.global.quit.key)
     end)
 

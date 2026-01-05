@@ -13,7 +13,6 @@ describe("k8s.resources.registry", function()
         "kind",
         "plural",
         "display_name",
-        "capabilities",
         "columns",
         "status_column_key",
         "extract_row",
@@ -22,28 +21,6 @@ describe("k8s.resources.registry", function()
       for kind, def in pairs(registry.resources) do
         for _, field in ipairs(required_fields) do
           assert(def[field], string.format("%s is missing field: %s", kind, field))
-        end
-      end
-    end)
-
-    it("all resources have required capabilities", function()
-      local required_caps = {
-        "exec",
-        "logs",
-        "scale",
-        "restart",
-        "port_forward",
-        "delete",
-        "filter",
-        "refresh",
-      }
-
-      for kind, def in pairs(registry.resources) do
-        for _, cap in ipairs(required_caps) do
-          assert(
-            type(def.capabilities[cap]) == "boolean",
-            string.format("%s.capabilities.%s must be boolean", kind, cap)
-          )
         end
       end
     end)
@@ -99,52 +76,6 @@ describe("k8s.resources.registry", function()
       assert.is_true(kind_set["Pod"])
       assert.is_true(kind_set["Deployment"])
       assert.is_true(kind_set["Service"])
-    end)
-  end)
-
-  describe("capabilities", function()
-    it("returns capabilities for Pod", function()
-      local caps = registry.capabilities("Pod")
-      assert.is_true(caps.exec)
-      assert.is_true(caps.logs)
-      assert.is_false(caps.scale)
-      assert.is_false(caps.restart)
-      assert.is_true(caps.port_forward)
-      assert.is_true(caps.delete)
-    end)
-
-    it("returns capabilities for Deployment", function()
-      local caps = registry.capabilities("Deployment")
-      assert.is_false(caps.exec)
-      assert.is_false(caps.logs)
-      assert.is_true(caps.scale)
-      assert.is_true(caps.restart)
-      assert.is_true(caps.port_forward)
-      assert.is_true(caps.delete)
-    end)
-
-    it("returns default capabilities for unknown kind", function()
-      local caps = registry.capabilities("UnknownKind")
-      assert.is_false(caps.exec)
-      assert.is_false(caps.logs)
-      assert.is_true(caps.filter)
-      assert.is_true(caps.refresh)
-    end)
-  end)
-
-  describe("can_perform", function()
-    it("returns true for allowed actions", function()
-      assert.is_true(registry.can_perform("Pod", "exec"))
-      assert.is_true(registry.can_perform("Pod", "logs"))
-      assert.is_true(registry.can_perform("Deployment", "scale"))
-      assert.is_true(registry.can_perform("Deployment", "restart"))
-    end)
-
-    it("returns false for disallowed actions", function()
-      assert.is_false(registry.can_perform("Pod", "scale"))
-      assert.is_false(registry.can_perform("Pod", "restart"))
-      assert.is_false(registry.can_perform("Deployment", "exec"))
-      assert.is_false(registry.can_perform("Deployment", "logs"))
     end)
   end)
 

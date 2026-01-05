@@ -399,8 +399,9 @@ function M._handle_action(action)
     return
   end
 
-  -- Check if action is allowed for this view type
-  if not keymaps.is_action_allowed(current_view.type, action) then
+  -- Check if action is defined for this view type
+  -- (Actions not in keymaps won't have keys bound, but check anyway for safety)
+  if not keymaps.get_key_for_action(current_view.type, action) then
     return
   end
 

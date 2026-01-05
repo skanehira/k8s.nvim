@@ -156,31 +156,71 @@ describe("keymaps", function()
     end)
   end)
 
-  describe("is_action_allowed", function()
-    it("should allow describe in list view", function()
-      assert.is_true(keymaps.is_action_allowed("pod_list", "describe"))
+  describe("resource-specific keymaps", function()
+    it("should include logs for pod_list but not for deployment_list", function()
+      local pod_kms = keymaps.get_keymaps("pod_list")
+      local deploy_kms = keymaps.get_keymaps("deployment_list")
+
+      local pod_has_logs = false
+      local deploy_has_logs = false
+
+      for _, km in ipairs(pod_kms) do
+        if km.action == "logs" then
+          pod_has_logs = true
+        end
+      end
+      for _, km in ipairs(deploy_kms) do
+        if km.action == "logs" then
+          deploy_has_logs = true
+        end
+      end
+
+      assert.is_true(pod_has_logs)
+      assert.is_false(deploy_has_logs)
     end)
 
-    it("should not allow describe in describe view", function()
-      assert.is_false(keymaps.is_action_allowed("pod_describe", "describe"))
+    it("should include scale for deployment_list but not for pod_list", function()
+      local pod_kms = keymaps.get_keymaps("pod_list")
+      local deploy_kms = keymaps.get_keymaps("deployment_list")
+
+      local pod_has_scale = false
+      local deploy_has_scale = false
+
+      for _, km in ipairs(pod_kms) do
+        if km.action == "scale" then
+          pod_has_scale = true
+        end
+      end
+      for _, km in ipairs(deploy_kms) do
+        if km.action == "scale" then
+          deploy_has_scale = true
+        end
+      end
+
+      assert.is_false(pod_has_scale)
+      assert.is_true(deploy_has_scale)
     end)
 
-    it("should allow back in describe view", function()
-      assert.is_true(keymaps.is_action_allowed("pod_describe", "back"))
-    end)
+    it("should include debug only for pod_list", function()
+      local pod_kms = keymaps.get_keymaps("pod_list")
+      local deploy_kms = keymaps.get_keymaps("deployment_list")
 
-    it("should allow toggle_secret only in secret_describe view", function()
-      assert.is_true(keymaps.is_action_allowed("secret_describe", "toggle_secret"))
-      assert.is_false(keymaps.is_action_allowed("pod_describe", "toggle_secret"))
-      assert.is_false(keymaps.is_action_allowed("configmap_describe", "toggle_secret"))
-    end)
+      local pod_has_debug = false
+      local deploy_has_debug = false
 
-    it("should not allow filter in help view", function()
-      assert.is_false(keymaps.is_action_allowed("help", "filter"))
-    end)
+      for _, km in ipairs(pod_kms) do
+        if km.action == "debug" then
+          pod_has_debug = true
+        end
+      end
+      for _, km in ipairs(deploy_kms) do
+        if km.action == "debug" then
+          deploy_has_debug = true
+        end
+      end
 
-    it("should allow stop in port_forward_list view", function()
-      assert.is_true(keymaps.is_action_allowed("port_forward_list", "stop"))
+      assert.is_true(pod_has_debug)
+      assert.is_false(deploy_has_debug)
     end)
   end)
 end)

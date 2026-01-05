@@ -40,6 +40,35 @@ A Neovim plugin for managing Kubernetes resources.
 
 For detailed documentation, see `:help k8s`.
 
+## Keymap Customization
+
+Keymaps are defined per view type. You can customize them in your setup:
+
+```lua
+{
+  "skanehira/k8s.nvim",
+  dependencies = { "MunifTanjim/nui.nvim" },
+  opts = {
+    keymaps = {
+      -- Global keymaps (all views)
+      global = {
+        quit = { key = "Q", desc = "Hide" },
+      },
+      -- Pod list view
+      pod_list = {
+        describe = { key = "K", desc = "Describe" },
+      },
+      -- Deployment list view
+      deployment_list = {
+        scale = { key = "S", desc = "Scale" },
+      },
+    },
+  },
+}
+```
+
+Available view types: `pod_list`, `deployment_list`, `service_list`, `secret_describe`, etc.
+
 ## License
 
 MIT
