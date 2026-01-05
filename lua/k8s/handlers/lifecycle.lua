@@ -153,4 +153,146 @@ function M.push_detail_view(view_state, setup_keymaps)
   render.render()
 end
 
+---Navigate back in history (cursor-based, non-destructive)
+---@param setup_keymaps SetupKeymapsCallback
+function M.go_back(setup_keymaps)
+  local state = require("k8s.state")
+  local window = require("k8s.ui.nui.window")
+  local render = require("k8s.handlers.render")
+
+  if not state.can_go_back() then
+    return
+  end
+
+  -- Get current view and call on_unmounted
+  local current_view = state.get_current_view()
+  if current_view then
+    M.call_on_unmounted(current_view)
+
+    -- Save cursor position and hide window
+    local current_win = current_view.window
+    if current_win and window.is_mounted(current_win) then
+      local cursor_pos = window.get_cursor(current_win)
+      state.save_current_view_state(cursor_pos, current_win)
+      window.hide(current_win)
+    end
+  end
+
+  -- Move cursor back
+  local prev_view = state.go_back()
+  if not prev_view then
+    return
+  end
+
+  -- Show previous view
+  local prev_win = prev_view.window
+  local config = state.get_config() or {}
+
+  if prev_win and window.is_mounted(prev_win) and window.has_valid_buffers(prev_win) then
+    -- Render before show to prevent stale content flash
+    render.render()
+    window.show(prev_win)
+  else
+    -- Recreate window based on view type
+    if state.is_list_view(prev_view.type) then
+      prev_win = window.create_list_view({ transparent = config.transparent })
+    else
+      prev_win = window.create_detail_view({ transparent = config.transparent })
+    end
+    window.mount(prev_win)
+
+    -- Update view with new window reference
+    state.update_view(function(v)
+      return vim.tbl_extend("force", v, { window = prev_win })
+    end)
+
+    -- Render after mount
+    render.render()
+  end
+
+  state.set_window(prev_win)
+
+  -- Setup keymaps
+  setup_keymaps(prev_win)
+
+  -- Restore cursor position
+  if prev_view.cursor then
+    window.set_cursor(prev_win, prev_view.cursor)
+  end
+
+  -- Call on_mounted for previous view
+  M.call_on_mounted(prev_view)
+end
+
+---Navigate forward in history (cursor-based)
+---@param setup_keymaps SetupKeymapsCallback
+function M.go_forward(setup_keymaps)
+  local state = require("k8s.state")
+  local window = require("k8s.ui.nui.window")
+  local render = require("k8s.handlers.render")
+
+  if not state.can_go_forward() then
+    return
+  end
+
+  -- Get current view and call on_unmounted
+  local current_view = state.get_current_view()
+  if current_view then
+    M.call_on_unmounted(current_view)
+
+    -- Save cursor position and hide window
+    local current_win = current_view.window
+    if current_win and window.is_mounted(current_win) then
+      local cursor_pos = window.get_cursor(current_win)
+      state.save_current_view_state(cursor_pos, current_win)
+      window.hide(current_win)
+    end
+  end
+
+  -- Move cursor forward
+  local next_view = state.go_forward()
+  if not next_view then
+    return
+  end
+
+  -- Show next view
+  local next_win = next_view.window
+  local config = state.get_config() or {}
+
+  if next_win and window.is_mounted(next_win) and window.has_valid_buffers(next_win) then
+    -- Render before show to prevent stale content flash
+    render.render()
+    window.show(next_win)
+  else
+    -- Recreate window based on view type
+    if state.is_list_view(next_view.type) then
+      next_win = window.create_list_view({ transparent = config.transparent })
+    else
+      next_win = window.create_detail_view({ transparent = config.transparent })
+    end
+    window.mount(next_win)
+
+    -- Update view with new window reference
+    state.update_view(function(v)
+      return vim.tbl_extend("force", v, { window = next_win })
+    end)
+
+    -- Render after mount
+    render.render()
+  end
+
+  state.set_window(next_win)
+
+  -- Setup keymaps
+  setup_keymaps(next_win)
+
+  -- Restore cursor position
+  if next_view.cursor then
+    window.set_cursor(next_win, next_view.cursor)
+  end
+
+  -- Call on_mounted for next view
+  M.call_on_mounted(next_view)
+end
+
 return M

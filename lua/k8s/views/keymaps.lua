@@ -49,9 +49,11 @@ local view_allowed_actions = {
     quit = true,
     close = true,
     back = true,
+    forward = true,
   },
   describe = {
     back = true,
+    forward = true,
     quit = true,
     close = true,
     help = true,
@@ -59,6 +61,7 @@ local view_allowed_actions = {
   },
   port_forward_list = {
     back = true,
+    forward = true,
     stop = true,
     quit = true,
     close = true,
@@ -66,6 +69,7 @@ local view_allowed_actions = {
   },
   help = {
     back = true,
+    forward = true,
     quit = true,
     close = true,
   },

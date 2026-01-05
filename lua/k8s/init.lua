@@ -414,6 +414,9 @@ function M._handle_action(action)
   elseif action == "back" then
     M._handle_back()
     return
+  elseif action == "forward" then
+    M._handle_forward()
+    return
   end
 
   -- Resource actions require a selected resource
@@ -477,8 +480,14 @@ end
 ---Handle back action - restore previous view and window
 function M._handle_back()
   local lifecycle = require("k8s.handlers.lifecycle")
-  -- Use lifecycle-aware pop function
-  lifecycle.pop_view(M._setup_keymaps)
+  -- Use lifecycle-aware navigation
+  lifecycle.go_back(M._setup_keymaps)
+end
+
+---Handle forward action - navigate to next view in history
+function M._handle_forward()
+  local lifecycle = require("k8s.handlers.lifecycle")
+  lifecycle.go_forward(M._setup_keymaps)
 end
 
 -- =============================================================================

@@ -322,6 +322,124 @@ describe("state", function()
     end)
   end)
 
+  describe("view history navigation", function()
+    it("should get view cursor position", function()
+      assert.equals(0, state.get_view_cursor())
+
+      state.push_view({ type = "pod_list" })
+
+      assert.equals(1, state.get_view_cursor())
+
+      state.push_view({ type = "pod_describe" })
+
+      assert.equals(2, state.get_view_cursor())
+    end)
+
+    it("should check can_go_back", function()
+      assert.is_false(state.can_go_back())
+
+      state.push_view({ type = "pod_list" })
+      assert.is_false(state.can_go_back())
+
+      state.push_view({ type = "pod_describe" })
+      assert.is_true(state.can_go_back())
+    end)
+
+    it("should check can_go_forward", function()
+      state.push_view({ type = "pod_list" })
+      state.push_view({ type = "pod_describe" })
+
+      assert.is_false(state.can_go_forward())
+
+      state.go_back()
+      assert.is_true(state.can_go_forward())
+
+      state.go_back()
+      -- Can't go back further, but also not at the end
+      assert.is_true(state.can_go_forward())
+    end)
+
+    it("should navigate back without removing views", function()
+      state.push_view({ type = "pod_list" })
+      state.push_view({ type = "pod_describe" })
+      state.push_view({ type = "help" })
+
+      local prev = state.go_back()
+
+      assert(prev)
+      assert.equals("pod_describe", prev.type)
+      -- Stack should still have all 3 views
+      assert.equals(3, #state.get_view_stack())
+      -- Cursor should be at 2
+      assert.equals(2, state.get_view_cursor())
+    end)
+
+    it("should navigate forward", function()
+      state.push_view({ type = "pod_list" })
+      state.push_view({ type = "pod_describe" })
+
+      state.go_back()
+      local next_view = state.go_forward()
+
+      assert(next_view)
+      assert.equals("pod_describe", next_view.type)
+      assert.equals(2, state.get_view_cursor())
+    end)
+
+    it("should return nil when cannot go back", function()
+      state.push_view({ type = "pod_list" })
+
+      local result = state.go_back()
+
+      assert.is_nil(result)
+    end)
+
+    it("should return nil when cannot go forward", function()
+      state.push_view({ type = "pod_list" })
+
+      local result = state.go_forward()
+
+      assert.is_nil(result)
+    end)
+
+    it("should clear forward history on push", function()
+      state.push_view({ type = "pod_list" })
+      state.push_view({ type = "pod_describe" })
+      state.push_view({ type = "help" })
+
+      -- Go back twice
+      state.go_back()
+      state.go_back()
+      assert.equals(1, state.get_view_cursor())
+
+      -- Push new view - should clear forward history
+      state.push_view({ type = "deployment_list" })
+
+      -- Should have only 2 views now
+      assert.equals(2, #state.get_view_stack())
+      assert.equals(2, state.get_view_cursor())
+
+      local current = state.get_current_view()
+      assert(current)
+      assert.equals("deployment_list", current.type)
+
+      -- Should not be able to go forward
+      assert.is_false(state.can_go_forward())
+    end)
+
+    it("should get current view at cursor position", function()
+      state.push_view({ type = "pod_list" })
+      state.push_view({ type = "pod_describe" })
+      state.push_view({ type = "help" })
+
+      state.go_back()
+
+      local current = state.get_current_view()
+      assert(current)
+      assert.equals("pod_describe", current.type)
+    end)
+  end)
+
   describe("utility functions", function()
     it("should get kind from view type", function()
       assert.equals("Pod", state.get_kind_from_view_type("pod_list"))

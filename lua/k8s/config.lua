@@ -9,6 +9,7 @@ local default_keymaps = {
     quit = { key = "q", desc = "Hide" },
     close = { key = "<C-c>", desc = "Close" },
     back = { key = "<C-h>", desc = "Back" },
+    forward = { key = "<C-l>", desc = "Forward" },
     help = { key = "?", desc = "Help" },
   },
   -- List view keymaps

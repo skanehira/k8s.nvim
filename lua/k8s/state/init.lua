@@ -120,27 +120,37 @@ function M.get_view_stack()
   return global.get().view_stack
 end
 
----Get current view (top of stack)
+---Get current view (at cursor position)
 ---@return table|nil
 function M.get_current_view()
-  local stack = global.get().view_stack
-  if #stack == 0 then
+  local state = global.get()
+  local cursor = state.view_stack_cursor
+  if cursor < 1 or cursor > #state.view_stack then
     return nil
   end
-  return stack[#stack]
+  return state.view_stack[cursor]
 end
 
----Push view to stack
+---Push view to stack (clears forward history)
 ---@param view_state table
 function M.push_view(view_state)
   global.update(function(state)
-    local new_stack = vim.list_extend({}, state.view_stack)
+    local cursor = state.view_stack_cursor
+    -- Keep only views up to cursor (clear forward history)
+    local new_stack = {}
+    for i = 1, cursor do
+      new_stack[i] = state.view_stack[i]
+    end
+    -- Add new view
     table.insert(new_stack, view_state)
-    return vim.tbl_extend("force", state, { view_stack = new_stack })
+    return vim.tbl_extend("force", state, {
+      view_stack = new_stack,
+      view_stack_cursor = #new_stack,
+    })
   end)
 end
 
----Pop view from stack
+---Pop view from stack (legacy, use go_back instead)
 ---@return table|nil Popped view
 function M.pop_view()
   local popped = nil
@@ -150,22 +160,78 @@ function M.pop_view()
     end
     local new_stack = vim.list_extend({}, state.view_stack)
     popped = table.remove(new_stack)
-    return vim.tbl_extend("force", state, { view_stack = new_stack })
+    local new_cursor = math.min(state.view_stack_cursor, #new_stack)
+    return vim.tbl_extend("force", state, {
+      view_stack = new_stack,
+      view_stack_cursor = new_cursor,
+    })
   end)
   return popped
 end
 
----Check if can pop (more than 1 view in stack)
+---Check if can pop (more than 1 view in stack) - legacy, use can_go_back
 ---@return boolean
 function M.can_pop_view()
-  return #global.get().view_stack > 1
+  return global.get().view_stack_cursor > 1
 end
 
 ---Clear view stack
 function M.clear_view_stack()
   global.update(function(state)
-    return vim.tbl_extend("force", state, { view_stack = {} })
+    return vim.tbl_extend("force", state, {
+      view_stack = {},
+      view_stack_cursor = 0,
+    })
   end)
+end
+
+-- =============================================================================
+-- View History Navigation API
+-- =============================================================================
+
+---Get current cursor position
+---@return number
+function M.get_view_cursor()
+  return global.get().view_stack_cursor
+end
+
+---Check if can go back in history
+---@return boolean
+function M.can_go_back()
+  return global.get().view_stack_cursor > 1
+end
+
+---Check if can go forward in history
+---@return boolean
+function M.can_go_forward()
+  local state = global.get()
+  return state.view_stack_cursor < #state.view_stack
+end
+
+---Move cursor back (don't remove views)
+---@return table|nil previous view
+function M.go_back()
+  local state = global.get()
+  if state.view_stack_cursor <= 1 then
+    return nil
+  end
+  global.update(function(s)
+    return vim.tbl_extend("force", s, { view_stack_cursor = s.view_stack_cursor - 1 })
+  end)
+  return M.get_current_view()
+end
+
+---Move cursor forward
+---@return table|nil next view
+function M.go_forward()
+  local state = global.get()
+  if state.view_stack_cursor >= #state.view_stack then
+    return nil
+  end
+  global.update(function(s)
+    return vim.tbl_extend("force", s, { view_stack_cursor = s.view_stack_cursor + 1 })
+  end)
+  return M.get_current_view()
 end
 
 -- =============================================================================
@@ -176,12 +242,13 @@ end
 ---@param updater function(view) -> view
 function M.update_view(updater)
   global.update(function(state)
-    if #state.view_stack == 0 then
+    local cursor = state.view_stack_cursor
+    if cursor < 1 or cursor > #state.view_stack then
       return state
     end
     local new_stack = vim.list_extend({}, state.view_stack)
-    local current = new_stack[#new_stack]
-    new_stack[#new_stack] = updater(current)
+    local current = new_stack[cursor]
+    new_stack[cursor] = updater(current)
     return vim.tbl_extend("force", state, { view_stack = new_stack })
   end)
   M.notify()
@@ -247,12 +314,13 @@ end
 ---@param view_type string
 function M.set_view_type(view_type)
   global.update(function(state)
-    if #state.view_stack == 0 then
+    local cursor = state.view_stack_cursor
+    if cursor < 1 or cursor > #state.view_stack then
       return state
     end
     local new_stack = vim.list_extend({}, state.view_stack)
-    local current = new_stack[#new_stack]
-    new_stack[#new_stack] = vim.tbl_extend("force", current, { type = view_type })
+    local current = new_stack[cursor]
+    new_stack[cursor] = vim.tbl_extend("force", current, { type = view_type })
     return vim.tbl_extend("force", state, { view_stack = new_stack })
   end)
 end
@@ -261,28 +329,30 @@ end
 ---@param window table|nil
 function M.set_current_view_window(window)
   global.update(function(state)
-    if #state.view_stack == 0 then
+    local cursor = state.view_stack_cursor
+    if cursor < 1 or cursor > #state.view_stack then
       return state
     end
     local new_stack = vim.list_extend({}, state.view_stack)
-    local current = new_stack[#new_stack]
-    new_stack[#new_stack] = vim.tbl_extend("force", current, { window = window })
+    local current = new_stack[cursor]
+    new_stack[cursor] = vim.tbl_extend("force", current, { window = window })
     return vim.tbl_extend("force", state, { view_stack = new_stack })
   end)
 end
 
 ---Save current view state (cursor and window) without triggering notify
----@param cursor number
+---@param view_cursor number
 ---@param window table|nil
-function M.save_current_view_state(cursor, window)
+function M.save_current_view_state(view_cursor, window)
   global.update(function(state)
-    if #state.view_stack == 0 then
+    local cursor = state.view_stack_cursor
+    if cursor < 1 or cursor > #state.view_stack then
       return state
     end
     local new_stack = vim.list_extend({}, state.view_stack)
-    local current = new_stack[#new_stack]
-    new_stack[#new_stack] = vim.tbl_extend("force", current, {
-      cursor = cursor,
+    local current = new_stack[cursor]
+    new_stack[cursor] = vim.tbl_extend("force", current, {
+      cursor = view_cursor,
       window = window,
     })
     return vim.tbl_extend("force", state, { view_stack = new_stack })
@@ -294,13 +364,14 @@ end
 ---@param job_id number
 function M.set_watcher_job_id(job_id)
   global.update(function(state)
-    if #state.view_stack == 0 then
+    local cursor = state.view_stack_cursor
+    if cursor < 1 or cursor > #state.view_stack then
       return state
     end
     local new_stack = vim.list_extend({}, state.view_stack)
-    local current = new_stack[#new_stack]
+    local current = new_stack[cursor]
     current.watcher_job_id = job_id
-    new_stack[#new_stack] = current
+    new_stack[cursor] = current
     return vim.tbl_extend("force", state, { view_stack = new_stack })
   end)
 end
@@ -308,13 +379,14 @@ end
 ---Clear watcher job_id in current view
 function M.clear_watcher_job_id()
   global.update(function(state)
-    if #state.view_stack == 0 then
+    local cursor = state.view_stack_cursor
+    if cursor < 1 or cursor > #state.view_stack then
       return state
     end
     local new_stack = vim.list_extend({}, state.view_stack)
-    local current = new_stack[#new_stack]
+    local current = new_stack[cursor]
     current.watcher_job_id = nil
-    new_stack[#new_stack] = current
+    new_stack[cursor] = current
     return vim.tbl_extend("force", state, { view_stack = new_stack })
   end)
 end

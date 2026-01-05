@@ -86,6 +86,7 @@ Call `require("k8s").setup()` with optional configuration: >lua
         quit = { key = "q", desc = "Hide" },
         close = { key = "<C-c>", desc = "Close" },
         back = { key = "<C-h>", desc = "Back" },
+        forward = { key = "<C-l>", desc = "Forward" },
         help = { key = "?", desc = "Help" },
       },
       -- List view keymaps
@@ -226,7 +227,8 @@ RESOURCE LIST VIEW                                        *k8s-keymaps-list*
   ?         help              Show help
   q         quit              Hide window
   <C-c>     close             Close window
-  <C-h>     back              Go back
+  <C-h>     back              Go back in history
+  <C-l>     forward           Go forward in history
 
 DESCRIBE VIEW                                          *k8s-keymaps-describe*
 
@@ -235,7 +237,8 @@ DESCRIBE VIEW                                          *k8s-keymaps-describe*
   ?         help              Show help
   q         quit              Hide window
   <C-c>     close             Close window
-  <C-h>     back              Go back to list
+  <C-h>     back              Go back in history
+  <C-l>     forward           Go forward in history
 
 PORT FORWARD LIST VIEW                            *k8s-keymaps-port-forward*
 
@@ -244,14 +247,16 @@ PORT FORWARD LIST VIEW                            *k8s-keymaps-port-forward*
   ?         help              Show help
   q         quit              Hide window
   <C-c>     close             Close window
-  <C-h>     back              Go back
+  <C-h>     back              Go back in history
+  <C-l>     forward           Go forward in history
 
 HELP VIEW                                                *k8s-keymaps-help*
 
   Key       Action            Description~
   q         quit              Hide window
   <C-c>     close             Close window
-  <C-h>     back              Go back
+  <C-h>     back              Go back in history
+  <C-l>     forward           Go forward in history
 
 ==============================================================================
 7. RESOURCES                                                    *k8s-resources*

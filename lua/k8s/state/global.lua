@@ -8,6 +8,7 @@ local M = {}
 ---@field setup_done boolean Whether setup is complete
 ---@field config table|nil Plugin configuration
 ---@field view_stack table[] View stack
+---@field view_stack_cursor number Current view index (1-based)
 ---@field window table|nil Current window reference
 
 ---@type GlobalState
@@ -17,6 +18,7 @@ local state = {
   setup_done = false,
   config = nil,
   view_stack = {},
+  view_stack_cursor = 0,
   window = nil,
 }
 
@@ -32,6 +34,7 @@ function M.get()
     setup_done = state.setup_done,
     config = state.config and vim.deepcopy(state.config) or nil,
     view_stack = state.view_stack, -- Keep reference to original stack
+    view_stack_cursor = state.view_stack_cursor,
     window = state.window,
   }
 end
@@ -50,6 +53,7 @@ function M.reset()
     setup_done = false,
     config = nil,
     view_stack = {},
+    view_stack_cursor = 0,
     window = nil,
   }
 end
