@@ -507,7 +507,11 @@ Node:         minikube/192.168.49.2
       adapter._set_executor(function(_, _)
         return {
           wait = function()
-            return { code = 1, stdout = "", stderr = "Unable to connect to the server: dial tcp 127.0.0.1:6443: connect: connection refused" }
+            return {
+              code = 1,
+              stdout = "",
+              stderr = "Unable to connect to the server: dial tcp 127.0.0.1:6443: connect: connection refused",
+            }
           end,
         }
       end)
