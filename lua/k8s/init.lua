@@ -191,6 +191,17 @@ function M.open(opts)
     return
   end
 
+  -- Check kubectl connection
+  local adapter = require("k8s.adapters.kubectl.adapter")
+  local conn_result = adapter.check_connection()
+  if not conn_result.ok then
+    vim.notify(
+      "k8s.nvim: Failed to connect to Kubernetes cluster.\n" .. (conn_result.error or ""),
+      vim.log.levels.ERROR
+    )
+    return
+  end
+
   -- Check if window already exists
   local win = state.get_window()
   if win then

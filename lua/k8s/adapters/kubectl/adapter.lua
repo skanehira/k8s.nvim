@@ -323,6 +323,17 @@ function M.use_context(name, callback)
   run_async(cmd, void_result, callback)
 end
 
+---Check kubectl connection to cluster (synchronous)
+---@return K8sResult
+function M.check_connection()
+  local cmd = { "kubectl", "version", "--request-timeout=5s" }
+  local result = executor(cmd, { text = true }):wait(6000)
+  if result.code ~= 0 then
+    return err(result.stderr or "Failed to connect to Kubernetes cluster")
+  end
+  return ok(nil)
+end
+
 ---Get list of namespaces
 ---@param callback fun(result: K8sResult)
 function M.get_namespaces(callback)
