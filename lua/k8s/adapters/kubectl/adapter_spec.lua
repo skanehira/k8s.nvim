@@ -487,6 +487,81 @@ Node:         minikube/192.168.49.2
     end)
   end)
 
+  describe("check_connection", function()
+    it("should return ok when connection succeeds", function()
+      adapter._set_executor(function(_, _)
+        return {
+          wait = function()
+            return { code = 0, stdout = "Client Version: ...\nServer Version: ...", stderr = "" }
+          end,
+        }
+      end)
+
+      local result = adapter.check_connection()
+
+      assert.is_true(result.ok)
+      assert.is_nil(result.error)
+    end)
+
+    it("should return error when connection fails", function()
+      adapter._set_executor(function(_, _)
+        return {
+          wait = function()
+            return {
+              code = 1,
+              stdout = "",
+              stderr = "Unable to connect to the server: dial tcp 127.0.0.1:6443: connect: connection refused",
+            }
+          end,
+        }
+      end)
+
+      local result = adapter.check_connection()
+
+      assert.is_false(result.ok)
+      assert(result.error)
+      assert.is_true(result.error:find("Unable to connect") ~= nil)
+    end)
+
+    it("should use fallback message when stderr is nil", function()
+      adapter._set_executor(function(_, _)
+        return {
+          wait = function()
+            return { code = 1, stdout = "", stderr = nil }
+          end,
+        }
+      end)
+
+      local result = adapter.check_connection()
+
+      assert.is_false(result.ok)
+      assert(result.error)
+      assert.equals("Failed to connect to Kubernetes cluster", result.error)
+    end)
+
+    it("should pass correct command arguments", function()
+      local captured_cmd, captured_opts
+      adapter._set_executor(function(cmd, opts)
+        captured_cmd = cmd
+        captured_opts = opts
+        return {
+          wait = function()
+            return { code = 0, stdout = "", stderr = "" }
+          end,
+        }
+      end)
+
+      adapter.check_connection()
+
+      assert(captured_cmd)
+      assert.equals("kubectl", captured_cmd[1])
+      assert.equals("version", captured_cmd[2])
+      assert.equals("--request-timeout=5s", captured_cmd[3])
+      assert(captured_opts)
+      assert.is_true(captured_opts.text)
+    end)
+  end)
+
   describe("get_contexts", function()
     it("should return list of contexts", function()
       adapter._set_executor(function(_, _, callback)

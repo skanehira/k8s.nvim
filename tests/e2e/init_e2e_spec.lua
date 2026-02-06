@@ -4,6 +4,7 @@ describe("k8s.nvim E2E", function()
   local k8s
   local state
   local watch_adapter
+  local adapter
 
   -- Mock buffers for window sections
   local mock_buffer_lines = {}
@@ -53,6 +54,7 @@ describe("k8s.nvim E2E", function()
     package.loaded["k8s.ui.nui.window"] = nil
     package.loaded["k8s.views.list"] = nil
     package.loaded["k8s.views.keymaps"] = nil
+    package.loaded["k8s.adapters.kubectl.adapter"] = nil
 
     -- Reset mock state
     mock_buffer_lines = {}
@@ -123,6 +125,22 @@ describe("k8s.nvim E2E", function()
       return 12345 -- Mock job ID
     end)
 
+    -- Mock adapter for check_connection (must succeed for normal tests)
+    adapter = require("k8s.adapters.kubectl.adapter")
+    adapter._set_executor(function(_, _, callback)
+      -- For check_connection (synchronous, no callback)
+      if not callback then
+        return {
+          wait = function()
+            return { code = 0, stdout = "Client Version: ...\nServer Version: ...", stderr = "" }
+          end,
+        }
+      end
+      -- For async calls, return success
+      callback({ code = 0, stdout = "{}", stderr = "" })
+      return { wait = function() end }
+    end)
+
     -- Load k8s module (uses mocked window module)
     k8s = require("k8s")
   end)
@@ -133,6 +151,7 @@ describe("k8s.nvim E2E", function()
       k8s.close()
     end)
     watch_adapter._reset_job_starter()
+    adapter._reset_executor()
     mock_events = {}
   end)
 
@@ -341,6 +360,30 @@ describe("k8s.nvim E2E", function()
 
       k8s.close()
 
+      assert.is_nil(state.get_window())
+      assert.same({}, state.get_view_stack())
+    end)
+  end)
+
+  describe("connection check", function()
+    it("should not create window when connection fails", function()
+      -- Override executor to simulate connection failure
+      adapter._set_executor(function(_, _, callback)
+        if not callback then
+          return {
+            wait = function()
+              return { code = 1, stdout = "", stderr = "Unable to connect to the server" }
+            end,
+          }
+        end
+        callback({ code = 0, stdout = "{}", stderr = "" })
+        return { wait = function() end }
+      end)
+
+      mock_events = {}
+      k8s.open()
+
+      -- Window should not be created
       assert.is_nil(state.get_window())
       assert.same({}, state.get_view_stack())
     end)
