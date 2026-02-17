@@ -251,4 +251,52 @@ function M.calculate_job_duration(start_time, end_time)
   end
 end
 
+---Extract PVC capacity
+---@param raw table Raw resource data
+---@return string capacity Allocated capacity or empty string
+function M.extract_pvc_capacity(raw)
+  local status = raw.status or {}
+  local capacity = status.capacity and status.capacity.storage
+  if capacity then
+    return capacity
+  end
+  return ""
+end
+
+---Abbreviate access modes like kubectl does
+---@param modes string[]|nil
+---@return string access_modes Comma-separated abbreviated access modes
+local function format_access_modes(modes)
+  if not modes or #modes == 0 then
+    return ""
+  end
+  local abbrev = {
+    ReadWriteOnce = "RWO",
+    ReadOnlyMany = "ROX",
+    ReadWriteMany = "RWX",
+    ReadWriteOncePod = "RWOP",
+  }
+  local result = {}
+  for _, mode in ipairs(modes) do
+    table.insert(result, abbrev[mode] or mode)
+  end
+  return table.concat(result, ",")
+end
+
+---Extract PV access modes
+---@param raw table Raw resource data
+---@return string access_modes Comma-separated access modes
+function M.extract_pv_access_modes(raw)
+  local spec = raw.spec or {}
+  return format_access_modes(spec.accessModes)
+end
+
+---Extract PVC access modes
+---@param raw table Raw resource data
+---@return string access_modes Comma-separated access modes
+function M.extract_pvc_access_modes(raw)
+  local spec = raw.spec or {}
+  return format_access_modes(spec.accessModes)
+end
+
 return M

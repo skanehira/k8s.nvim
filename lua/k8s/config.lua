@@ -130,6 +130,16 @@ local default_keymaps = {
     delete = actions.delete,
   }),
 
+  -- PersistentVolume: delete (cluster-scoped)
+  persistentvolume_list = merge_keymaps(list_common, {
+    delete = actions.delete,
+  }),
+
+  -- PersistentVolumeClaim: delete
+  persistentvolumeclaim_list = merge_keymaps(list_common, {
+    delete = actions.delete,
+  }),
+
   -- Node: (no delete, no special actions)
   node_list = merge_keymaps(list_common, {}),
 
