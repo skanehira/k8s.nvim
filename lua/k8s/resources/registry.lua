@@ -21,6 +21,8 @@ local M = {}
 ---| "Ingress"
 ---| "Event"
 ---| "Application"
+---| "PersistentVolume"
+---| "PersistentVolumeClaim"
 ---| "PortForward"
 
 ---@class Column
@@ -555,6 +557,81 @@ M.resources = {
         age = resource.age,
         sync_status = status.sync and status.sync.status or "Unknown",
         health_status = status.health and status.health.status or "Unknown",
+      }
+    end,
+  },
+
+  PersistentVolume = {
+    kind = "PersistentVolume",
+    plural = "persistentvolumes",
+    display_name = "PersistentVolumes",
+    columns = {
+      { key = "name", header = "NAME" },
+      { key = "capacity", header = "CAPACITY" },
+      { key = "access_modes", header = "ACCESS MODES" },
+      { key = "reclaim_policy", header = "RECLAIM POLICY" },
+      { key = "status", header = "STATUS" },
+      { key = "claim", header = "CLAIM" },
+      { key = "storage_class", header = "STORAGECLASS" },
+      { key = "age", header = "AGE" },
+    },
+    status_column_key = "status",
+    extract_status = function(item)
+      return item.status and item.status.phase or "Unknown"
+    end,
+    extract_row = function(resource)
+      local raw = resource.raw or {}
+      local spec = raw.spec or {}
+      local status = raw.status or {}
+      local claim_ref = spec.claimRef
+      local claim = ""
+      if claim_ref then
+        claim = string.format("%s/%s", claim_ref.namespace or "", claim_ref.name or "")
+      end
+      return {
+        name = resource.name,
+        namespace = resource.namespace,
+        status = status.phase or resource.status,
+        age = resource.age,
+        capacity = spec.capacity and spec.capacity.storage or "",
+        access_modes = extractors.extract_pv_access_modes(raw),
+        reclaim_policy = spec.persistentVolumeReclaimPolicy or "",
+        claim = claim,
+        storage_class = spec.storageClassName or "",
+      }
+    end,
+  },
+
+  PersistentVolumeClaim = {
+    kind = "PersistentVolumeClaim",
+    plural = "persistentvolumeclaims",
+    display_name = "PersistentVolumeClaims",
+    columns = {
+      { key = "name", header = "NAME" },
+      { key = "namespace", header = "NAMESPACE" },
+      { key = "status", header = "STATUS" },
+      { key = "volume", header = "VOLUME" },
+      { key = "capacity", header = "CAPACITY" },
+      { key = "access_modes", header = "ACCESS MODES" },
+      { key = "storage_class", header = "STORAGECLASS" },
+      { key = "age", header = "AGE" },
+    },
+    status_column_key = "status",
+    extract_status = function(item)
+      return item.status and item.status.phase or "Unknown"
+    end,
+    extract_row = function(resource)
+      local raw = resource.raw or {}
+      local spec = raw.spec or {}
+      return {
+        name = resource.name,
+        namespace = resource.namespace,
+        status = resource.status,
+        age = resource.age,
+        volume = spec.volumeName or "",
+        capacity = extractors.extract_pvc_capacity(raw),
+        access_modes = extractors.extract_pvc_access_modes(raw),
+        storage_class = spec.storageClassName or "",
       }
     end,
   },

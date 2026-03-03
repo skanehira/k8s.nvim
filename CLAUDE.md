@@ -6,6 +6,20 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 k8s.nvim は Neovim 用の Kubernetes リソース管理プラグイン。NuiPopup ベースの UI で Pod, Deployment, Service などのリソースを一覧・詳細表示し、各種操作（logs, exec, port-forward, scale, restart, delete）を提供する。
 
+## Requirements
+
+- Neovim >= 0.10.0
+- kubectl（クラスタアクセス設定済み）
+- nui.nvim
+
+## コマンド
+
+```vim
+:K8s              " ウィンドウのトグル
+:K8s pods         " Pod ビューで開く
+:K8s deployments  " Deployment ビューで開く
+```
+
 ## ビルド・テストコマンド
 
 ```bash
@@ -19,40 +33,15 @@ nvim --headless -u tests/minimal_init.lua -c "PlenaryBustedFile lua/k8s/path/to/
 
 ## アーキテクチャ
 
-### ディレクトリ構成
+### 主要コンポーネント
 
-```
-lua/k8s/
-├── init.lua                 # エントリポイント、UI lifecycle、アクション実行
-├── config.lua               # 設定管理
-├── state/                   # 状態管理
-│   ├── init.lua             # State facade
-│   ├── global.lua           # グローバル状態（context, namespace, window）
-│   └── view.lua             # View 状態定義と操作
-├── views/                   # View 層（render, lifecycle）
-│   ├── list.lua             # リスト表示
-│   ├── describe.lua         # 詳細表示
-│   ├── help.lua             # ヘルプ表示
-│   ├── port_forward.lua     # ポートフォワード一覧
-│   ├── keymaps.lua          # キーマップ定義
-│   └── columns.lua          # カラム定義
-├── handlers/                # ビジネスロジック
-│   ├── render.lua           # 集約された描画管理
-│   ├── lifecycle.lua        # View lifecycle管理
-│   ├── actions.lua          # アクション定義
-│   ├── watcher.lua          # kubectl watch 管理
-│   ├── connections.lua      # port-forward 接続管理
-│   └── notify.lua           # 通知
-├── adapters/kubectl/        # kubectl アダプター
-│   ├── adapter.lua          # kubectl コマンド実行
-│   ├── watch.lua            # kubectl watch
-│   └── parser.lua           # JSON パース
-└── ui/                      # UI コンポーネント
-    ├── nui/                  # NuiPopup ラッパー
-    │   ├── window.lua        # ウィンドウ操作
-    │   └── buffer.lua        # バッファ操作
-    └── components/           # UI パーツ
-```
+- `init.lua`: エントリポイント、UI lifecycle
+- `config.lua`: 設定管理、リソース種別ごとのキーマップ定義
+- `state/`: 状態管理（global.lua: context/namespace/window、view.lua: View状態）
+- `views/`: View層（list, describe, help, port_forward）
+- `handlers/`: ビジネスロジック（render, lifecycle, actions, watcher, connections）
+- `adapters/kubectl/`: kubectl コマンド実行、watch、JSONパース
+- `ui/nui/`: NuiPopup ラッパー（window, buffer操作）
 
 ### View Stack アーキテクチャ
 
@@ -185,77 +174,11 @@ render.render()
 2. **closure で状態をキャプチャしない**: 状態変更が反映されない
 3. **状態更新後は notify() を呼ぶ**: リスナーに変更を通知
 
-## キーマップ設計
-
-キーマップは `config.lua` でリソース種別ごとに定義される：
-
-```lua
--- config.lua
-pod_list = merge_keymaps(list_common, {
-  delete = actions.delete,
-  logs = actions.logs,
-  exec = actions.exec,
-  port_forward = actions.port_forward,
-  debug = actions.debug,
-}),
-deployment_list = merge_keymaps(list_common, {
-  delete = actions.delete,
-  scale = actions.scale,
-  restart = actions.restart,
-  port_forward = actions.port_forward,
-}),
-```
-
-**重要**: 使えないアクションは実行時チェックではなく、**キーマップ自体を設定しない**ことで制御する。
-
 ## テスト
 
-テストファイルは対象ファイルと同じディレクトリに `_spec.lua` サフィックスで配置（コロケーション）：
+テストファイルは対象ファイルと同じディレクトリに `_spec.lua` サフィックスで配置（コロケーション）。
+詳細なテストルールは `.claude/rules/testing.md` を参照。
 
-```
-lua/k8s/views/
-├── list.lua
-├── list_spec.lua
-├── columns.lua
-└── columns_spec.lua
-```
+## 実装ルール
 
-### luassert 構文
-
-```lua
--- OK
-assert.is.Not.Nil(value)
-assert.is_nil(value)
-assert.is_true(value)
-assert.equals(expected, actual)
-
--- NG（スネークケースは使えない）
-assert.is_not_nil(value)
-```
-
-### nil チェック後のフィールドアクセス
-
-```lua
--- OK: assert() で型を絞り込む
-local conn = connections.get(123)
-assert(conn)
-assert.equals(123, conn.job_id)
-
--- NG: LSP が warning を出す
-local conn = connections.get(123)
-assert.is.Not.Nil(conn)
-assert.equals(123, conn.job_id)  -- need-check-nil warning
-```
-
-## Terminal操作
-
-`vim.fn.jobstart(..., {term=true})` は**未変更バッファ**が必要：
-
-```lua
--- NG: 現在のバッファが変更済みだとエラー
-vim.fn.jobstart(cmd, { term = true })
-
--- OK: 新しいタブを開いてからターミナルを起動
-vim.cmd("tabnew")
-vim.fn.jobstart(cmd, { term = true })
-```
+キーマップ設計、State管理、Terminal操作の詳細は `.claude/rules/implementation.md` を参照。
