@@ -45,9 +45,7 @@ end
 ---@param _ ViewState (unused, but required for lifecycle interface)
 function M._on_mounted(_)
   -- Describe view doesn't need watcher
-  -- Just trigger render
-  local state = require("k8s.state")
-  state.notify()
+  -- Render is already done by push_detail_view before mount
 end
 
 ---Called when view is unmounted (hidden)
@@ -65,7 +63,7 @@ function M._render(view, win, kind)
   local state = require("k8s.state")
   local secret_mask = require("k8s.ui.components.secret_mask")
 
-  if not win or not window.is_mounted(win) then
+  if not win or not window.has_valid_buffers(win) then
     return
   end
 

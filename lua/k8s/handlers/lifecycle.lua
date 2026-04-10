@@ -131,26 +131,47 @@ function M.pop_view(setup_keymaps)
 end
 
 ---Push a detail view with a new window using lifecycle management
+---Renders content to buffers before mounting to prevent empty window flash.
+---The mount happens before hide so the new window overlays the old one seamlessly.
 ---@param view_state ViewState View state to push (must have on_mounted, on_unmounted, render)
 ---@param setup_keymaps SetupKeymapsCallback
 function M.push_detail_view(view_state, setup_keymaps)
   local state = require("k8s.state")
   local window = require("k8s.ui.nui.window")
-  local render = require("k8s.handlers.render")
   local config = state.get_config() or {}
 
-  -- Create new detail view window
+  -- Create new detail view window (buffers exist but not visible yet)
   local new_win = window.create_detail_view({ transparent = config.transparent })
-  window.mount(new_win)
-
-  -- Store window reference in view state
   view_state.window = new_win
 
-  -- Use lifecycle-aware push
-  M.push_view(view_state, setup_keymaps)
+  -- Render content to buffers before mount (prevents empty window flash)
+  -- NuiPopup creates buffers during init(), so they are writable before mount()
+  if view_state.render then
+    view_state.render(view_state, new_win)
+  end
 
-  -- Render immediately
-  render.render()
+  -- Mount new window ON TOP of old window (content already rendered)
+  -- This ensures no gap where no floating window exists on screen
+  window.mount(new_win)
+
+  -- Now handle old view lifecycle (old window is behind new, change is invisible)
+  local current_view = state.get_current_view()
+  if current_view then
+    M.call_on_unmounted(current_view)
+
+    local current_win = current_view.window or state.get_window()
+    if current_win and window.is_mounted(current_win) then
+      local cursor_pos = window.get_cursor(current_win)
+      state.save_current_view_state(cursor_pos, current_win)
+      window.hide(current_win)
+    end
+  end
+
+  -- Update state + keymaps + on_mounted
+  state.push_view(view_state)
+  state.set_window(new_win)
+  setup_keymaps(new_win)
+  M.call_on_mounted(view_state)
 end
 
 ---Navigate back in history (cursor-based, non-destructive)
